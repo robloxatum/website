@@ -1129,10 +1129,12 @@ begin
   assert (select nickname from public.profiles where id = auth.uid()) is null,
     'members can clear their own nickname';
 
-  begin
-    update public.profiles set full_name = 'Someone Else' where id = auth.uid();
-    raise exception 'FAIL: member edited their own name';
-  exception when insufficient_privilege then null; end;
+  -- Ignored rather than refused, so the older site version keeps saving.
+  update public.profiles set full_name = 'Someone Else', roblox_username = 'Nora_Builds2' where id = auth.uid();
+  assert (select full_name from public.profiles where id = auth.uid()) = 'Nora Newbie',
+    'members cannot change their own name';
+  assert (select roblox_username from public.profiles where id = auth.uid()) = 'Nora_Builds2',
+    'the rest of a save that includes full_name still goes through';
 
   update public.profiles set nickname = 'Hacked' where id = '00000000-0000-0000-0000-00000000000b';
   get diagnostics v_rows = row_count;

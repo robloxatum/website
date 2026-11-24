@@ -1,7 +1,7 @@
 -- Locked name + optional nickname.
 --
--- * full_name now comes only from the member's U-M Google account: members can
---   no longer edit it, and it's refreshed from Google's profile data each time
+-- * full_name now comes only from the member's U-M Google account: members'
+--   edits to it are ignored, and it's refreshed from Google's profile data each time
 --   they sign in (when Google sends a non-empty name).
 -- * nickname (optional) is what the site calls the member. Same visibility as
 --   the rest of the profile (the existing profiles policies: members read and
@@ -12,7 +12,28 @@
 -- Name: read-only for members
 -------------------------------------------------------------------------------
 
-revoke update (full_name) on public.profiles from authenticated;
+-- A trigger (not a column revoke) so the site version deployed before this
+-- change, which still sends full_name when saving a profile, keeps working:
+-- the API roles' changes to full_name are just ignored. Supabase Auth and the
+-- sync below run as other roles and still update it.
+create or replace function private.keep_full_name()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if current_user in ('authenticated', 'anon') then
+    new.full_name := old.full_name;
+  end if;
+  return new;
+end;
+$$;
+
+revoke execute on function private.keep_full_name() from public, anon, authenticated;
+
+create trigger profiles_keep_full_name
+  before update of full_name on public.profiles
+  for each row execute function private.keep_full_name();
 
 -- Keep the name in step with Google. Supabase Auth rewrites raw_user_meta_data
 -- from the identity provider on sign-in.
