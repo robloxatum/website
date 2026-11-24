@@ -9,7 +9,7 @@ import { getOfficer } from "@/lib/auth";
 import { isUuid } from "@/lib/events";
 import { headshotsFor } from "@/lib/roblox";
 import { ManageEventView } from "../../_components/ManageEventView";
-import { getAttendees, getGameLink, getOfficerEvent } from "../../data";
+import { getAttendees, getGameLink, getOfficerEvent, getRsvps } from "../../data";
 
 export const metadata: Metadata = { title: "Manage event" };
 
@@ -32,16 +32,25 @@ async function ManageEvent({ params, searchParams }: PageProps<"/officer/events/
   if (!(await getOfficer(`/officer/events/${id}`))) return <OfficersOnly />;
   if (!isUuid(id)) notFound();
 
-  const [data, attendees, gameLink] = await Promise.all([getOfficerEvent(id), getAttendees(id), getGameLink(id)]);
+  const [data, attendees, gameLink, rsvps] = await Promise.all([
+    getOfficerEvent(id),
+    getAttendees(id),
+    getGameLink(id),
+    getRsvps(id),
+  ]);
   if (!data) notFound();
   // Roblox headshots (cached ~1 hour; null → initial-letter icon).
-  const avatars = await headshotsFor(attendees.map((a) => a.profiles ?? {}));
+  const [avatars, rsvpAvatars] = await Promise.all([
+    headshotsFor(attendees.map((a) => a.profiles ?? {})),
+    headshotsFor(rsvps.map((r) => r.profiles ?? {})),
+  ]);
   return (
     <ManageEventView
       event={data.event}
       code={data.code}
       attendees={attendees.map((a, i) => ({ ...a, avatar: avatars[i] }))}
       gameLink={gameLink}
+      rsvps={rsvps.map((r, i) => ({ ...r, avatar: rsvpAvatars[i] }))}
       saved={!!saved}
     />
   );

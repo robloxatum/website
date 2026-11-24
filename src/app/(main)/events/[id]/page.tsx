@@ -8,6 +8,7 @@ import { EventCover } from "@/components/art/Art";
 import { FlyerViewer } from "@/components/events/FlyerViewer";
 import { AddToCalendar } from "@/components/events/AddToCalendar";
 import { JoinGameIfCheckedIn } from "@/components/events/JoinGame";
+import { RsvpToggle } from "@/components/events/RsvpToggle";
 import { CalendarButton } from "@/components/ui/ClubLinkButtons";
 import { CategoryBadge, Skeleton, StatusPill } from "@/components/ui/Primitives";
 import { button, card, container } from "@/components/ui/styles";
@@ -120,6 +121,8 @@ async function EventDetails({ params }: { params: PageProps<"/events/[id]">["par
           {event.description && (
             <p className="mt-6 max-w-prose text-lg leading-relaxed whitespace-pre-line text-fg-2">{event.description}</p>
           )}
+
+          {status !== "completed" && <RsvpToggle event={event} className="mt-8" />}
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             {status !== "completed" && (

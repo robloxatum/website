@@ -1006,6 +1006,104 @@ begin
 end $$;
 reset role;
 
+-------------------------------------------------------------------------------
+-- RSVPs: members add/remove/read only their own (until the event ends);
+-- officers read all; anon nothing.
+-------------------------------------------------------------------------------
+
+-- Member (c): RSVP for upcoming and live events, not ended ones or for others.
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000c","email":"newbie@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare v_rows int;
+begin
+  assert not (select private.is_officer()), 'RSVP tests expect c to be a member';
+  insert into public.event_rsvps (event_id) values (current_setting('test.g_future')::uuid);
+  insert into public.event_rsvps (event_id) values (current_setting('test.g_live')::uuid);
+  assert (select count(*) from public.event_rsvps) = 2, 'member reads their own RSVPs';
+  assert (select user_id from public.event_rsvps where event_id = current_setting('test.g_future')::uuid)
+    = '00000000-0000-0000-0000-00000000000c', 'user_id defaults to the member';
+
+  begin
+    insert into public.event_rsvps (event_id) values (current_setting('test.g_ended')::uuid);
+    raise exception 'FAIL: RSVP to an ended event';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into public.event_rsvps (event_id, user_id)
+      values (current_setting('test.g_future')::uuid, '00000000-0000-0000-0000-00000000000b');
+    raise exception 'FAIL: RSVP on behalf of someone else';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into public.event_rsvps (event_id) values (current_setting('test.g_future')::uuid);
+    raise exception 'FAIL: duplicate RSVP';
+  exception when unique_violation then null; end;
+  begin
+    update public.event_rsvps set created_at = now() - interval '1 day';
+    raise exception 'FAIL: member updated an RSVP';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+
+-- Seed RSVPs the member can't create themselves: one by b, and one by c on the
+-- ended event (from before it ended).
+insert into public.event_rsvps (event_id, user_id) values
+  (current_setting('test.g_future')::uuid, '00000000-0000-0000-0000-00000000000b'),
+  (current_setting('test.g_ended')::uuid, '00000000-0000-0000-0000-00000000000c');
+
+set local role authenticated;
+do $$
+declare v_rows int;
+begin
+  assert (select count(*) from public.event_rsvps) = 3, 'member sees only their own RSVPs (not b''s)';
+  delete from public.event_rsvps where user_id = '00000000-0000-0000-0000-00000000000b';
+  get diagnostics v_rows = row_count;
+  assert v_rows = 0, 'member cannot remove someone else''s RSVP';
+  delete from public.event_rsvps where event_id = current_setting('test.g_ended')::uuid;
+  get diagnostics v_rows = row_count;
+  assert v_rows = 0, 'RSVPs are fixed once the event ends';
+  delete from public.event_rsvps where event_id = current_setting('test.g_future')::uuid;
+  get diagnostics v_rows = row_count;
+  assert v_rows = 1, 'member removes their own RSVP';
+end $$;
+reset role;
+
+-- Another member (a, not an officer here): sees none of c's or b's.
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000a","email":"officer@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$ begin
+  assert not (select private.is_officer()), 'RSVP tests expect a to be a member here';
+  assert (select count(*) from public.event_rsvps) = 0, 'members cannot see other members'' RSVPs';
+end $$;
+reset role;
+
+-- Officer (b): reads every RSVP.
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000b","email":"member@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$ begin
+  assert (select private.is_officer()), 'RSVP tests expect b to be an officer';
+  assert (select count(*) from public.event_rsvps) = 3, 'officers read all RSVPs';
+end $$;
+reset role;
+
+-- Anon: nothing.
+select set_config('request.jwt.claims', '', true);
+set local role anon;
+do $$ begin
+  begin
+    perform count(*) from public.event_rsvps;
+    raise exception 'FAIL: anon read RSVPs';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into public.event_rsvps (event_id, user_id)
+      values (current_setting('test.g_future')::uuid, '00000000-0000-0000-0000-00000000000c');
+    raise exception 'FAIL: anon RSVPed';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+
 select 'ALL SECURITY TESTS PASSED' as result;
 
 rollback;
