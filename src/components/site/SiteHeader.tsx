@@ -10,7 +10,7 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-line/60 bg-bg/85 backdrop-blur-md">
       <div className={`${container} flex h-16 items-center gap-6`}>
-        <Link href="/" className="shrink-0 rounded-md" aria-label="Roblox at UM home">
+        <Link href="/" className="flex min-h-11 shrink-0 items-center rounded-md" aria-label="Roblox at UM home">
           <Wordmark tone="white" className="h-6 w-auto sm:h-7" />
         </Link>
         <DesktopNav />

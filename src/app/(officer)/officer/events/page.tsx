@@ -62,6 +62,7 @@ async function EventsList({ searchParams }: { searchParams: PageProps<"/officer/
   ) : (
     <div className={card}>
       <EmptyState
+        headingLevel="h2"
         title="Ready for the next game night?"
         action={
           <Link href="/officer/events/new" className={button()}>

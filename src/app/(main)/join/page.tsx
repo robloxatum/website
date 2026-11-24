@@ -2,6 +2,7 @@ import { BadgeCheck, CalendarDays, CircleCheck, Code2, Gamepad2, Sparkles, Troph
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { JoinBanner } from "@/components/art/Art";
 import { CubeCluster } from "@/components/art/Cubes";
 import { GoogleButton } from "@/components/GoogleButton";
 import { BrandIcon } from "@/components/Logo";
@@ -9,6 +10,7 @@ import { ClubLinkButtons } from "@/components/ui/ClubLinkButtons";
 import { NextEventRow } from "@/components/ui/EventCards";
 import { SectionLabel } from "@/components/ui/Primitives";
 import { button, card, container } from "@/components/ui/styles";
+import { art } from "@/content/art";
 import { faq, pitch, typicalMeeting, whatWeDo } from "@/content/join";
 import { getProfile } from "@/lib/auth";
 import { getEventLists } from "@/lib/events";
@@ -28,16 +30,19 @@ export default function JoinPage() {
   return (
     <div className={`${container} max-w-2xl! pt-6 sm:pt-10`}>
       {/* Above the fold on a phone: who we are, next event, join actions. */}
+      <JoinBanner className="mb-5" />
       <section className="relative">
-        <CubeCluster
-          className="pointer-events-none absolute -top-2 right-0 h-20 opacity-80 sm:h-28"
-          viewBox="0 0 120 100"
-          cubes={[
-            { x: 80, y: 8, s: 26, tone: "maize", float: "a" },
-            { x: 40, y: 40, s: 20, tone: "blue", float: "b" },
-            { x: 100, y: 56, s: 14, tone: "sky", float: "c" },
-          ]}
-        />
+        {!art.joinHero && (
+          <CubeCluster
+            className="pointer-events-none absolute -top-2 right-0 h-20 opacity-80 sm:h-28"
+            viewBox="0 0 120 100"
+            cubes={[
+              { x: 80, y: 8, s: 26, tone: "maize", float: "a" },
+              { x: 40, y: 40, s: 20, tone: "blue", float: "b" },
+              { x: 100, y: 56, s: 14, tone: "sky", float: "c" },
+            ]}
+          />
+        )}
         <BrandIcon className="size-12 sm:size-14" alt="" />
         <h1 className="mt-3 text-3xl leading-tight text-fg sm:text-4xl">
           Join <span className="text-maize">Roblox at UM</span>

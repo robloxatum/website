@@ -8,16 +8,20 @@ export function EmptyState({
   children,
   action,
   className = "",
+  headingLevel = "h3",
 }: {
   title: string;
   children?: ReactNode;
   action?: ReactNode;
   className?: string;
+  /** h2 when the empty state sits directly under the page's h1 (no section heading). */
+  headingLevel?: "h2" | "h3";
 }) {
+  const Heading = headingLevel;
   return (
     <div className={`flex flex-col items-center px-6 py-8 text-center ${className}`}>
       <EmptyStateArt className="h-32 w-auto sm:h-40" />
-      <h3 className="mt-4 text-xl text-fg sm:text-2xl">{title}</h3>
+      <Heading className="mt-4 text-xl text-fg sm:text-2xl">{title}</Heading>
       {children && <div className="mt-2 max-w-md text-fg-2">{children}</div>}
       {action && <div className="mt-5">{action}</div>}
     </div>

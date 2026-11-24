@@ -18,7 +18,7 @@ export default async function EventsPage() {
   const all = [...upcoming, ...past];
 
   const noUpcoming = (
-    <EmptyState title="Ready for the next game night?" action={<MailingListButton />}>
+    <EmptyState headingLevel="h2" title="Ready for the next game night?" action={<MailingListButton />}>
       Nothing is scheduled right now. Get event updates and we&apos;ll tell you when the next one is on.
     </EmptyState>
   );

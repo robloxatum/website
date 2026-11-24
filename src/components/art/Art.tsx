@@ -126,8 +126,9 @@ export function Mascot({ className = "h-56", priority = false }: { className?: s
 /** Empty-state illustration: a block calendar on a little platform. */
 export function EmptyStateArt({ className = "" }: { className?: string }) {
   if (art.emptyState) {
+    // 4:3 like the SVG below (480x360 source), so a height-only className still sizes it.
     return (
-      <div aria-hidden="true" className={`relative ${className}`}>
+      <div aria-hidden="true" className={`relative aspect-[4/3] ${className}`}>
         <Image src={art.emptyState} alt="" fill sizes="240px" className="object-contain" />
       </div>
     );
@@ -158,5 +159,42 @@ export function EmptyStateArt({ className = "" }: { className?: string }) {
         <rect x="174" y="52" width="12" height="4" rx="2" />
       </g>
     </svg>
+  );
+}
+
+/**
+ * Picture for the home page's Featured panel (e.g. a photo or render from the
+ * Game Jam). Returns null when there is no image; the panel then shows its
+ * icon and cubes instead.
+ */
+export function FeaturedArt({ className = "" }: { className?: string }) {
+  if (!art.featured) return null;
+  return (
+    <div aria-hidden="true" className={`relative aspect-video overflow-hidden rounded-xl ${className}`}>
+      <Image src={art.featured} alt="" fill sizes="(min-width: 1024px) 380px, 100vw" className="object-cover" />
+      <div className="absolute inset-x-0 bottom-0 h-1/3 bg-linear-to-t from-surface/80 to-transparent" />
+    </div>
+  );
+}
+
+/**
+ * Banner at the top of /join (above the fold, so it preloads). Kept short so the
+ * pitch and the join buttons stay on the first phone screen. Null without an image.
+ */
+export function JoinBanner({ className = "" }: { className?: string }) {
+  if (!art.joinHero) return null;
+  return (
+    <div aria-hidden="true" className={`relative aspect-[3/1] overflow-hidden rounded-2xl sm:aspect-[21/9] ${className}`}>
+      <Image
+        src={art.joinHero}
+        alt=""
+        fill
+        preload
+        fetchPriority="high"
+        sizes="(min-width: 704px) 672px, calc(100vw - 32px)"
+        className="object-cover"
+      />
+      <div className="absolute inset-x-0 bottom-0 h-1/2 bg-linear-to-t from-bg/70 to-transparent" />
+    </div>
   );
 }

@@ -1,7 +1,7 @@
 import { ArrowRight, CalendarDays, Code2, Gamepad2, Sparkles, Trophy, Users } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
-import { HeroScene, Mascot } from "@/components/art/Art";
+import { FeaturedArt, HeroScene, Mascot } from "@/components/art/Art";
 import { CubeCluster } from "@/components/art/Cubes";
 import { TaglineWordmark } from "@/components/Logo";
 import { EmptyState, Panel } from "@/components/ui/Blocks";
@@ -9,6 +9,7 @@ import { MailingListButton } from "@/components/ui/ClubLinkButtons";
 import { EventCard } from "@/components/ui/EventCards";
 import { SectionLabel, Skeleton } from "@/components/ui/Primitives";
 import { button, card, container } from "@/components/ui/styles";
+import { art } from "@/content/art";
 import { featured } from "@/content/highlights";
 import { pitch, whatWeDo } from "@/content/join";
 import { getEventLists } from "@/lib/events";
@@ -141,21 +142,27 @@ function FeaturedPanel() {
   return (
     <section className={`relative flex flex-col overflow-hidden ${card} p-6`}>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_90%_0%,rgb(240_196_19/0.16),transparent_55%)]" />
-      <CubeCluster
-        className="absolute -right-4 -bottom-4 h-36 opacity-70"
-        viewBox="0 0 160 140"
-        cubes={[
-          { x: 110, y: 30, s: 34, tone: "maize" },
-          { x: 66, y: 62, s: 28, tone: "blue" },
-          { x: 130, y: 82, s: 22, tone: "navy" },
-        ]}
-      />
+      {!art.featured && (
+        <CubeCluster
+          className="absolute -right-4 -bottom-4 h-36 opacity-70"
+          viewBox="0 0 160 140"
+          cubes={[
+            { x: 110, y: 30, s: 34, tone: "maize" },
+            { x: 66, y: 62, s: 28, tone: "blue" },
+            { x: 130, y: 82, s: 22, tone: "navy" },
+          ]}
+        />
+      )}
       <div className="relative flex flex-1 flex-col">
         <p className="inline-flex items-center gap-2 text-sm font-semibold text-maize">
           <Sparkles aria-hidden="true" className="size-4" />
           {featured.kicker}
         </p>
-        <Trophy aria-hidden="true" className="mt-5 size-12 text-maize" strokeWidth={1.5} />
+        {art.featured ? (
+          <FeaturedArt className="mt-4" />
+        ) : (
+          <Trophy aria-hidden="true" className="mt-5 size-12 text-maize" strokeWidth={1.5} />
+        )}
         <h2 className="mt-3 text-2xl leading-tight text-fg">{featured.title}</h2>
         <p className="mt-3 text-fg-2">{featured.body}</p>
         <Link
