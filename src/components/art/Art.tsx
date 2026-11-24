@@ -13,36 +13,44 @@ import { VoxelSkyline } from "./Skyline";
 
 const fadeLeft = "[mask-image:linear-gradient(to_right,transparent,black_35%)]";
 
-/** Hero scene for the home page (right side on desktop, behind content on phones). */
+/**
+ * Hero background for the home page. With an image (src/content/art.ts) it
+ * fills the hero: on phones it's cropped toward the right so the tower and
+ * characters stay in view, under a darker overlay for the text; from lg up a
+ * left-side gradient keeps the logo and buttons readable. Without an image it
+ * falls back to the SVG skyline. The bottom always fades into the page.
+ */
 export function HeroScene({ className = "" }: { className?: string }) {
   return (
     <div aria-hidden="true" className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`}>
       {art.hero ? (
-        <Image
-          src={art.hero}
-          alt=""
-          fill
-          preload
-          sizes="(min-width: 1024px) 60vw, 100vw"
-          className={`object-cover object-right ${fadeLeft}`}
-        />
+        <>
+          {/* Phones/tablets: the scene sits in the lower part of the hero (tower behind the
+              text, characters below the buttons); from lg up it fills the hero. */}
+          <div className="absolute inset-x-0 bottom-0 h-[440px] sm:h-[560px] lg:inset-0 lg:h-auto">
+            <Image
+              src={art.hero}
+              alt=""
+              fill
+              preload
+              fetchPriority="high"
+              // Cover-cropping scales the image past the screen width on phones.
+              sizes="(max-width: 1023px) 1100px, 100vw"
+              className="object-cover object-[76%_100%] lg:object-[100%_45%]"
+            />
+            {/* Phones: fade the top into the page and darken behind the text. */}
+            <div className="absolute inset-0 bg-linear-to-b from-bg via-bg/60 via-45% to-bg/10 to-75% lg:hidden" />
+          </div>
+          {/* Desktop: dark on the left behind the logo and buttons, clear on the right. */}
+          <div className="absolute inset-0 hidden bg-linear-to-r from-bg via-bg/75 via-35% to-transparent to-65% lg:block" />
+        </>
       ) : (
         <div className={`absolute inset-y-0 right-0 w-full lg:w-[62%] ${fadeLeft}`}>
           <VoxelSkyline className="absolute inset-0 size-full opacity-30 lg:opacity-100" />
-          <CubeCluster
-            className="absolute top-[12%] right-[6%] hidden w-[38%] max-w-[300px] lg:block"
-            viewBox="0 0 300 260"
-            cubes={[
-              { x: 210, y: 40, s: 46, tone: "maize", float: "a" },
-              { x: 120, y: 120, s: 34, tone: "blue", float: "b" },
-              { x: 260, y: 150, s: 26, tone: "sky", float: "c" },
-              { x: 70, y: 20, s: 20, tone: "maize", float: "b" },
-            ]}
-          />
         </div>
       )}
       {/* Blend into the page at the bottom */}
-      <div className="absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-bg to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 h-28 bg-linear-to-t from-bg to-transparent sm:h-36" />
     </div>
   );
 }

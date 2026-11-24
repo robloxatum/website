@@ -14,7 +14,8 @@ export const art: {
   featured: string | null;
   covers: Record<EventCategory, string | null>;
 } = {
-  hero: null,
+  // Temporary AI placeholder; swap for a Roblox Studio screenshot (same path or a new one).
+  hero: "/art/hero-campus.png",
   joinHero: null,
   emptyState: null,
   featured: null,

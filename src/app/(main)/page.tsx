@@ -20,9 +20,9 @@ export default function HomePage() {
     <>
       {/* Hero */}
       <section className="relative isolate overflow-hidden">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_right,#123a5f_0%,transparent_60%),radial-gradient(ellipse_at_bottom_left,#0b2742_0%,transparent_55%)]" />
+        <div className="absolute inset-0 -z-10 hidden lg:block bg-[radial-gradient(ellipse_at_top_right,#123a5f_0%,transparent_60%),radial-gradient(ellipse_at_bottom_left,#0b2742_0%,transparent_55%)]" />
         <HeroScene className="-z-10" />
-        <div className={`${container} pt-12 pb-16 sm:pt-20 sm:pb-24 lg:pt-24 lg:pb-28`}>
+        <div className={`${container} pt-12 pb-40 sm:pt-20 sm:pb-44 lg:pt-28 lg:pb-36`}>
           <div className="max-w-xl">
             <SectionLabel>University of Michigan</SectionLabel>
             <h1 className="mt-5">
