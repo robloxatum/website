@@ -33,19 +33,19 @@ to show a Block M, on its outfit. It is used as-is and only through
 
 | | |
 |---|---|
-| **File** | `public/art/hero-campus.png` (path set in `art.ts` → `hero`) |
-| **Size** | 2560 × 1100 px (about 2.33 : 1). The current placeholder is 1915 × 821. |
-| **Where** | Behind the logo and buttons at the top of the home page. |
+| **File** | `public/art/hero-dusk.png` (statically imported in `art.ts` → `hero`) |
+| **Size** | 1918 × 820 px (about 2.34 : 1). |
+| **Where** | Full-bleed background behind the whole home hero. |
 
 **How it's cropped**
 
-- **Desktop:** fills the hero, anchored to the right edge. The **left ~40%** sits
-  under a dark gradient behind the logo, pitch and buttons, so keep it quiet:
-  sky, distant trees, nothing important.
-- **Phones:** a box at the bottom of the hero, cropped around **76% from the left**
-  and the **bottom edge**. Whatever is in that region shows on phones (the tower
-  and characters in the current placeholder).
-- **Bottom ~15%** fades into the page on every screen.
+- **Desktop:** fills the hero edge to edge (anchored 30% from the top). A left-to-right
+  navy gradient that follows the text column keeps the logo, tagline and buttons
+  readable, so the **left third** should stay quiet: dark, empty sky.
+- **Phones:** a box at the bottom of the hero, cropped around **65% from the left**
+  (the friends and the tower), under a darker top-to-bottom wash behind the stacked text.
+- **Top edge** should already be header navy (no fade there). **Bottom** fades into
+  the page on every screen.
 
 **Description:** A dusk scene on a voxel college campus. A tall stone
 carillon/clock tower (inspired by a collegiate Gothic bell tower, not a replica)
