@@ -1,85 +1,83 @@
 @import "tailwindcss";
 
-/* Brand: navy #081F40 and yellow #F0C413 (token names kept from the first theme). */
+/*
+ * Design tokens. Brand: navy #081F40, maize #F0C413.
+ * Text colors are checked for WCAG AA (4.5:1) on every surface they're used on;
+ * muted text is #8BA5BC because the suggested #7893AB failed on cards.
+ */
 @theme {
+  /* Redesign (dark, layered navy) */
+  --color-bg: #061525;
+  --color-bg-2: #091f35;
+  --color-surface: #102c46;
+  --color-elevated: #163956;
+  --color-line: #294b6a;
+  --color-fg: #f5f7fa;
+  --color-fg-2: #a9bed0;
+  --color-fg-3: #8ba5bc;
+  --color-ok: #34d399;
+  --color-bad: #f87171;
+  --color-navy: #081f40;
   --color-maize: #f0c413;
-  --color-maize-dark: #c9a20b;
-  --color-blue: #081f40;
-  --color-blue-mid: #14325e;
-  --color-sky: #a7d3ff;
-  --color-cream: #fff8e0;
-  --color-grass: #3bb273;
-  --color-brick: #e4572e;
+  --color-maize-hover: #f6d23f;
 
   --font-display: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
-  --font-sans: var(--font-rubik), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-card: 16px;
+  --radius-control: 10px;
+
+  --shadow-card: 0 1px 0 0 rgb(255 255 255 / 0.04) inset, 0 12px 32px -16px rgb(0 0 0 / 0.6);
+  --shadow-lift: 0 1px 0 0 rgb(255 255 255 / 0.06) inset, 0 20px 40px -18px rgb(0 0 0 / 0.7);
+
+  --animate-float: float 7s ease-in-out infinite;
+  --animate-float-slow: float 11s ease-in-out infinite;
+  --animate-pop: pop 0.3s ease-out both;
+  --animate-rise: rise 0.3s ease-out both;
+  --animate-burst: burst 0.7s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+@keyframes burst {
+  0% { transform: translate(-50%, -50%) scale(0.2) rotate(0); opacity: 0; }
+  30% { opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--bx)), calc(-50% + var(--by))) scale(1) rotate(var(--br)); opacity: 1; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+@keyframes pop {
+  0% { transform: scale(0.7); opacity: 0; }
+  70% { transform: scale(1.04); opacity: 1; }
+  100% { transform: scale(1); }
+}
+@keyframes rise {
+  from { transform: translateY(8px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
 @layer base {
   html {
     -webkit-tap-highlight-color: transparent;
+    color-scheme: dark;
   }
   body {
-    @apply bg-cream text-blue font-sans antialiased;
-    /* Faint block grid, like a baseplate. */
-    background-image:
-      linear-gradient(to right, rgb(8 31 64 / 0.05) 2px, transparent 2px),
-      linear-gradient(to bottom, rgb(8 31 64 / 0.05) 2px, transparent 2px);
-    background-size: 32px 32px;
+    @apply bg-bg text-fg font-sans antialiased;
   }
   h1, h2, h3 {
     @apply font-display font-extrabold tracking-tight;
   }
   :focus-visible {
-    outline: 4px solid var(--color-maize);
+    outline: 3px solid var(--color-maize);
     outline-offset: 2px;
   }
 }
 
-@layer components {
-  /* A chunky block with a hard pixel shadow. */
-  .block-card {
-    @apply border-4 border-blue bg-white;
-    box-shadow: 6px 6px 0 0 var(--color-blue);
-  }
-
-  /* Brick buttons that press down when tapped. */
-  .btn {
-    @apply inline-flex min-h-12 cursor-pointer select-none items-center justify-center gap-2 border-4 border-blue px-5 py-2 font-display text-base uppercase tracking-wide transition-[transform,box-shadow] duration-75 disabled:cursor-not-allowed disabled:opacity-60;
-    box-shadow: 0 5px 0 0 var(--color-blue);
-  }
-  .btn:not(:disabled):active {
-    transform: translateY(5px);
-    box-shadow: 0 0 0 0 var(--color-blue);
-  }
-  .btn-maize { @apply bg-maize text-blue hover:bg-[#f5d04a]; }
-  .btn-blue { @apply bg-blue text-maize hover:bg-blue-mid; }
-  .btn-white { @apply bg-white text-blue hover:bg-cream; }
-  .btn-danger { @apply bg-brick text-white hover:brightness-110; }
-  .btn-sm { @apply min-h-10 px-3 py-1 text-sm; box-shadow: 0 3px 0 0 var(--color-blue); }
-  .btn-sm:not(:disabled):active { transform: translateY(3px); }
-
-  .field {
-    @apply block w-full border-4 border-blue bg-white px-3 py-3 text-base text-blue placeholder:text-blue/40 focus:border-maize-dark focus:outline-none;
-  }
-  .label {
-    @apply mb-1 block font-display text-sm uppercase tracking-wide;
-  }
-
-  .tag {
-    @apply inline-flex items-center gap-1 border-2 border-blue px-2 py-0.5 font-display text-xs uppercase tracking-wide;
-  }
-}
-
-/* Simple pop-in for check-in results. */
-@keyframes pop {
-  0% { transform: scale(0.6) rotate(-4deg); opacity: 0; }
-  70% { transform: scale(1.05) rotate(1deg); opacity: 1; }
-  100% { transform: scale(1) rotate(0); }
-}
-.animate-pop { animation: pop 0.35s ease-out both; }
-
 @media (prefers-reduced-motion: reduce) {
-  .animate-pop { animation: none; }
-  .btn { transition: none; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

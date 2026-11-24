@@ -1,16 +1,20 @@
 "use client";
 
+import { Lock, LockOpen, Maximize, X } from "lucide-react";
 import Link from "next/link";
 import QRCode from "qrcode";
 import { useEffect, useRef, useState } from "react";
 import { Wordmark } from "@/components/Logo";
+import { ProgressBar } from "@/components/ui/Primitives";
+import { button } from "@/components/ui/styles";
 import { createClient } from "@/lib/supabase/client";
-import type { CheckinFlags } from "@/app/(site)/officer/actions";
-import { statusText, useCheckinFlags } from "@/app/(site)/officer/_components/CheckinControls";
+import type { CheckinFlags } from "@/app/(officer)/officer/actions";
+import { statusText, useCheckinFlags } from "@/app/(officer)/officer/_components/CheckinControls";
 
 export function PresentClient({
   eventId,
   title,
+  capacity,
   code,
   checkinUrl,
   initialCount,
@@ -18,6 +22,7 @@ export function PresentClient({
 }: {
   eventId: string;
   title: string;
+  capacity: number | null;
   code: string;
   checkinUrl: string;
   initialCount: number;
@@ -99,38 +104,44 @@ export function PresentClient({
     };
   }, []);
 
+  const host = checkinUrl.replace(/^https?:\/\//, "").replace(/\?code=.*$/, "");
+
   return (
-    <div className="flex min-h-dvh flex-col p-4 sm:p-8">
-      <div className="flex items-center justify-between gap-3">
-        <Wordmark tone="white" className="h-8 w-auto sm:h-10" />
+    <div className="relative flex min-h-dvh flex-col overflow-hidden bg-bg p-4 sm:p-8">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,#123a5f_0%,transparent_60%)]" />
+      <div className="relative flex items-center justify-between gap-3">
+        <Wordmark tone="white" className="h-8 w-auto sm:h-11" />
         <div className="flex gap-2">
           <button
             type="button"
-            className="btn btn-white btn-sm"
+            className={button({ variant: "secondary", size: "sm" })}
             onClick={() =>
               document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()
             }
           >
+            <Maximize aria-hidden="true" />
             Fullscreen
           </button>
-          <Link href={`/officer/events/${eventId}`} className="btn btn-white btn-sm">
+          <Link href={`/officer/events/${eventId}`} className={button({ variant: "secondary", size: "sm" })}>
+            <X aria-hidden="true" />
             Exit
           </Link>
         </div>
       </div>
 
-      <h1 className="mt-4 text-center text-3xl leading-tight text-white sm:text-5xl">{title}</h1>
+      <h1 className="relative mt-4 text-center text-3xl leading-tight text-fg sm:text-5xl">{title}</h1>
 
-      <div className="mt-6 grid flex-1 items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <div className="relative mt-6 grid flex-1 items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         {/* QR */}
-        <div className="relative mx-auto w-full max-w-[min(80vh,640px)]">
-          <div className={`block-card aspect-square bg-white p-4 transition-opacity ${isOpen ? "" : "opacity-20"}`}>
+        <div className="relative mx-auto w-full max-w-[min(78vh,640px)]">
+          <div className={`aspect-square rounded-3xl bg-white p-[4%] shadow-[0_30px_80px_-30px_rgb(0_0_0/0.8)] transition-opacity duration-300 ${isOpen ? "" : "opacity-15"}`}>
             {/* eslint-disable-next-line @next/next/no-img-element -- local data: URL */}
             {qr && <img src={qr} alt={`QR code for ${checkinUrl}`} className="size-full [image-rendering:pixelated]" />}
           </div>
           {!isOpen && (
             <div className="absolute inset-0 grid place-items-center">
-              <p className="block-card bg-maize px-6 py-4 font-display text-3xl text-blue sm:text-4xl">
+              <p className="flex items-center gap-3 rounded-2xl bg-maize px-6 py-4 font-display text-3xl font-extrabold text-navy sm:text-4xl">
+                <Lock aria-hidden="true" className="size-8" />
                 Check-in closed
               </p>
             </div>
@@ -140,48 +151,48 @@ export function PresentClient({
         {/* Code + count */}
         <div className="flex flex-col items-center gap-8 text-center">
           <div>
-            <p className="font-display text-lg uppercase text-sky sm:text-2xl">Scan, or go to</p>
-            <p className="font-display text-xl break-all text-white sm:text-3xl">
-              {checkinUrl.replace(/^https?:\/\//, "").replace(/\?code=.*$/, "")}
-            </p>
-            <p className="mt-2 font-display text-lg uppercase text-sky sm:text-2xl">and enter</p>
+            <p className="text-lg font-semibold tracking-[0.2em] text-fg-2 uppercase sm:text-2xl">Scan, or go to</p>
+            <p className="font-display text-2xl font-bold break-all text-fg sm:text-4xl">{host}</p>
+            <p className="mt-2 text-lg font-semibold tracking-[0.2em] text-fg-2 uppercase sm:text-2xl">and enter</p>
           </div>
           <div className="flex gap-2 sm:gap-3" aria-label={`Code ${code.split("").join(" ")}`}>
             {code.split("").map((ch, i) => (
               <span
                 key={i}
-                className="grid size-16 place-items-center border-4 border-blue bg-maize font-display text-5xl text-blue sm:size-24 sm:text-7xl xl:size-32 xl:text-8xl"
-                style={{ boxShadow: "0 8px 0 0 #030c1a" }}
+                className="grid size-16 place-items-center rounded-2xl bg-maize font-display text-5xl font-extrabold text-navy shadow-[0_8px_0_0_#8a6f05] sm:size-24 sm:text-7xl xl:size-28 xl:text-8xl 2xl:size-32"
               >
                 {ch}
               </span>
             ))}
           </div>
 
-          <div>
-            <p
-              key={bump}
-              className="animate-pop font-display text-7xl leading-none text-maize sm:text-9xl"
-              aria-live="polite"
-            >
+          <div className="w-full max-w-md">
+            <p key={bump} className="animate-pop font-display text-7xl leading-none font-extrabold text-maize sm:text-9xl" aria-live="polite">
               {count}
             </p>
-            <p className="font-display text-xl uppercase text-white sm:text-2xl">checked in</p>
+            <p className="mt-1 text-xl font-semibold tracking-[0.15em] text-fg uppercase sm:text-2xl">
+              {capacity ? `of ${capacity} checked in` : "checked in"}
+            </p>
+            {capacity ? (
+              <div className="mt-4">
+                <ProgressBar value={Math.min(count, capacity)} max={capacity} label={`${count} of ${capacity} checked in`} />
+              </div>
+            ) : null}
           </div>
 
           <div className="flex flex-col items-center gap-2">
-            <p className={`tag ${isOpen ? "bg-grass text-white" : "bg-white text-blue"}`}>
+            <p
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-semibold ${
+                isOpen ? "border-ok/50 bg-ok/10 text-ok" : "border-line bg-bg-2 text-fg-2"
+              }`}
+            >
               {statusText(flags, isOpen, ended)}
             </p>
-            <button
-              type="button"
-              onClick={toggle}
-              disabled={pending}
-              className={`btn ${isOpen ? "btn-white" : "btn-maize"}`}
-            >
+            <button type="button" onClick={toggle} disabled={pending} className={button({ variant: isOpen ? "secondary" : "primary" })}>
+              {isOpen ? <Lock aria-hidden="true" /> : <LockOpen aria-hidden="true" />}
               {pending ? "…" : isOpen ? "Close check-in" : ended ? "Reopen check-in" : "Open check-in"}
             </button>
-            {error && <p role="alert" className="font-semibold text-maize">{error}</p>}
+            {error && <p role="alert" className="font-semibold text-bad">{error}</p>}
           </div>
         </div>
       </div>
