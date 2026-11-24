@@ -3,7 +3,9 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { Wordmark } from "@/components/Logo";
 import { button, container } from "@/components/ui/styles";
+import { Avatar } from "@/components/ui/Avatar";
 import { getProfile } from "@/lib/auth";
+import { headshotFor } from "@/lib/roblox";
 import { DesktopNav } from "./NavLinks";
 
 export function SiteHeader() {
@@ -42,6 +44,8 @@ async function AccountActions() {
     );
   }
   const name = profile.full_name.trim() || profile.uniqname;
+  // Cached about an hour; null (initial-letter icon) if Roblox is unavailable.
+  const avatar = await headshotFor(profile);
   return (
     <>
       {profile.is_officer && (
@@ -59,9 +63,13 @@ async function AccountActions() {
         href="/profile"
         title="Your profile"
         aria-label={`Your profile (${name})`}
-        className="grid size-11 shrink-0 place-items-center rounded-full border border-line bg-elevated font-display text-base font-bold text-fg transition-colors duration-150 hover:border-maize"
+        className="group shrink-0 rounded-full"
       >
-        {name[0]?.toUpperCase()}
+        <Avatar
+          name={name}
+          src={avatar}
+          className="transition-colors duration-150 group-hover:border-maize"
+        />
       </Link>
     </>
   );

@@ -30,14 +30,14 @@ export async function getOfficerEvent(id: string) {
 export type AttendeeRow = {
   user_id: string;
   checked_in_at: string;
-  profiles: { full_name: string; uniqname: string; roblox_username: string | null } | null;
+  profiles: { full_name: string; uniqname: string; roblox_username: string | null; roblox_user_id: number | null } | null;
 };
 
 export async function getAttendees(eventId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("attendance")
-    .select("user_id, checked_in_at, profiles(full_name, uniqname, roblox_username)")
+    .select("user_id, checked_in_at, profiles(full_name, uniqname, roblox_username, roblox_user_id)")
     .eq("event_id", eventId)
     .order("checked_in_at", { ascending: true })
     .returns<AttendeeRow[]>();

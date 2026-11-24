@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { OfficersOnly } from "@/components/OfficersOnly";
 import { PageHeader, Skeleton } from "@/components/ui/Primitives";
 import { getOfficer } from "@/lib/auth";
+import { headshotsFor } from "@/lib/roblox";
 import { getMembers } from "./data";
 import { MembersTable } from "./MembersTable";
 
@@ -23,5 +24,7 @@ async function Members() {
   const officer = await getOfficer("/officer/members");
   if (!officer) return <OfficersOnly />;
   const members = await getMembers();
-  return <MembersTable members={members} currentUserId={officer.id} />;
+  // Roblox headshots (cached ~1 hour; null → initial-letter icon).
+  const avatars = await headshotsFor(members);
+  return <MembersTable members={members.map((m, i) => ({ ...m, avatar: avatars[i] }))} currentUserId={officer.id} />;
 }

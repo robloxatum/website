@@ -7,6 +7,7 @@ import { OfficersOnly } from "@/components/OfficersOnly";
 import { Skeleton } from "@/components/ui/Primitives";
 import { getOfficer } from "@/lib/auth";
 import { isUuid } from "@/lib/events";
+import { headshotsFor } from "@/lib/roblox";
 import { ManageEventView } from "../../_components/ManageEventView";
 import { getAttendees, getOfficerEvent } from "../../data";
 
@@ -33,5 +34,14 @@ async function ManageEvent({ params, searchParams }: PageProps<"/officer/events/
 
   const [data, attendees] = await Promise.all([getOfficerEvent(id), getAttendees(id)]);
   if (!data) notFound();
-  return <ManageEventView event={data.event} code={data.code} attendees={attendees} saved={!!saved} />;
+  // Roblox headshots (cached ~1 hour; null → initial-letter icon).
+  const avatars = await headshotsFor(attendees.map((a) => a.profiles ?? {}));
+  return (
+    <ManageEventView
+      event={data.event}
+      code={data.code}
+      attendees={attendees.map((a, i) => ({ ...a, avatar: avatars[i] }))}
+      saved={!!saved}
+    />
+  );
 }

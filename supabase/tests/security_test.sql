@@ -667,6 +667,74 @@ begin
 end $$;
 reset role;
 
+-------------------------------------------------------------------------------
+-- Roblox user ID (avatars): only the member and officers can read it.
+-------------------------------------------------------------------------------
+do $$ begin
+  assert (select is_officer from public.profiles where id = '00000000-0000-0000-0000-00000000000b'),
+    'roblox tests expect b to be an officer here';
+  assert not (select is_officer from public.profiles where id = '00000000-0000-0000-0000-00000000000c'),
+    'roblox tests expect c to be a member here';
+end $$;
+
+-- Member: saves their own ID, can't see anyone else's, can't set someone else's.
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000c","email":"newbie@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare v_rows int;
+begin
+  update public.profiles set roblox_username = 'Nora_Builds', roblox_user_id = 1234567 where id = auth.uid();
+  assert (select roblox_user_id from public.profiles where id = auth.uid()) = 1234567,
+    'members can save and read their own Roblox user ID';
+
+  assert (select count(*) from public.profiles where id <> auth.uid()) = 0,
+    'members cannot read other profiles (or their Roblox user IDs)';
+  assert (select count(*) from public.member_attendance where id <> auth.uid()) = 0,
+    'members cannot read other Roblox user IDs through the members view';
+
+  update public.profiles set roblox_user_id = 7654321 where id = '00000000-0000-0000-0000-00000000000b';
+  get diagnostics v_rows = row_count;
+  assert v_rows = 0, 'members cannot set someone else''s Roblox user ID';
+
+  begin
+    update public.profiles set roblox_username = null where id = auth.uid();
+    raise exception 'FAIL: Roblox user ID kept without a username';
+  exception when check_violation then null; end;
+  begin
+    update public.profiles set roblox_user_id = 0 where id = auth.uid();
+    raise exception 'FAIL: Roblox user ID 0 accepted';
+  exception when check_violation then null; end;
+end $$;
+reset role;
+
+-- Officer: reads members' Roblox user IDs (table and members view).
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000b","email":"member@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$ begin
+  assert (select roblox_user_id from public.profiles where id = '00000000-0000-0000-0000-00000000000c') = 1234567,
+    'officers can read members'' Roblox user IDs';
+  assert (select roblox_user_id from public.member_attendance where id = '00000000-0000-0000-0000-00000000000c') = 1234567,
+    'officers see Roblox user IDs in the members view';
+end $$;
+reset role;
+
+-- Anon: no access to profiles at all.
+select set_config('request.jwt.claims', '', true);
+set local role anon;
+do $$ begin
+  begin
+    perform roblox_user_id from public.profiles;
+    raise exception 'FAIL: anon read profiles';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform roblox_user_id from public.member_attendance;
+    raise exception 'FAIL: anon read the members view';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+
 select 'ALL SECURITY TESTS PASSED' as result;
 
 rollback;
