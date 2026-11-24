@@ -54,3 +54,15 @@ export async function getOfficerTotals() {
   ]);
   return { members: members ?? 0, checkins: checkins ?? 0 };
 }
+
+/** The event's live game link (officers can always read it; RLS). */
+export async function getGameLink(eventId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("event_game_links")
+    .select("url, label")
+    .eq("event_id", eventId)
+    .maybeSingle<{ url: string; label: string | null }>();
+  if (error) console.error("Failed to load game link", error.message);
+  return data ?? null;
+}

@@ -6,6 +6,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { EventCover } from "@/components/art/Art";
 import { FlyerViewer } from "@/components/events/FlyerViewer";
+import { JoinGameIfCheckedIn } from "@/components/events/JoinGame";
 import { CalendarButton } from "@/components/ui/ClubLinkButtons";
 import { CategoryBadge, Skeleton, StatusPill } from "@/components/ui/Primitives";
 import { button, card, container } from "@/components/ui/styles";
@@ -68,10 +69,10 @@ async function EventDetails({ params }: { params: PageProps<"/events/[id]">["par
         className="aspect-[2/1] w-full sm:aspect-[5/2]"
         sizes="(min-width: 1024px) 1024px, 100vw"
       />
-      {/* Reading order: title, details, flyer, then description and buttons. From lg up the
-          flyer moves to a column on the right, beside everything else. */}
+      {/* Reading order: title, details, game link, flyer, then description and buttons. From lg
+          up the flyer moves to a column on the right, beside everything else. */}
       <div
-        className={`relative p-5 sm:p-8 sm:pt-0 ${flyer ? "lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:grid-rows-[auto_auto_1fr] lg:gap-x-10" : ""}`}
+        className={`relative p-5 sm:p-8 sm:pt-0 ${flyer ? "lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:grid-rows-[auto_auto_auto_1fr] lg:gap-x-10" : ""}`}
       >
         <div className="lg:col-start-1">
           <div className="-mt-3 flex flex-wrap items-center gap-2">
@@ -95,8 +96,13 @@ async function EventDetails({ params }: { params: PageProps<"/events/[id]">["par
           ))}
         </dl>
 
+        {/* Checked-in members only (worked out in the browser), while the event isn't over. */}
+        {status !== "completed" && (
+          <JoinGameIfCheckedIn eventId={event.id} startsAt={event.starts_at} endsAt={event.ends_at} className="mt-6 lg:col-start-1" />
+        )}
+
         {flyer && (
-          <section aria-labelledby="flyer-heading" className="mt-8 lg:col-start-2 lg:row-span-3 lg:row-start-1 lg:mt-8">
+          <section aria-labelledby="flyer-heading" className="mt-8 lg:col-start-2 lg:row-span-4 lg:row-start-1 lg:mt-8">
             <h2 id="flyer-heading" className="mb-3 text-xl text-fg">Flyer</h2>
             <FlyerViewer
               src={flyerUrl(flyer.path)}

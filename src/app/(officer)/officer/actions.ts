@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/auth";
 import { CATEGORY_KEYS } from "@/lib/categories";
 import { isUuid } from "@/lib/events";
+import { normalizeGameLabel, normalizeGameLink } from "@/lib/game-links";
 import { COVER_MIN_HEIGHT, COVER_MIN_WIDTH, COVER_PATH, FLYER_BUCKET, FLYER_MAX_DIMENSION, FLYER_PATH } from "@/lib/flyers";
 import { createClient } from "@/lib/supabase/server";
 import { fromClubInputValue } from "@/lib/time";
@@ -202,6 +203,35 @@ export async function setOfficer(userId: string, makeOfficer: boolean): Promise<
     }
     return { error: "Couldn't change officer status. Please try again." };
   }
+  refresh();
+  return {};
+}
+
+/** Post or replace the event's live game link (officers only; RLS enforces it too). */
+export async function setGameLink(eventId: string, rawUrl: string, rawLabel: string): Promise<{ error?: string }> {
+  const officer = await requireOfficerAction();
+  if (!isUuid(eventId)) return { error: "Unknown event." };
+  const link = normalizeGameLink(rawUrl);
+  if ("error" in link) return { error: link.error };
+  const label = normalizeGameLabel(rawLabel);
+  if ("error" in label) return { error: label.error };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("event_game_links")
+    .upsert({ event_id: eventId, url: link.url, label: label.label, updated_at: new Date().toISOString(), updated_by: officer.id });
+  if (error) return { error: "Couldn't post the link. Please try again." };
+  refresh();
+  return {};
+}
+
+/** Take the event's game link down. */
+export async function clearGameLink(eventId: string): Promise<{ error?: string }> {
+  await requireOfficerAction();
+  if (!isUuid(eventId)) return { error: "Unknown event." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("event_game_links").delete().eq("event_id", eventId);
+  if (error) return { error: "Couldn't clear the link. Please try again." };
   refresh();
   return {};
 }

@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { EventCover } from "@/components/art/Art";
 import { Cube } from "@/components/art/Cubes";
+import { JoinGamePanel } from "@/components/events/JoinGame";
 import { CategoryBadge } from "@/components/ui/Primitives";
 import { button } from "@/components/ui/styles";
 import { formatDate, formatTime } from "@/lib/time";
@@ -128,6 +129,15 @@ export function ResultScreen({
         </div>
 
         <div className="space-y-3">
+          {/* Checked in: the event's game link, live (hidden once the event ends). */}
+          {(result.status === "ok" || result.status === "already_checked_in") && result.event && (
+            <JoinGamePanel
+              eventId={result.event.id}
+              startsAt={result.event.starts_at}
+              endsAt={result.event.ends_at}
+              className="animate-rise pb-2"
+            />
+          )}
           {s.retry && (
             <button type="button" onClick={onRetry} className={button({ size: "lg", full: true })}>
               <RotateCcw aria-hidden="true" />

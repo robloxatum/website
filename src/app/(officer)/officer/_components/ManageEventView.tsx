@@ -2,6 +2,7 @@ import { Download, MonitorPlay, RefreshCw, Trash2, Users } from "lucide-react";
 import Link from "next/link";
 import { Alert } from "@/components/ui/Alert";
 import { Avatar } from "@/components/ui/Avatar";
+import type { GameLink } from "@/lib/game-links";
 import { EmptyState } from "@/components/ui/Blocks";
 import { CategoryBadge, StatusPill } from "@/components/ui/Primitives";
 import { button, card } from "@/components/ui/styles";
@@ -16,6 +17,7 @@ import { CheckinToggle } from "./CheckinControls";
 import { EventForm } from "./EventForm";
 import { CapacityMeter } from "./OfficerEventCards";
 import type { AttendeeRow } from "../data";
+import { GameLinkControl } from "./GameLinkControl";
 
 const th = "px-4 py-3 text-xs font-semibold tracking-wider text-fg-3 uppercase";
 
@@ -23,11 +25,13 @@ export function ManageEventView({
   event,
   code,
   attendees,
+  gameLink,
   saved,
 }: {
   event: OfficerEvent;
   code: string | null;
   attendees: (AttendeeRow & { avatar?: string | null })[];
+  gameLink: GameLink | null;
   saved: boolean;
 }) {
   return (
@@ -80,6 +84,16 @@ export function ManageEventView({
             />
           </div>
         </div>
+      </section>
+
+      {/* Live game link (members checked in see it while the event is on) */}
+      <section className={`${card} p-5 sm:p-6`}>
+        <h2 className="text-xl text-fg">Game link</h2>
+        <p className="mt-1 mb-4 text-sm text-fg-2">
+          Post a Roblox private server link. Members who are checked in get a “Join the game” button on their phone or
+          laptop while the event is on. It updates live when you change it.
+        </p>
+        <GameLinkControl eventId={event.id} current={gameLink} />
       </section>
 
       {/* Attendance */}
