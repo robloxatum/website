@@ -16,8 +16,10 @@ const flyerImages = supabaseUrl ? [new URL(`${supabaseUrl}/storage/v1/object/pub
 const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
-  // AVIF first (smallest), WebP for browsers without AVIF.
-  images: { formats: ["image/avif", "image/webp"], remotePatterns: flyerImages },
+  // AVIF first (smallest), WebP for browsers without AVIF. 75 is the default
+  // quality; 50 is for the hero sketch (light lines on flat navy compress well).
+  // Flyers come from the public Supabase Storage bucket.
+  images: { formats: ["image/avif", "image/webp"], qualities: [50, 75], remotePatterns: flyerImages },
   turbopack: {
     rules: {
       "*.css": {
