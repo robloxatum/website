@@ -33,9 +33,11 @@ do $$ begin
 end $$;
 
 -- Inside this rolled-back transaction only: make the test officer the sole
--- officer, so the "last officer" rule can be tested on a live database.
-update public.profiles set is_officer = false where is_officer;
-update public.profiles set is_officer = true where id = '00000000-0000-0000-0000-00000000000a';
+-- officer and owner, so the "last officer/owner" rules can be tested on a live
+-- database too. (Owner first, so real owners can then be demoted.)
+update public.profiles set is_officer = true, is_owner = true where id = '00000000-0000-0000-0000-00000000000a';
+update public.profiles set is_owner = false where is_owner and id <> '00000000-0000-0000-0000-00000000000a';
+update public.profiles set is_officer = false where is_officer and id <> '00000000-0000-0000-0000-00000000000a';
 
 -------------------------------------------------------------------------------
 -- Officer creates events
@@ -290,27 +292,98 @@ end $$;
 reset role;
 
 -------------------------------------------------------------------------------
--- Officer management
+-- Officer management: owners only. a is the owner (and only officer) here.
 -------------------------------------------------------------------------------
 select set_config('request.jwt.claims',
   '{"sub":"00000000-0000-0000-0000-00000000000a","email":"officer@umich.edu","role":"authenticated"}', true);
 set local role authenticated;
 do $$ begin
   perform public.set_officer('00000000-0000-0000-0000-00000000000b', true);
+  assert (select is_officer from public.profiles where id = '00000000-0000-0000-0000-00000000000b'),
+    'an owner can make someone an officer';
   assert (select count(*) from public.profiles where id::text like '00000000-0000-0000-0000-00000000000_') = 3, 'officer reads all profiles';
   assert (select count(*) from public.attendance where event_id::text in (current_setting('test.e1'), current_setting('test.e2'))) = 2, 'officer reads all attendance';
+  assert (select is_owner from public.member_attendance where id = auth.uid()), 'owners show in the members view';
+
+  begin
+    perform public.set_officer(auth.uid(), false);
+    raise exception 'FAIL: owner removed as an officer';
+  exception when raise_exception then
+    if sqlerrm like 'FAIL:%' then raise; end if;
+  end;
+  begin
+    update public.profiles set is_owner = false where id = auth.uid();
+    raise exception 'FAIL: owner changed is_owner through the API';
+  exception when insufficient_privilege then null; end;
 end $$;
 reset role;
 
+-- b: an officer, not an owner. Keeps every officer permission but can't
+-- make or remove officers, or make themselves an owner.
 select set_config('request.jwt.claims',
   '{"sub":"00000000-0000-0000-0000-00000000000b","email":"member@umich.edu","role":"authenticated"}', true);
 set local role authenticated;
 do $$ begin
   assert (select count(*) from public.event_codes where event_id::text in (current_setting('test.e1'), current_setting('test.e2'))) = 2, 'a promoted officer can read codes';
+  begin
+    perform public.set_officer('00000000-0000-0000-0000-00000000000c', true);
+    raise exception 'FAIL: officer made someone an officer';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform public.set_officer('00000000-0000-0000-0000-00000000000a', false);
+    raise exception 'FAIL: officer removed an owner';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform public.set_officer(auth.uid(), false);
+    raise exception 'FAIL: officer removed an officer';
+  exception when insufficient_privilege then null; end;
+  begin
+    update public.profiles set is_owner = true where id = auth.uid();
+    raise exception 'FAIL: officer made themselves an owner';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+do $$ begin
+  assert not (select is_officer from public.profiles where id = '00000000-0000-0000-0000-00000000000c'),
+    'officers'' set_officer calls changed nothing';
+  assert (select is_officer and is_owner from public.profiles where id = '00000000-0000-0000-0000-00000000000a'),
+    'the owner is still an owner and officer';
+end $$;
+
+-- Owners are set only with SQL. The last owner can never be demoted or deleted.
+do $$ begin
+  begin
+    update public.profiles set is_owner = false where id = '00000000-0000-0000-0000-00000000000a';
+    raise exception 'FAIL: demoted the last owner';
+  exception when raise_exception then
+    if sqlerrm like 'FAIL:%' then raise; end if;
+  end;
+  begin
+    delete from public.profiles where id = '00000000-0000-0000-0000-00000000000a';
+    raise exception 'FAIL: deleted the last owner';
+  exception when raise_exception then
+    if sqlerrm like 'FAIL:%' then raise; end if;
+  end;
+  begin
+    update public.profiles set is_owner = true where id = '00000000-0000-0000-0000-00000000000c';
+    raise exception 'FAIL: owner who isn''t an officer';
+  exception when check_violation then null; end;
+end $$;
+-- Hand ownership from a to b (as SQL in Supabase would).
+update public.profiles set is_owner = true where id = '00000000-0000-0000-0000-00000000000b';
+update public.profiles set is_owner = false where id = '00000000-0000-0000-0000-00000000000a';
+
+-- b, now the owner: removes a as an officer; can't remove themselves.
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000b","email":"member@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$ begin
   perform public.set_officer('00000000-0000-0000-0000-00000000000a', false);
+  assert not (select is_officer from public.profiles where id = '00000000-0000-0000-0000-00000000000a'),
+    'an owner can remove an officer';
   begin
     perform public.set_officer('00000000-0000-0000-0000-00000000000b', false);
-    raise exception 'FAIL: removed the last officer';
+    raise exception 'FAIL: removed the last officer/owner';
   exception when raise_exception then
     if sqlerrm like 'FAIL:%' then raise; end if;
   end;
@@ -1107,7 +1180,10 @@ reset role;
 -------------------------------------------------------------------------------
 -- Name (locked, from Google) and nickname (member's own; officers can clear)
 -------------------------------------------------------------------------------
--- Known roles for this section: a is the only officer; b and c are members.
+-- Known roles for this section: a is the only officer (and owner); b and c are members.
+update public.profiles set is_officer = true, is_owner = true where id = '00000000-0000-0000-0000-00000000000a';
+update public.profiles set is_owner = false where id::text like '00000000-0000-0000-0000-00000000000%'
+   and id <> '00000000-0000-0000-0000-00000000000a';
 update public.profiles set is_officer = (id = '00000000-0000-0000-0000-00000000000a')
  where id::text like '00000000-0000-0000-0000-00000000000%';
 update public.profiles set nickname = null where id::text like '00000000-0000-0000-0000-00000000000%';

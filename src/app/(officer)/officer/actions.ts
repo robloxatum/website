@@ -200,6 +200,8 @@ export async function setOfficer(userId: string, makeOfficer: boolean): Promise<
     p_is_officer: makeOfficer,
   });
   if (error) {
+    if (error.code === "42501") return { error: "Only owners can make or remove officers." };
+    if (/owners can't be removed/i.test(error.message)) return { error: "Owners can't be removed as officers." };
     if (/last officer/i.test(error.message)) {
       return { error: "You can't remove the last officer. Make someone else an officer first." };
     }
