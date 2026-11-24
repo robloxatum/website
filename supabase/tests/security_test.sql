@@ -887,6 +887,223 @@ begin
 end $$;
 reset role;
 
+-------------------------------------------------------------------------------
+-- Announcements: anyone reads the active one; only officers write.
+-------------------------------------------------------------------------------
+
+-- Officer (b): publish, bad input rejected, only one at a time.
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000b","email":"member@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$ begin
+  assert (select private.is_officer()), 'announcement tests expect b to be an officer here';
+  insert into public.announcements (message, link, style) values ('Game night moved to BBB 1670', '/events', 'urgent');
+  assert (select created_by from public.announcements) = '00000000-0000-0000-0000-00000000000b',
+    'created_by defaults to the officer';
+
+  begin
+    insert into public.announcements (message) values ('A second one');
+    raise exception 'FAIL: two announcements at once';
+  exception when unique_violation then null; end;
+
+  begin
+    update public.announcements set message = repeat('x', 141);
+    raise exception 'FAIL: 141-character message accepted';
+  exception when check_violation then null; end;
+  begin
+    update public.announcements set message = '';
+    raise exception 'FAIL: empty message accepted';
+  exception when check_violation then null; end;
+  begin
+    update public.announcements set style = 'party';
+    raise exception 'FAIL: unknown style accepted';
+  exception when check_violation then null; end;
+
+  -- Links: our own paths, https roblox.com / umich.edu (and subdomains) only.
+  update public.announcements set link = '/';
+  update public.announcements set link = '/events/abc?x=1';
+  update public.announcements set link = 'https://www.roblox.com/games/1';
+  update public.announcements set link = 'https://umich.edu';
+  update public.announcements set link = 'https://campusinfo.umich.edu/maps';
+  declare bad text;
+  begin
+    foreach bad in array array[
+      '//evil.example/x', '/\evil.example', 'https://evil.example/', 'http://www.roblox.com/',
+      'https://roblox.com.evil.example/', 'https://evilumich.edu/', 'javascript:alert(1)',
+      'https://umich.edu@evil.example/', '/has space'
+    ] loop
+      begin
+        update public.announcements set link = bad;
+        raise exception 'FAIL: announcement link accepted: %', bad;
+      exception when check_violation then null; end;
+    end loop;
+  end;
+end $$;
+reset role;
+
+-- Member (c) and anon: read the active announcement, can't write.
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000c","email":"newbie@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare v_rows int;
+begin
+  assert (select count(*) from public.announcements) = 1, 'members can read the active announcement';
+  begin
+    insert into public.announcements (message) values ('Hacked');
+    raise exception 'FAIL: member published an announcement';
+  exception when insufficient_privilege then null; end;
+  update public.announcements set message = 'Hacked';
+  get diagnostics v_rows = row_count;
+  assert v_rows = 0, 'members cannot edit the announcement';
+  delete from public.announcements;
+  get diagnostics v_rows = row_count;
+  assert v_rows = 0, 'members cannot clear the announcement';
+end $$;
+reset role;
+
+select set_config('request.jwt.claims', '', true);
+set local role anon;
+do $$
+declare v_rows int;
+begin
+  assert (select message from public.announcements) = 'Game night moved to BBB 1670', 'anyone can read the active announcement';
+  begin
+    insert into public.announcements (message) values ('Hacked');
+    raise exception 'FAIL: anon published an announcement';
+  exception when insufficient_privilege then null; end;
+  begin
+    delete from public.announcements;
+    raise exception 'FAIL: anon cleared the announcement';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+
+-- Past its hide-after time: gone for everyone but officers.
+update public.announcements set hide_after = now() - interval '1 minute';
+set local role anon;
+do $$ begin
+  assert (select count(*) from public.announcements) = 0, 'anon cannot see an expired announcement';
+end $$;
+reset role;
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000c","email":"newbie@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$ begin
+  assert (select count(*) from public.announcements) = 0, 'members cannot see an expired announcement';
+end $$;
+reset role;
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000b","email":"member@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare v_rows int;
+begin
+  assert (select count(*) from public.announcements) = 1, 'officers still see an expired announcement';
+  delete from public.announcements;
+  get diagnostics v_rows = row_count;
+  assert v_rows = 1, 'officers can clear the announcement';
+end $$;
+reset role;
+
+-------------------------------------------------------------------------------
+-- RSVPs: members add/remove/read only their own (until the event ends);
+-- officers read all; anon nothing.
+-------------------------------------------------------------------------------
+
+-- Member (c): RSVP for upcoming and live events, not ended ones or for others.
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000c","email":"newbie@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare v_rows int;
+begin
+  assert not (select private.is_officer()), 'RSVP tests expect c to be a member';
+  insert into public.event_rsvps (event_id) values (current_setting('test.g_future')::uuid);
+  insert into public.event_rsvps (event_id) values (current_setting('test.g_live')::uuid);
+  assert (select count(*) from public.event_rsvps) = 2, 'member reads their own RSVPs';
+  assert (select user_id from public.event_rsvps where event_id = current_setting('test.g_future')::uuid)
+    = '00000000-0000-0000-0000-00000000000c', 'user_id defaults to the member';
+
+  begin
+    insert into public.event_rsvps (event_id) values (current_setting('test.g_ended')::uuid);
+    raise exception 'FAIL: RSVP to an ended event';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into public.event_rsvps (event_id, user_id)
+      values (current_setting('test.g_future')::uuid, '00000000-0000-0000-0000-00000000000b');
+    raise exception 'FAIL: RSVP on behalf of someone else';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into public.event_rsvps (event_id) values (current_setting('test.g_future')::uuid);
+    raise exception 'FAIL: duplicate RSVP';
+  exception when unique_violation then null; end;
+  begin
+    update public.event_rsvps set created_at = now() - interval '1 day';
+    raise exception 'FAIL: member updated an RSVP';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+
+-- Seed RSVPs the member can't create themselves: one by b, and one by c on the
+-- ended event (from before it ended).
+insert into public.event_rsvps (event_id, user_id) values
+  (current_setting('test.g_future')::uuid, '00000000-0000-0000-0000-00000000000b'),
+  (current_setting('test.g_ended')::uuid, '00000000-0000-0000-0000-00000000000c');
+
+set local role authenticated;
+do $$
+declare v_rows int;
+begin
+  assert (select count(*) from public.event_rsvps) = 3, 'member sees only their own RSVPs (not b''s)';
+  delete from public.event_rsvps where user_id = '00000000-0000-0000-0000-00000000000b';
+  get diagnostics v_rows = row_count;
+  assert v_rows = 0, 'member cannot remove someone else''s RSVP';
+  delete from public.event_rsvps where event_id = current_setting('test.g_ended')::uuid;
+  get diagnostics v_rows = row_count;
+  assert v_rows = 0, 'RSVPs are fixed once the event ends';
+  delete from public.event_rsvps where event_id = current_setting('test.g_future')::uuid;
+  get diagnostics v_rows = row_count;
+  assert v_rows = 1, 'member removes their own RSVP';
+end $$;
+reset role;
+
+-- Another member (a, not an officer here): sees none of c's or b's.
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000a","email":"officer@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$ begin
+  assert not (select private.is_officer()), 'RSVP tests expect a to be a member here';
+  assert (select count(*) from public.event_rsvps) = 0, 'members cannot see other members'' RSVPs';
+end $$;
+reset role;
+
+-- Officer (b): reads every RSVP.
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000b","email":"member@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$ begin
+  assert (select private.is_officer()), 'RSVP tests expect b to be an officer';
+  assert (select count(*) from public.event_rsvps) = 3, 'officers read all RSVPs';
+end $$;
+reset role;
+
+-- Anon: nothing.
+select set_config('request.jwt.claims', '', true);
+set local role anon;
+do $$ begin
+  begin
+    perform count(*) from public.event_rsvps;
+    raise exception 'FAIL: anon read RSVPs';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into public.event_rsvps (event_id, user_id)
+      values (current_setting('test.g_future')::uuid, '00000000-0000-0000-0000-00000000000c');
+    raise exception 'FAIL: anon RSVPed';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+
 select 'ALL SECURITY TESTS PASSED' as result;
 
 rollback;

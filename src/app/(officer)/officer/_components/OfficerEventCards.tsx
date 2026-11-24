@@ -1,4 +1,4 @@
-import { CalendarDays, MapPin, MonitorPlay, Users } from "lucide-react";
+import { CalendarDays, Hand, MapPin, MonitorPlay, Users } from "lucide-react";
 import Link from "next/link";
 import { EventCover } from "@/components/art/Art";
 import { CategoryBadge, ProgressBar, StatusPill } from "@/components/ui/Primitives";
@@ -11,6 +11,23 @@ import { CheckinToggle } from "./CheckinControls";
 
 export function attendanceCount(e: OfficerEventWithCount) {
   return e.attendance[0]?.count ?? 0;
+}
+
+export function rsvpCount(e: OfficerEventWithCount) {
+  return e.event_rsvps?.[0]?.count ?? 0;
+}
+
+/** "12 going" or "12 / 40 going" (officers only; RSVPs are never public). */
+export function RsvpCount({ count, capacity, className = "" }: { count: number; capacity: number | null; className?: string }) {
+  return (
+    <p className={`inline-flex items-center gap-1.5 text-sm text-fg-2 ${className}`}>
+      <Hand aria-hidden="true" className="size-4 text-fg-3" />
+      <span>
+        <span className="font-semibold text-fg tabular-nums">{count}</span>
+        {capacity ? <> / {capacity}</> : null} going <span className="text-fg-3">(RSVP)</span>
+      </span>
+    </p>
+  );
 }
 
 /** "78 / 132 checked in" with a bar when a capacity is set; otherwise just the count. */
@@ -70,6 +87,7 @@ export function OfficerEventCard({ event, highlight = false }: { event: OfficerE
       </div>
       <div className="mt-4 border-t border-line/50 pt-4">
         <CapacityMeter count={attendanceCount(event)} capacity={event.capacity} />
+        <RsvpCount count={rsvpCount(event)} capacity={event.capacity} className="mt-2" />
       </div>
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <CheckinToggle

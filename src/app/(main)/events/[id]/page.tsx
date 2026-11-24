@@ -6,7 +6,9 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { EventCover } from "@/components/art/Art";
 import { FlyerViewer } from "@/components/events/FlyerViewer";
+import { AddToCalendar } from "@/components/events/AddToCalendar";
 import { JoinGameIfCheckedIn } from "@/components/events/JoinGame";
+import { RsvpToggle } from "@/components/events/RsvpToggle";
 import { CalendarButton } from "@/components/ui/ClubLinkButtons";
 import { CategoryBadge, Skeleton, StatusPill } from "@/components/ui/Primitives";
 import { button, card, container } from "@/components/ui/styles";
@@ -120,6 +122,8 @@ async function EventDetails({ params }: { params: PageProps<"/events/[id]">["par
             <p className="mt-6 max-w-prose text-lg leading-relaxed whitespace-pre-line text-fg-2">{event.description}</p>
           )}
 
+          {status !== "completed" && <RsvpToggle event={event} className="mt-8" />}
+
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             {status !== "completed" && (
               <Link href="/checkin" className={button({ size: "lg" })}>
@@ -127,6 +131,8 @@ async function EventDetails({ params }: { params: PageProps<"/events/[id]">["par
                 {status === "live" ? "I'm here: check in" : "Check in at the event"}
               </Link>
             )}
+            {/* Past events: no "Add to calendar" (or RSVP). */}
+            {status !== "completed" && <AddToCalendar event={event} />}
             <CalendarButton />
           </div>
         </div>

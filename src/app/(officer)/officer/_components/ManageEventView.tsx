@@ -1,4 +1,4 @@
-import { Download, MonitorPlay, RefreshCw, Trash2, Users } from "lucide-react";
+import { Check, Download, Hand, MonitorPlay, RefreshCw, Trash2, Users } from "lucide-react";
 import Link from "next/link";
 import { Alert } from "@/components/ui/Alert";
 import { Avatar } from "@/components/ui/Avatar";
@@ -10,13 +10,13 @@ import { eventStatus } from "@/lib/events";
 import { uploadedCoverOf } from "@/lib/event-covers";
 import { flyerOf } from "@/lib/flyers";
 import type { OfficerEvent } from "@/lib/types";
-import { formatLongDate, formatTime, formatTimeRange, toClubInputValue } from "@/lib/time";
+import { formatDate, formatLongDate, formatTime, formatTimeRange, toClubInputValue } from "@/lib/time";
 import { deleteEvent, regenerateCode, removeAttendance } from "../actions";
 import { ActionButton } from "./ActionButton";
 import { CheckinToggle } from "./CheckinControls";
 import { EventForm } from "./EventForm";
 import { CapacityMeter } from "./OfficerEventCards";
-import type { AttendeeRow } from "../data";
+import type { AttendeeRow, RsvpRow } from "../data";
 import { GameLinkControl } from "./GameLinkControl";
 
 const th = "px-4 py-3 text-xs font-semibold tracking-wider text-fg-3 uppercase";
@@ -26,14 +26,17 @@ export function ManageEventView({
   code,
   attendees,
   gameLink,
+  rsvps,
   saved,
 }: {
   event: OfficerEvent;
   code: string | null;
   attendees: (AttendeeRow & { avatar?: string | null })[];
   gameLink: GameLink | null;
+  rsvps: (RsvpRow & { avatar?: string | null })[];
   saved: boolean;
 }) {
+  const checkedIn = new Set(attendees.map((a) => a.user_id));
   return (
     <div className="mt-2 space-y-8">
       <div>
@@ -144,6 +147,62 @@ export function ManageEventView({
                       >
                         Remove
                       </ActionButton>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      {/* RSVPs (officers only; never shown publicly) */}
+      <section>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="flex items-center gap-2.5 text-xl text-fg">
+            <Hand aria-hidden="true" className="size-6 text-maize" />
+            RSVPs
+            <span className="rounded-md bg-elevated px-2 py-0.5 text-sm font-bold text-fg tabular-nums">
+              {rsvps.length}
+              {event.capacity ? ` / ${event.capacity}` : ""}
+            </span>
+          </h2>
+          <p className="text-sm text-fg-3">Members who tapped “I’m going”. Only officers see this.</p>
+        </div>
+        {rsvps.length === 0 ? (
+          <div className={card}>
+            <EmptyState title="No RSVPs yet">Members can tap “I’m going” on the event page until it ends.</EmptyState>
+          </div>
+        ) : (
+          <div className={`${card} overflow-x-auto`}>
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-line/60 bg-bg-2/60">
+                <tr>
+                  <th scope="col" className={th}>Name</th>
+                  <th scope="col" className={th}>Uniqname</th>
+                  <th scope="col" className={`${th} hidden sm:table-cell`}>RSVP’d</th>
+                  <th scope="col" className={th}>Checked in</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line/40">
+                {rsvps.map((r) => (
+                  <tr key={r.user_id} className="hover:bg-white/[0.02]">
+                    <td className="px-4 py-3 font-semibold text-fg">
+                      <span className="flex items-center gap-2.5">
+                        <Avatar name={r.profiles?.full_name || r.profiles?.uniqname || "?"} src={r.avatar} size="sm" />
+                        {r.profiles?.full_name || "—"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-fg-2">{r.profiles?.uniqname}</td>
+                    <td className="hidden px-4 py-3 whitespace-nowrap text-fg-2 sm:table-cell">{formatDate(r.created_at)}</td>
+                    <td className="px-4 py-3 text-fg-2">
+                      {checkedIn.has(r.user_id) ? (
+                        <span className="inline-flex items-center gap-1 font-semibold text-ok">
+                          <Check aria-hidden="true" className="size-4" /> Yes
+                        </span>
+                      ) : (
+                        <span className="text-fg-3">Not yet</span>
+                      )}
                     </td>
                   </tr>
                 ))}

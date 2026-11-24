@@ -1,10 +1,12 @@
 "use server";
 
 import { refresh, updateTag } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/auth";
 import { CATEGORY_KEYS } from "@/lib/categories";
 import { isUuid } from "@/lib/events";
+import { normalizeLink, normalizeMessage } from "@/lib/announcement";
 import { normalizeGameLabel, normalizeGameLink } from "@/lib/game-links";
 import { COVER_MIN_HEIGHT, COVER_MIN_WIDTH, COVER_PATH, FLYER_BUCKET, FLYER_MAX_DIMENSION, FLYER_PATH } from "@/lib/flyers";
 import { createClient } from "@/lib/supabase/server";
@@ -234,4 +236,54 @@ export async function clearGameLink(eventId: string): Promise<{ error?: string }
   if (error) return { error: "Couldn't clear the link. Please try again." };
   refresh();
   return {};
+}
+
+export type AnnouncementFormState = { error?: string; published?: boolean; cleared?: boolean };
+
+/** Our own hosts, so a full link to this site is stored as a path. */
+async function siteHosts() {
+  const hosts = new Set<string>();
+  const host = (await headers()).get("host")?.split(":")[0];
+  if (host) hosts.add(host);
+  try {
+    if (process.env.NEXT_PUBLIC_SITE_URL) hosts.add(new URL(process.env.NEXT_PUBLIC_SITE_URL).hostname);
+  } catch {}
+  return [...hosts];
+}
+
+/** Publish (replacing any current announcement) or clear the site banner. */
+export async function saveAnnouncement(_prev: AnnouncementFormState, formData: FormData): Promise<AnnouncementFormState> {
+  await requireOfficerAction();
+  const supabase = await createClient();
+
+  if (formData.get("intent") === "clear") {
+    const { error } = await supabase.from("announcements").delete().not("id", "is", null);
+    if (error) return { error: "Couldn't clear the announcement. Please try again." };
+    updateTag("announcement");
+    return { cleared: true };
+  }
+
+  const message = normalizeMessage(String(formData.get("message") ?? ""));
+  if ("error" in message) return { error: message.error };
+  const link = normalizeLink(String(formData.get("link") ?? ""), await siteHosts());
+  if ("error" in link) return { error: link.error };
+  const style = formData.get("style") === "urgent" ? "urgent" : "info";
+  const hideRaw = String(formData.get("hide_after") ?? "").trim();
+  let hideAfter: string | null = null;
+  if (hideRaw) {
+    hideAfter = fromClubInputValue(hideRaw);
+    if (!hideAfter) return { error: "Pick a valid date and time for “Hide after”." };
+    if (new Date(hideAfter).getTime() <= Date.now()) return { error: "“Hide after” must be in the future." };
+  }
+
+  // One announcement at a time: replace it. A new row (new id) means visitors
+  // who dismissed the old one see this one.
+  const { error: delError } = await supabase.from("announcements").delete().not("id", "is", null);
+  if (delError) return { error: "Couldn't publish the announcement. Please try again." };
+  const { error } = await supabase
+    .from("announcements")
+    .insert({ message: message.message, link: link.link, style, hide_after: hideAfter });
+  if (error) return { error: "Couldn't publish the announcement. Please try again." };
+  updateTag("announcement");
+  return { published: true };
 }
