@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/ui/Blocks";
 import { CategoryBadge, StatusPill } from "@/components/ui/Primitives";
 import { button, card } from "@/components/ui/styles";
 import { eventStatus } from "@/lib/events";
+import { flyerOf } from "@/lib/flyers";
 import type { OfficerEvent } from "@/lib/types";
 import { formatLongDate, formatTime, formatTimeRange, toClubInputValue } from "@/lib/time";
 import { deleteEvent, regenerateCode, removeAttendance } from "../actions";
@@ -144,6 +145,7 @@ export function ManageEventView({
             ends_at: toClubInputValue(event.ends_at),
             category: event.category,
             capacity: event.capacity,
+            flyer: flyerOf(event),
           }}
         />
       </section>

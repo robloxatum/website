@@ -4,8 +4,11 @@ import { useActionState, useRef } from "react";
 import { Alert } from "@/components/ui/Alert";
 import { button, card, field, label } from "@/components/ui/styles";
 import { CATEGORIES, CATEGORY_KEYS } from "@/lib/categories";
+import { FLYER_BUCKET, FLYER_MAX_DIMENSION, FLYER_TYPES, type Flyer, flyerFileError } from "@/lib/flyers";
+import { createClient } from "@/lib/supabase/client";
 import type { EventCategory } from "@/lib/types";
 import { saveEvent, type EventFormState } from "../actions";
+import { FlyerField } from "./FlyerField";
 
 type Defaults = {
   id?: string;
@@ -16,7 +19,45 @@ type Defaults = {
   ends_at?: string;
   category?: EventCategory;
   capacity?: number | null;
+  flyer?: Flyer | null;
 };
+
+/**
+ * Uploads a chosen flyer straight from the browser to Storage (officer RLS; the
+ * bucket enforces PNG/JPEG and 5 MB), then hands only its name and size to
+ * saveEvent, so the file never passes through a server action.
+ */
+async function saveWithFlyer(prev: EventFormState, formData: FormData): Promise<EventFormState> {
+  const file = formData.get("flyer_file");
+  formData.delete("flyer_file");
+  if (!(file instanceof File) || file.size === 0) return saveEvent(prev, formData);
+
+  const problem = flyerFileError(file);
+  if (problem) return { error: problem };
+  let width: number, height: number;
+  try {
+    const bitmap = await createImageBitmap(file);
+    ({ width, height } = bitmap);
+    bitmap.close();
+  } catch {
+    return { error: "That file isn't a readable PNG or JPG image." };
+  }
+  if (width > FLYER_MAX_DIMENSION || height > FLYER_MAX_DIMENSION) return { error: "That image is too large (20,000 px max per side)." };
+
+  const path = `${crypto.randomUUID()}.${FLYER_TYPES[file.type]}`;
+  const storage = createClient().storage.from(FLYER_BUCKET);
+  // Each flyer gets a new name, so it can be cached for a year.
+  const { error } = await storage.upload(path, file, { contentType: file.type, cacheControl: "31536000", upsert: false });
+  if (error) return { error: "Couldn't upload the flyer. Check your connection and try again." };
+
+  formData.set("flyer_action", "replace");
+  formData.set("flyer_path", path);
+  formData.set("flyer_width", String(width));
+  formData.set("flyer_height", String(height));
+  const result = await saveEvent(prev, formData); // redirects on success
+  if (result?.error) await storage.remove([path]); // not saved: don't leave the file behind
+  return result;
+}
 
 function plusHours(local: string, hours: number) {
   const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(local);
@@ -26,7 +67,7 @@ function plusHours(local: string, hours: number) {
 }
 
 export function EventForm({ defaults = {} }: { defaults?: Defaults }) {
-  const [state, action, pending] = useActionState<EventFormState, FormData>(saveEvent, {});
+  const [state, action, pending] = useActionState<EventFormState, FormData>(saveWithFlyer, {});
   const endsRef = useRef<HTMLInputElement>(null);
 
   return (
@@ -103,6 +144,8 @@ export function EventForm({ defaults = {} }: { defaults?: Defaults }) {
         <label htmlFor="description" className={label}>Description</label>
         <textarea id="description" name="description" rows={5} maxLength={5000} defaultValue={defaults.description} className={field} placeholder="What are we doing? Bring a laptop?" />
       </div>
+
+      <FlyerField current={defaults.flyer ?? null} title={defaults.title} />
 
       {state.error && <Alert tone="error" title={state.error} />}
 

@@ -20,6 +20,10 @@ export type PublicEvent = {
   ends_at: string;
   category: EventCategory;
   capacity: number | null;
+  /** Object name in the public "event-flyers" bucket, with its pixel size. */
+  flyer_path: string | null;
+  flyer_width: number | null;
+  flyer_height: number | null;
 };
 
 export type EventStatus = "upcoming" | "live" | "completed";

@@ -4,10 +4,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { EventCover } from "@/components/art/Art";
+import { FlyerViewer } from "@/components/events/FlyerViewer";
 import { CalendarButton } from "@/components/ui/ClubLinkButtons";
 import { CategoryBadge, Skeleton, StatusPill } from "@/components/ui/Primitives";
 import { button, card, container } from "@/components/ui/styles";
 import { eventStatus, getEventLists, getPublicEvent } from "@/lib/events";
+import { flyerOf, flyerUrl } from "@/lib/flyers";
 import { formatLongDate, formatTimeRange } from "@/lib/time";
 
 export async function generateMetadata({ params }: PageProps<"/events/[id]">): Promise<Metadata> {
@@ -35,6 +37,7 @@ async function EventDetails({ params }: { params: PageProps<"/events/[id]">["par
   if (!event) notFound();
 
   const status = eventStatus(event);
+  const flyer = flyerOf(event);
   // Aggregate count for ended events only (same rules as the list).
   const attendance =
     status === "completed" ? ((await getEventLists()).past.find((e) => e.id === event.id)?.attendance ?? null) : null;
@@ -72,6 +75,13 @@ async function EventDetails({ params }: { params: PageProps<"/events/[id]">["par
 
         {event.description && (
           <p className="mt-6 text-lg leading-relaxed whitespace-pre-line text-fg-2">{event.description}</p>
+        )}
+
+        {flyer && (
+          <section aria-labelledby="flyer-heading" className="mt-8">
+            <h2 id="flyer-heading" className="mb-3 text-xl text-fg">Flyer</h2>
+            <FlyerViewer src={flyerUrl(flyer.path)} width={flyer.width} height={flyer.height} alt={`Flyer for ${event.title}`} />
+          </section>
         )}
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">

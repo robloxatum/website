@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/auth";
 import { CATEGORY_KEYS } from "@/lib/categories";
 import { isUuid } from "@/lib/events";
+import { FLYER_BUCKET, FLYER_MAX_DIMENSION, FLYER_PATH } from "@/lib/flyers";
 import { createClient } from "@/lib/supabase/server";
 import { fromClubInputValue } from "@/lib/time";
 
@@ -17,6 +18,23 @@ async function requireOfficerAction() {
 }
 
 export type EventFormState = { error?: string };
+
+type Supabase = Awaited<ReturnType<typeof createClient>>;
+
+async function flyerExists(supabase: Supabase, path: string) {
+  try {
+    const { data } = await supabase.storage.from(FLYER_BUCKET).exists(path); // exact name; officer RLS
+    return data === true;
+  } catch {
+    return false;
+  }
+}
+
+async function removeFlyer(supabase: Supabase, path: string) {
+  if (!FLYER_PATH.test(path)) return;
+  const { error } = await supabase.storage.from(FLYER_BUCKET).remove([path]);
+  if (error) console.error("Failed to delete old flyer", error.message);
+}
 
 export async function saveEvent(_prev: EventFormState, formData: FormData): Promise<EventFormState> {
   await requireOfficerAction();
@@ -42,12 +60,37 @@ export async function saveEvent(_prev: EventFormState, formData: FormData): Prom
     return { error: "Capacity must be a whole number from 1 to 100,000, or left empty." };
   }
 
-  const values = { title, location, description, starts_at: startsAt, ends_at: endsAt, category, capacity };
+  // Flyer: "keep" (default), "remove", or "replace" with an object the browser
+  // already uploaded to Storage (officer RLS) as <uuid>.png|jpg.
+  const flyerAction = String(formData.get("flyer_action") ?? "keep");
+  let flyer: { flyer_path: string | null; flyer_width: number | null; flyer_height: number | null } | null = null;
+  if (flyerAction === "remove") {
+    flyer = { flyer_path: null, flyer_width: null, flyer_height: null };
+  } else if (flyerAction === "replace") {
+    const path = String(formData.get("flyer_path") ?? "");
+    const width = Number(formData.get("flyer_width"));
+    const height = Number(formData.get("flyer_height"));
+    const okSize = (n: number) => Number.isInteger(n) && n >= 1 && n <= FLYER_MAX_DIMENSION;
+    if (!FLYER_PATH.test(path) || !okSize(width) || !okSize(height)) return { error: "That flyer upload didn't work. Please try again." };
+    flyer = { flyer_path: path, flyer_width: width, flyer_height: height };
+  }
+
+  const values = { title, location, description, starts_at: startsAt, ends_at: endsAt, category, capacity, ...flyer };
   const supabase = await createClient();
 
+  // Make sure an uploaded flyer really is in the bucket, so the page never shows a broken image.
+  if (flyer?.flyer_path && !(await flyerExists(supabase, flyer.flyer_path))) {
+    return { error: "The flyer upload didn't finish. Please try again." };
+  }
+
   let eventId = id;
+  let oldFlyer: string | null = null;
   if (id) {
     if (!isUuid(id)) return { error: "Unknown event." };
+    if (flyer) {
+      const { data } = await supabase.from("events").select("flyer_path").eq("id", id).maybeSingle<{ flyer_path: string | null }>();
+      oldFlyer = data?.flyer_path ?? null;
+    }
     const { error } = await supabase.from("events").update(values).eq("id", id);
     if (error) return { error: "Couldn't save the event. Please try again." };
   } else {
@@ -55,6 +98,9 @@ export async function saveEvent(_prev: EventFormState, formData: FormData): Prom
     if (error || !data) return { error: "Couldn't create the event. Please try again." };
     eventId = data.id;
   }
+
+  // The event no longer points at the old flyer: delete the file (best effort).
+  if (oldFlyer && oldFlyer !== flyer?.flyer_path) await removeFlyer(supabase, oldFlyer);
 
   updateTag("events");
   redirect(`/officer/events/${eventId}?saved=1`);
@@ -64,7 +110,9 @@ export async function deleteEvent(eventId: string) {
   await requireOfficerAction();
   if (!isUuid(eventId)) return;
   const supabase = await createClient();
-  await supabase.from("events").delete().eq("id", eventId);
+  const { data } = await supabase.from("events").select("flyer_path").eq("id", eventId).maybeSingle<{ flyer_path: string | null }>();
+  const { error } = await supabase.from("events").delete().eq("id", eventId);
+  if (!error && data?.flyer_path) await removeFlyer(supabase, data.flyer_path);
   updateTag("events");
   redirect("/officer");
 }

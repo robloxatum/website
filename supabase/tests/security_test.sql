@@ -366,6 +366,194 @@ do $$ begin
 end $$;
 reset role;
 
+-------------------------------------------------------------------------------
+-- Event flyers: events.flyer_* checks and the "event-flyers" Storage policies.
+-- Objects are inserted with SQL (as the Storage API does); deletes need
+-- storage.allow_delete_query, which Supabase requires for direct SQL deletes.
+-------------------------------------------------------------------------------
+do $$ begin
+  assert (select public and file_size_limit = 5242880 and allowed_mime_types = array['image/png', 'image/jpeg']
+            from storage.buckets where id = 'event-flyers'),
+    'event-flyers bucket is public, 5 MB max, PNG/JPEG only';
+  assert (select is_officer from public.profiles where id = '00000000-0000-0000-0000-00000000000b'),
+    'flyer tests expect b to be an officer here';
+  assert not (select is_officer from public.profiles where id = '00000000-0000-0000-0000-00000000000c'),
+    'flyer tests expect c to be a member here';
+end $$;
+
+-- Officer: upload, list, replace; flyer columns on an event.
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000b","email":"member@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare v_id uuid;
+begin
+  insert into storage.objects (bucket_id, name) values ('event-flyers', '11111111-1111-4111-8111-111111111111.png');
+  assert (select count(*) from storage.objects where bucket_id = 'event-flyers') = 1, 'officers can upload and list flyers';
+
+  begin
+    insert into storage.objects (bucket_id, name) values ('event-flyers', '../escape.png');
+    raise exception 'FAIL: officer uploaded a flyer with a bad name';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into storage.objects (bucket_id, name) values ('event-flyers', '33333333-3333-4333-8333-333333333333.gif');
+    raise exception 'FAIL: officer uploaded a non-PNG/JPG flyer name';
+  exception when insufficient_privilege then null; end;
+
+  update storage.objects set name = '22222222-2222-4222-8222-222222222222.jpg'
+   where bucket_id = 'event-flyers' and name = '11111111-1111-4111-8111-111111111111.png';
+  assert exists (select 1 from storage.objects where name = '22222222-2222-4222-8222-222222222222.jpg'),
+    'officers can replace flyers';
+  begin
+    update storage.objects set name = '../escape.jpg' where name = '22222222-2222-4222-8222-222222222222.jpg';
+    raise exception 'FAIL: officer renamed a flyer to a bad name';
+  exception when insufficient_privilege then null; end;
+
+  insert into public.events (title, starts_at, ends_at, flyer_path, flyer_width, flyer_height)
+  values ('Flyer Night', now() + interval '1 day', now() + interval '1 day 2 hours',
+          '22222222-2222-4222-8222-222222222222.jpg', 1080, 1350)
+  returning id into v_id;
+  perform set_config('test.flyer_event', v_id::text, true);
+
+  begin
+    update public.events set flyer_path = '../x.png' where id = v_id;
+    raise exception 'FAIL: flyer_path accepted a bad path';
+  exception when check_violation then null; end;
+  begin
+    update public.events set flyer_path = null where id = v_id;
+    raise exception 'FAIL: flyer size kept without a flyer';
+  exception when check_violation then null; end;
+  begin
+    update public.events set flyer_width = 0 where id = v_id;
+    raise exception 'FAIL: flyer_width accepted 0';
+  exception when check_violation then null; end;
+
+  update public.events set flyer_path = null, flyer_width = null, flyer_height = null where id = v_id;
+  update public.events set flyer_path = '22222222-2222-4222-8222-222222222222.jpg', flyer_width = 1080, flyer_height = 1350
+   where id = v_id;
+  assert (select flyer_height from public.events where id = v_id) = 1350, 'officers can set and remove an event flyer';
+end $$;
+reset role;
+
+-- Member: can see the flyer on the event, but cannot touch Storage or the event.
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000c","email":"newbie@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare v_rows int;
+begin
+  assert (select flyer_path from public.events where id = current_setting('test.flyer_event')::uuid)
+    = '22222222-2222-4222-8222-222222222222.jpg', 'members can read an event flyer path';
+  assert (select count(*) from storage.objects where bucket_id = 'event-flyers') = 0, 'members cannot list flyers';
+
+  begin
+    insert into storage.objects (bucket_id, name) values ('event-flyers', '44444444-4444-4444-8444-444444444444.png');
+    raise exception 'FAIL: member uploaded a flyer';
+  exception when insufficient_privilege then null; end;
+
+  update storage.objects set name = '44444444-4444-4444-8444-444444444444.png' where bucket_id = 'event-flyers';
+  get diagnostics v_rows = row_count;
+  assert v_rows = 0, 'members cannot replace flyers';
+
+  perform set_config('storage.allow_delete_query', 'true', true);
+  delete from storage.objects where bucket_id = 'event-flyers';
+  get diagnostics v_rows = row_count;
+  assert v_rows = 0, 'members cannot delete flyers';
+  perform set_config('storage.allow_delete_query', 'false', true);
+
+  update public.events set flyer_path = null, flyer_width = null, flyer_height = null
+   where id = current_setting('test.flyer_event')::uuid;
+  get diagnostics v_rows = row_count;
+  assert v_rows = 0, 'members cannot remove an event flyer';
+end $$;
+reset role;
+
+-- Anonymous: same, read-only.
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
+set local role anon;
+do $$
+declare v_rows int;
+begin
+  assert (select flyer_path from public.events where id = current_setting('test.flyer_event')::uuid)
+    = '22222222-2222-4222-8222-222222222222.jpg', 'anyone can read an event flyer path';
+  assert (select count(*) from storage.objects where bucket_id = 'event-flyers') = 0, 'anon cannot list flyers';
+
+  begin
+    insert into storage.objects (bucket_id, name) values ('event-flyers', '55555555-5555-4555-8555-555555555555.png');
+    raise exception 'FAIL: anon uploaded a flyer';
+  exception when insufficient_privilege then null; end;
+
+  update storage.objects set name = '55555555-5555-4555-8555-555555555555.png' where bucket_id = 'event-flyers';
+  get diagnostics v_rows = row_count;
+  assert v_rows = 0, 'anon cannot replace flyers';
+
+  perform set_config('storage.allow_delete_query', 'true', true);
+  delete from storage.objects where bucket_id = 'event-flyers';
+  get diagnostics v_rows = row_count;
+  assert v_rows = 0, 'anon cannot delete flyers';
+  perform set_config('storage.allow_delete_query', 'false', true);
+end $$;
+reset role;
+
+-- The replace and delete policies on their own: members and anon normally
+-- can't even list flyers, which already hides every row from UPDATE/DELETE.
+-- Let everyone list them (test-only policy, dropped below and rolled back),
+-- so only the replace/delete policies can stop the writes.
+create policy "TEST ONLY: everyone lists flyers" on storage.objects
+  for select to anon, authenticated using (bucket_id = 'event-flyers');
+
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000c","email":"newbie@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare v_rows int;
+begin
+  assert (select count(*) from storage.objects where bucket_id = 'event-flyers') = 1, 'test-only listing policy works';
+  update storage.objects set name = '44444444-4444-4444-8444-444444444444.png' where bucket_id = 'event-flyers';
+  get diagnostics v_rows = row_count;
+  assert v_rows = 0, 'replace policy alone stops members';
+  perform set_config('storage.allow_delete_query', 'true', true);
+  delete from storage.objects where bucket_id = 'event-flyers';
+  get diagnostics v_rows = row_count;
+  assert v_rows = 0, 'delete policy alone stops members';
+  perform set_config('storage.allow_delete_query', 'false', true);
+end $$;
+reset role;
+
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
+set local role anon;
+do $$
+declare v_rows int;
+begin
+  assert (select count(*) from storage.objects where bucket_id = 'event-flyers') = 1, 'test-only listing policy works (anon)';
+  update storage.objects set name = '55555555-5555-4555-8555-555555555555.png' where bucket_id = 'event-flyers';
+  get diagnostics v_rows = row_count;
+  assert v_rows = 0, 'replace policy alone stops anon';
+  perform set_config('storage.allow_delete_query', 'true', true);
+  delete from storage.objects where bucket_id = 'event-flyers';
+  get diagnostics v_rows = row_count;
+  assert v_rows = 0, 'delete policy alone stops anon';
+  perform set_config('storage.allow_delete_query', 'false', true);
+end $$;
+reset role;
+
+drop policy "TEST ONLY: everyone lists flyers" on storage.objects;
+
+-- Officer: delete.
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000b","email":"member@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare v_rows int;
+begin
+  perform set_config('storage.allow_delete_query', 'true', true);
+  delete from storage.objects where bucket_id = 'event-flyers' and name = '22222222-2222-4222-8222-222222222222.jpg';
+  get diagnostics v_rows = row_count;
+  assert v_rows = 1, 'officers can delete flyers';
+  perform set_config('storage.allow_delete_query', 'false', true);
+end $$;
+reset role;
+
 select 'ALL SECURITY TESTS PASSED' as result;
 
 rollback;

@@ -61,3 +61,39 @@ create function realtime.topic() returns text language sql stable as $$
   select nullif(current_setting('realtime.topic', true), '')
 $$;
 grant execute on function realtime.topic() to anon, authenticated;
+
+-- Storage stand-ins (the real tables live in Supabase's storage schema; same
+-- grants: anon/authenticated have table privileges and RLS does the gating).
+create schema storage;
+grant usage on schema storage to anon, authenticated;
+create table storage.buckets (
+  id text primary key,
+  name text not null,
+  public boolean default false,
+  file_size_limit bigint,
+  allowed_mime_types text[]
+);
+create table storage.objects (
+  id uuid primary key default gen_random_uuid(),
+  bucket_id text references storage.buckets (id),
+  name text,
+  owner uuid,
+  metadata jsonb,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+alter table storage.buckets enable row level security;
+alter table storage.objects enable row level security;
+grant select, insert, update, delete on storage.objects to anon, authenticated;
+grant select on storage.buckets to anon, authenticated;
+-- Like Supabase: direct SQL deletes are refused unless storage.allow_delete_query = 'true'.
+create function storage.protect_delete() returns trigger language plpgsql as $$
+begin
+  if coalesce(current_setting('storage.allow_delete_query', true), 'false') != 'true' then
+    raise exception 'Direct deletion from storage tables is not allowed. Use the Storage API instead.'
+      using errcode = '42501';
+  end if;
+  return null;
+end $$;
+create trigger protect_objects_delete before delete on storage.objects
+  for each statement execute function storage.protect_delete();
