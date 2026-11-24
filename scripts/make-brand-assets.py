@@ -37,9 +37,12 @@ def square(im, size, pad_ratio=0.0, bg=(0, 0, 0, 0)):
 for src, out in [
     ("robloxatum_no_tagline_transparent.png", "wordmark-white.png"),
     ("robloxatum_no_tagline_transparent_navy.png", "wordmark-navy.png"),
+    ("RobloxAtUM_tagline_transparent.png", "tagline-white.png"),
+    ("RobloxAtUM_tagline_transparent_navy.png", "tagline-navy.png"),
 ]:
     w = trim(load(src))
-    w = w.resize((800, round(800 * w.height / w.width)), Image.Resampling.LANCZOS)
+    width = 1000 if out.startswith("tagline") else 800
+    w = w.resize((width, round(width * w.height / w.width)), Image.Resampling.LANCZOS)
     save_png(w, os.path.join(assets, out))
 
 # Square icon (trimmed) for in-page use.

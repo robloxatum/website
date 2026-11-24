@@ -67,6 +67,23 @@ begin
   assert (select created_by from public.events where id = v_id) = '00000000-0000-0000-0000-00000000000a',
     'created_by defaults to the officer';
 
+  begin
+    insert into public.events (title, starts_at, ends_at, category)
+    values ('Bad category', now(), now() + interval '1 hour', 'rave');
+    raise exception 'FAIL: invalid category accepted';
+  exception when check_violation then null; end;
+  begin
+    insert into public.events (title, starts_at, ends_at, capacity)
+    values ('Bad capacity', now(), now() + interval '1 hour', 0);
+    raise exception 'FAIL: zero capacity accepted';
+  exception when check_violation then null; end;
+  update public.events set category = 'partner', capacity = 40
+   where id = current_setting('test.e1')::uuid;
+  assert (select category from public.events where id = current_setting('test.e1')::uuid) = 'partner',
+    'officers can set a category (including Partner Event)';
+  assert (select category from public.events where id = current_setting('test.e2')::uuid) = 'meeting',
+    'category defaults to meeting';
+
   v_code := public.regenerate_event_code(current_setting('test.e1')::uuid);
   assert v_code ~ '^[A-HJ-NP-Z]{5}$', 'officer can regenerate a code';
   perform set_config('test.code1', v_code, true);
@@ -149,6 +166,10 @@ begin
   assert v_result ->> 'status' = 'ok', 'correct code checks in (case and spaces ignored)';
   assert v_result ->> 'event_title' = 'Game Jam Kickoff', 'check-in returns the event title';
   assert not (v_result ? 'code'), 'check-in never returns a code';
+  assert v_result -> 'event' ->> 'id' = current_setting('test.e1'), 'check-in returns the event id';
+  assert v_result -> 'event' ->> 'category' = 'partner', 'check-in returns the event category';
+  assert v_result -> 'event' ? 'starts_at' and v_result -> 'event' ? 'location', 'check-in returns date and place';
+  assert position(current_setting('test.code1') in v_result::text) = 0, 'the code appears nowhere in the result';
 
   v_result := public.check_in(current_setting('test.code1'));
   assert v_result ->> 'status' = 'already_checked_in', 'second check-in is refused';
@@ -227,6 +248,18 @@ reset role;
 select set_config('request.jwt.claims', '{"role":"anon"}', true);
 set local role anon;
 do $$ begin
+  assert (select members from public.public_stats()) >= 3, 'anyone can read the member total';
+  assert (select total_checkins from public.public_stats()) >= 2, 'anyone can read the check-in total';
+  assert (select events_held from public.public_stats()) >= 1, 'anyone can read the events-held total';
+  assert (select attendance from public.public_past_event_counts()
+           where event_id = current_setting('test.e2')::uuid) = 1,
+    'past events expose an aggregate attendance count';
+  assert not exists (select 1 from public.public_past_event_counts()
+                      where event_id = current_setting('test.e1')::uuid),
+    'live/upcoming events never expose attendance counts';
+  assert (select count(*) from information_schema.columns
+           where table_schema = 'public' and table_name = 'events' and column_name = 'capacity') = 1,
+    'capacity column exists';
   assert (select count(*) from public.events) >= 2, 'anyone can read events';
   begin
     perform count(*) from public.event_codes;

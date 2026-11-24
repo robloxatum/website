@@ -1,16 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { Montserrat, Rubik } from "next/font/google";
+import { Inter, Montserrat } from "next/font/google";
+import { WebAnalytics } from "@/components/site/WebAnalytics";
 import "./globals.css";
 
-// Montserrat matches the logo; headings use 800, other display text 700.
+// Montserrat matches the logo (display); Inter for body, nav, forms and buttons.
 const montserrat = Montserrat({ weight: ["700", "800"], subsets: ["latin"], variable: "--font-montserrat" });
-const rubik = Rubik({ subsets: ["latin"], variable: "--font-rubik" });
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 const description =
-  "Roblox at UM: Build · Create · Connect. A University of Michigan student club for making Roblox games together. Events and meeting check-in.";
+  "A student-led community for Roblox creators, players, and developers at U-M. Build · Create · Connect.";
 
 export const metadata: Metadata = {
-  // Absolute URLs for the social preview image (opengraph-image.png).
+  // Absolute URLs for the social preview images (opengraph-image.png).
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
   title: { default: "Roblox at UM", template: "%s · Roblox at UM" },
   description,
@@ -24,15 +25,20 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#081f40",
+  themeColor: "#061525",
+  colorScheme: "dark",
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${montserrat.variable} ${rubik.variable}`}>
-      <body className="min-h-dvh">{children}</body>
+    <html lang="en" className={`${montserrat.variable} ${inter.variable}`}>
+      <body className="min-h-dvh">
+        {children}
+        <WebAnalytics />
+      </body>
     </html>
   );
 }

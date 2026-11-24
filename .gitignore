@@ -44,3 +44,6 @@ next-env.d.ts
 
 # Original logo files (sources for scripts/make-brand-assets.py); not deployed
 /public/brand/
+
+# Mockups are large reference images; kept locally only
+design/mockups/

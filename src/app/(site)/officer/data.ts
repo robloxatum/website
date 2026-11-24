@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { OfficerEvent } from "@/lib/types";
 
 export const OFFICER_EVENT_COLUMNS =
-  "id, title, description, location, starts_at, ends_at, checkin_open, checkin_reopened, checkin_is_open";
+  "id, title, description, location, starts_at, ends_at, category, capacity, checkin_open, checkin_reopened, checkin_is_open";
 
 export type OfficerEventWithCount = OfficerEvent & { attendance: { count: number }[] };
 

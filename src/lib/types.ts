@@ -8,6 +8,8 @@ export type Profile = {
   created_at: string;
 };
 
+export type EventCategory = "game_night" | "workshop" | "game_jam" | "social" | "meeting" | "partner";
+
 /** Event fields that are safe to show anyone. */
 export type PublicEvent = {
   id: string;
@@ -16,7 +18,16 @@ export type PublicEvent = {
   location: string;
   starts_at: string;
   ends_at: string;
+  category: EventCategory;
+  capacity: number | null;
 };
+
+export type EventStatus = "upcoming" | "live" | "completed";
+
+/** A public event with its status and (past events only) aggregate attendance. */
+export type ListedEvent = PublicEvent & { status: EventStatus; attendance: number | null };
+
+export type PublicStats = { members: number; events_held: number; total_checkins: number };
 
 /** Event as officers see it, including check-in state. */
 export type OfficerEvent = PublicEvent & {
@@ -36,7 +47,14 @@ export type CheckinStatus =
   | "no_profile"
   | "error";
 
-export type CheckinResult = { status: CheckinStatus; event_title: string | null };
+export type CheckinEvent = Pick<PublicEvent, "id" | "title" | "starts_at" | "ends_at" | "location" | "category">;
+
+export type CheckinResult = {
+  status: CheckinStatus;
+  event_title: string | null;
+  /** Public details of the event the code belongs to (never the code). */
+  event?: CheckinEvent | null;
+};
 
 export type MemberRow = {
   id: string;

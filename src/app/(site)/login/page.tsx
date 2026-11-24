@@ -5,7 +5,7 @@ import { Suspense } from "react";
 import { Notice, PageTitle, SkeletonBlock } from "@/components/Notice";
 import { getUser } from "@/lib/auth";
 import { safeNext } from "@/lib/safe-next";
-import { GoogleButton } from "./GoogleButton";
+import { GoogleButton } from "@/components/GoogleButton";
 
 export const metadata: Metadata = { title: "Sign in" };
 
