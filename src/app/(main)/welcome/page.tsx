@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { Notice, PageTitle, SkeletonBlock } from "@/components/Notice";
+import { BrandIcon } from "@/components/Logo";
+import { Alert } from "@/components/ui/Alert";
+import { Skeleton } from "@/components/ui/Primitives";
+import { container } from "@/components/ui/styles";
 import { getProfile, getUser } from "@/lib/auth";
 import { safeNext } from "@/lib/safe-next";
 import { ProfileForm } from "../profile/ProfileForm";
@@ -10,11 +13,15 @@ export const metadata: Metadata = { title: "Welcome" };
 
 export default function WelcomePage({ searchParams }: PageProps<"/welcome">) {
   return (
-    <div className="mx-auto max-w-md">
-      <PageTitle kicker="Almost there">Welcome!</PageTitle>
-      <Suspense fallback={<SkeletonBlock className="h-80" />}>
-        <WelcomeForm searchParams={searchParams} />
-      </Suspense>
+    <div className={`${container} max-w-md! pt-10`}>
+      <BrandIcon className="size-14" alt="" />
+      <p className="mt-4 text-sm font-semibold text-maize">Almost there</p>
+      <h1 className="mt-1 text-4xl text-fg">Welcome!</h1>
+      <div className="mt-6">
+        <Suspense fallback={<Skeleton className="h-80" />}>
+          <WelcomeForm searchParams={searchParams} />
+        </Suspense>
+      </div>
     </div>
   );
 }
@@ -29,17 +36,16 @@ async function WelcomeForm({ searchParams }: { searchParams: PageProps<"/welcome
   const profile = await getProfile();
   if (!profile) {
     return (
-      <Notice tone="error" title="We couldn't find your profile">
-        Make sure you signed in with your umich.edu account. If this keeps happening, tell an
-        officer.
-      </Notice>
+      <Alert tone="error" title="We couldn't find your profile">
+        Make sure you signed in with your umich.edu account. If this keeps happening, tell an officer.
+      </Alert>
     );
   }
   if (profile.onboarded_at) redirect(next);
 
   return (
     <div className="space-y-4">
-      <p className="text-lg">Check your name, and add your Roblox username if you&apos;d like.</p>
+      <p className="text-lg text-fg-2">Check your name, and add your Roblox username if you&apos;d like.</p>
       <ProfileForm
         mode="welcome"
         next={next}

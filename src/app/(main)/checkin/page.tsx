@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { SkeletonBlock } from "@/components/Notice";
+import { Skeleton } from "@/components/ui/Primitives";
+import { container } from "@/components/ui/styles";
 import { requireMember } from "@/lib/auth";
 import { normalizeCode } from "@/lib/checkin-state";
 import { CheckinClient } from "./CheckinClient";
@@ -9,8 +10,8 @@ export const metadata: Metadata = { title: "Check in" };
 
 export default function CheckinPage({ searchParams }: PageProps<"/checkin">) {
   return (
-    <div className="mx-auto max-w-md">
-      <Suspense fallback={<SkeletonBlock className="h-80" />}>
+    <div className={`${container} pt-8 sm:pt-12`}>
+      <Suspense fallback={<Skeleton className="mx-auto h-96 max-w-md" />}>
         <CheckinGate searchParams={searchParams} />
       </Suspense>
     </div>

@@ -1,6 +1,9 @@
 "use client";
 
+import { CircleCheck } from "lucide-react";
 import { useActionState } from "react";
+import { Alert } from "@/components/ui/Alert";
+import { button, card, field, label } from "@/components/ui/styles";
 import { saveProfile, type ProfileFormState } from "./actions";
 
 export function ProfileForm({
@@ -19,33 +22,25 @@ export function ProfileForm({
   const [state, action, pending] = useActionState<ProfileFormState, FormData>(saveProfile, {});
 
   return (
-    <form action={action} className="block-card space-y-5 p-5">
+    <form action={action} className={`${card} space-y-5 p-5 sm:p-6`}>
       <input type="hidden" name="mode" value={mode} />
       <input type="hidden" name="next" value={next} />
 
       <div>
-        <span className="label">Uniqname</span>
-        <p className="border-4 border-blue/30 bg-cream px-3 py-3 font-semibold">{uniqname}</p>
+        <span className={label}>Uniqname</span>
+        <p className="rounded-[10px] border border-line/50 bg-bg-2/50 px-4 py-3 font-semibold text-fg-2">{uniqname}</p>
       </div>
 
       <div>
-        <label htmlFor="full_name" className="label">
+        <label htmlFor="full_name" className={label}>
           Name
         </label>
-        <input
-          id="full_name"
-          name="full_name"
-          required
-          maxLength={100}
-          autoComplete="name"
-          defaultValue={fullName}
-          className="field"
-        />
+        <input id="full_name" name="full_name" required maxLength={100} autoComplete="name" defaultValue={fullName} className={field} />
       </div>
 
       <div>
-        <label htmlFor="roblox_username" className="label">
-          Roblox username <span className="text-blue/50 normal-case">(optional)</span>
+        <label htmlFor="roblox_username" className={label}>
+          Roblox username <span className="font-normal text-fg-3">(optional)</span>
         </label>
         <input
           id="roblox_username"
@@ -56,22 +51,18 @@ export function ProfileForm({
           spellCheck={false}
           placeholder="e.g. builderman"
           defaultValue={robloxUsername ?? ""}
-          className="field"
+          className={field}
         />
       </div>
 
-      {state.error && (
-        <p role="alert" className="font-semibold text-brick">
-          {state.error}
-        </p>
-      )}
+      {state.error && <Alert tone="error" title={state.error} />}
       {state.saved && (
-        <p role="status" className="font-semibold text-grass">
-          Saved!
+        <p role="status" className="flex items-center gap-2 font-semibold text-ok">
+          <CircleCheck aria-hidden="true" className="size-5" /> Saved!
         </p>
       )}
 
-      <button type="submit" disabled={pending} className="btn btn-maize w-full">
+      <button type="submit" disabled={pending} className={button({ size: "lg", full: true })}>
         {pending ? "Saving…" : mode === "welcome" ? "Let's go" : "Save"}
       </button>
     </form>
