@@ -2,6 +2,7 @@ import { ArrowLeft, CalendarDays, Clock3, MapPin, QrCode, Users } from "lucide-r
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { Suspense } from "react";
 import { EventCover } from "@/components/art/Art";
 import { FlyerViewer } from "@/components/events/FlyerViewer";
@@ -37,11 +38,15 @@ async function EventDetails({ params }: { params: PageProps<"/events/[id]">["par
   const event = await getPublicEvent(id);
   if (!event) notFound();
 
-  const status = eventStatus(event);
   const flyer = flyerOf(event);
   // Same cover as the event's card: lists pick covers so neighbours differ, so
   // look the event up in its list (cached) and fall back to its own pick.
   const lists = await getEventLists();
+  // Upcoming / live / ended depends on the current time, so work it out per
+  // request (this part already streams inside <Suspense>; the cached data above
+  // stays cached).
+  await connection();
+  const status = eventStatus(event);
   const listed = [...lists.upcoming, ...lists.past].find((e) => e.id === event.id);
   const cover = listed ? listed.cover : coverFor(event);
   // Aggregate count for ended events only (same rules as the list).
