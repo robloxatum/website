@@ -5,18 +5,22 @@
  *
  * The club mascot (public/art/mascot.png) is always used; see <Mascot />.
  */
+import type { StaticImageData } from "next/image";
 import type { EventCategory } from "@/lib/types";
+import heroDusk from "../../public/art/hero-dusk.png";
 
 export const art: {
-  hero: string | null;
+  // Static import: Next reads the size and makes the blur placeholder at build time.
+  hero: StaticImageData | null;
   joinHero: string | null;
   emptyState: string | null;
   featured: string | null;
   covers: Record<EventCategory, string | null>;
 } = {
-  // Pencil sketch of campus, light lines on our navy. (hero-campus.png and
-  // hero-sketch.png are earlier versions, kept but unused.)
-  hero: "/art/hero-sketch-blueprint.png",
+  // Dusk scene: empty navy sky on the left third (text goes there), friends and
+  // the tower on the right. (hero-sketch-blueprint.png, hero-sketch.png and
+  // hero-campus.png are earlier versions, kept but unused.)
+  hero: heroDusk,
   joinHero: null,
   emptyState: null,
   featured: null,

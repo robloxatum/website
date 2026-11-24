@@ -14,60 +14,58 @@ import { VoxelSkyline } from "./Skyline";
 const fadeLeft = "[mask-image:linear-gradient(to_right,transparent,black_35%)]";
 
 /**
- * Desktop hero image: fade all four edges into the page so no image edge (or the
- * sketch's frame lines) ever shows; the long left fade melts the hatched sky into
- * the navy behind the text. Phones crop the sides off and fade top/bottom with
- * overlays instead.
+ * Desktop: navy from the left edge through the text column, then clear over the
+ * scene. The stops follow the text column (max-w-xl inside the max-w-6xl
+ * container), not the screen, so on wide screens the tagline never ends up over
+ * the bright clouds while the friends and tower stay untouched.
  */
-const heroEdgeMask =
-  "lg:[mask-image:linear-gradient(to_bottom,transparent,black_10%,black_86%,transparent),linear-gradient(to_right,transparent,black_30%,black_95%,transparent)] lg:[mask-composite:intersect]";
+const textEnd = "(max(1.5rem, 50% - 34.5rem) + 36rem)";
+const heroDesktopShade = {
+  backgroundImage: `linear-gradient(to right, var(--color-bg) 0, rgb(6 21 37 / 0.9) calc(${textEnd} - 12rem), rgb(6 21 37 / 0.7) calc(${textEnd}), transparent calc(${textEnd} + 14rem))`,
+};
 
 /**
- * Hero background for the home page. With an image (src/content/art.ts) it
- * fills the hero: on phones it's cropped toward the right so the tower and
- * characters stay in view, under a darker overlay for the text; from lg up a
- * left-side gradient keeps the logo and buttons readable. Without an image it
- * falls back to the SVG skyline. The bottom always fades into the page.
+ * Hero background for the home page. With an image (src/content/art.ts) it is a
+ * full-bleed background behind the whole hero. Its top is already header navy,
+ * so only the bottom fades into the page. Phones crop toward the friends and the
+ * tower and darken behind the stacked text; from lg up a left-to-right shade
+ * keeps the logo, tagline and buttons readable over the empty sky. Without an
+ * image it falls back to the SVG skyline.
  */
 export function HeroScene({ className = "" }: { className?: string }) {
   return (
     <div aria-hidden="true" className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`}>
       {art.hero ? (
         <>
-          {/* Phones/tablets: the scene sits in the lower part of the hero (tower behind the
-              text, characters below the buttons). From lg up it is as tall as the hero, at its
-              own aspect ratio (never cropped), pinned right: on wide screens the scene stays
-              beside the text instead of growing behind it. */}
-          <div
-            className={`absolute inset-x-0 bottom-0 h-[440px] sm:h-[560px] lg:inset-y-0 lg:right-0 lg:left-auto lg:aspect-[1915/821] lg:h-full ${heroEdgeMask}`}
-          >
+          {/* Phones/tablets: a box at the bottom of the hero, shorter than the hero so the
+              crop takes in both the friends and the tower; its top is the image's navy sky
+              and fades into the page behind the text. From lg up it fills the whole hero. */}
+          <div className="absolute inset-x-0 bottom-0 h-[420px] sm:h-[520px] lg:inset-y-0 lg:h-auto">
             <Image
               src={art.hero}
               alt=""
               fill
               preload
               fetchPriority="high"
-              // Same look as 75 for pencil lines on flat navy, at half the bytes
-              // (~39 KB AVIF at full size, the most any screen downloads).
-              quality={50}
-              // Cover-cropping scales the image past the screen width on phones.
-              sizes="(max-width: 1023px) 1100px, 1400px"
-              className="object-cover object-[76%_100%]"
+              placeholder="blur"
+              // Phones: cover scales the image to the box height (~980-1220px wide).
+              // Desktop: full-bleed at the screen width.
+              sizes="(max-width: 1023px) 1220px, 100vw"
+              className="object-cover object-[65%_center] lg:object-[center_30%]"
             />
-            {/* Phones: fade the top into the page and darken behind the text. */}
-            <div className="absolute inset-0 bg-linear-to-b from-bg via-bg/70 via-50% to-bg/10 to-80% lg:hidden" />
           </div>
-          {/* Desktop: soft navy over the left half (the sketch's hatched sky) so the logo,
-              tagline and buttons stay crisp; clear over the tower and characters. */}
-          <div className="absolute inset-0 hidden bg-linear-to-r from-bg via-bg/80 via-30% to-transparent to-55% lg:block" />
+          {/* Phones/tablets: the text stacks over the scene; a darker wash at the top keeps
+              it readable, easing off lower down where the friends sit. */}
+          <div className="absolute inset-0 bg-linear-to-b from-bg from-15% via-bg/75 via-50% to-bg/10 lg:hidden" />
+          <div className="absolute inset-0 hidden lg:block" style={heroDesktopShade} />
         </>
       ) : (
         <div className={`absolute inset-y-0 right-0 w-full lg:w-[62%] ${fadeLeft}`}>
           <VoxelSkyline className="absolute inset-0 size-full opacity-30 lg:opacity-100" />
         </div>
       )}
-      {/* Blend into the page at the bottom */}
-      <div className="absolute inset-x-0 bottom-0 h-28 bg-linear-to-t from-bg to-transparent sm:h-36 lg:h-16" />
+      {/* Blend into the page at the bottom, so there's no edge above Upcoming Events. */}
+      <div className="absolute inset-x-0 bottom-0 h-28 bg-linear-to-t from-bg via-bg/60 to-transparent sm:h-36" />
     </div>
   );
 }
