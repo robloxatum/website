@@ -37,3 +37,27 @@ alter default privileges in schema public grant all on tables to anon, authentic
 alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
 
 create publication supabase_realtime;
+
+-- Realtime broadcast stand-ins (the real ones live in Supabase's realtime schema).
+create schema realtime;
+grant usage on schema realtime to anon, authenticated;
+create table realtime.messages (
+  id bigserial primary key,
+  topic text not null,
+  extension text not null,
+  payload jsonb,
+  event text,
+  private boolean default false,
+  inserted_at timestamptz default now()
+);
+alter table realtime.messages enable row level security;
+grant select on realtime.messages to authenticated;
+create function realtime.send(payload jsonb, event text, topic text, private boolean default true)
+returns void language sql as $$
+  insert into realtime.messages (topic, extension, payload, event, private)
+  values (topic, 'broadcast', payload || jsonb_build_object('id', gen_random_uuid()), event, private)
+$$;
+create function realtime.topic() returns text language sql stable as $$
+  select nullif(current_setting('realtime.topic', true), '')
+$$;
+grant execute on function realtime.topic() to anon, authenticated;

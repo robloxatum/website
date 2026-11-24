@@ -39,34 +39,43 @@ export function PresentClient({
     }).then((svg) => setQr(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`));
   }, [checkinUrl]);
 
-  // Live count: Realtime pushes inserts/deletes (RLS lets only officers see them),
-  // and a slow poll keeps the count and check-in state right if the socket drops.
+  // Live count: a database trigger broadcasts the new count on a private
+  // channel that only officers can join (covers check-ins AND removals).
+  // A slow poll keeps the count and check-in state right if the socket drops.
   useEffect(() => {
     const supabase = createClient();
     let cancelled = false;
+
+    function applyCount(c: number) {
+      if (cancelled) return;
+      if (c > countRef.current) setBump((b) => b + 1);
+      countRef.current = c;
+      setCount(c);
+    }
 
     async function refetch() {
       const [{ count: c }, { data: row }] = await Promise.all([
         supabase.from("attendance").select("*", { count: "exact", head: true }).eq("event_id", eventId),
         supabase.from("events").select("checkin_open, checkin_reopened, ends_at").eq("id", eventId).single<CheckinFlags>(),
       ]);
-      if (cancelled) return;
-      if (typeof c === "number") {
-        if (c > countRef.current) setBump((b) => b + 1);
-        countRef.current = c;
-        setCount(c);
-      }
-      if (row) setFlags(row);
+      if (typeof c === "number") applyCount(c);
+      if (row && !cancelled) setFlags(row);
     }
 
-    const channel = supabase
-      .channel(`present:${eventId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "attendance", filter: `event_id=eq.${eventId}` },
-        () => void refetch(),
-      )
-      .subscribe();
+    const channel = supabase.channel(`attendance:${eventId}`, { config: { private: true } });
+    void (async () => {
+      // Private channels authorize with the user's JWT.
+      await supabase.realtime.setAuth();
+      if (cancelled) return;
+      channel
+        .on("broadcast", { event: "count" }, ({ payload }) => {
+          if (typeof payload?.count === "number") applyCount(payload.count);
+        })
+        .subscribe((status) => {
+          // Catch up on anything missed while (re)connecting.
+          if (status === "SUBSCRIBED") void refetch();
+        });
+    })();
 
     const poll = setInterval(() => void refetch(), 15000);
     return () => {

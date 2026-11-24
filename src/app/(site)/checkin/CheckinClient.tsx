@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
 import { CODE_PATTERN } from "@/lib/checkin-state";
 import type { CheckinResult, CheckinStatus } from "@/lib/types";
 import { checkIn } from "./actions";
@@ -30,8 +30,22 @@ export function CheckinClient({ initialCode, firstName }: { initialCode: string;
   const [code, setCode] = useState(initialCode);
   const [result, setResult] = useState<CheckinResult | null>(null);
   const [pending, startTransition] = useTransition();
-  const autoSubmitted = useRef(false);
+  // The code we already auto-submitted from the URL, so it isn't sent twice.
+  const autoSubmitted = useRef<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Next keeps visited pages mounted but hidden (React Activity). Reset when
+  // this page is hidden, so coming back to /checkin starts fresh instead of
+  // showing an old result such as "Already checked in".
+  useLayoutEffect(() => {
+    return () => {
+      setResult(null);
+      setCode("");
+      // Don't clear autoSubmitted here: React Strict Mode runs this cleanup
+      // right after mount in dev, which would submit the QR code twice. It is
+      // cleared when ?code= leaves the URL (see the effect below).
+    };
+  }, []);
 
   function submit(value: string) {
     startTransition(async () => {
@@ -46,10 +60,14 @@ export function CheckinClient({ initialCode, firstName }: { initialCode: string;
     });
   }
 
-  // Opened from a QR code: check in right away (once).
+  // Opened from a QR code: check in right away (once per scan).
   useEffect(() => {
-    if (autoSubmitted.current || !CODE_PATTERN.test(initialCode)) return;
-    autoSubmitted.current = true;
+    if (!CODE_PATTERN.test(initialCode)) {
+      autoSubmitted.current = null; // URL was cleaned up; allow the next scan
+      return;
+    }
+    if (autoSubmitted.current === initialCode) return;
+    autoSubmitted.current = initialCode;
     submit(initialCode);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialCode]);

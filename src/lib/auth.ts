@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { createClient } from "./supabase/server";
 import type { Profile } from "./types";
 
@@ -10,6 +11,12 @@ export function isUmichEmail(email: string | null | undefined) {
 
 /** The signed-in user from the verified JWT, or null. Deduplicated per request. */
 export const getUser = cache(async () => {
+  // Session reads happen at request time only. Without this, Partial
+  // Prefetching renders a per-session shell ahead of time, which (a) trips
+  // Next's "Date.now() while prerendering" check (Supabase compares the JWT
+  // expiry with the clock) and (b) is cached in the browser, so pages like the
+  // officer dashboard could show stale counts after a change.
+  await connection();
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;

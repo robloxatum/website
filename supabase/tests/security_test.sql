@@ -32,6 +32,9 @@ do $$ begin
     'hook rejects look-alike domains';
 end $$;
 
+-- Inside this rolled-back transaction only: make the test officer the sole
+-- officer, so the "last officer" rule can be tested on a live database.
+update public.profiles set is_officer = false where is_officer;
 update public.profiles set is_officer = true where id = '00000000-0000-0000-0000-00000000000a';
 
 -------------------------------------------------------------------------------
@@ -82,7 +85,7 @@ do $$
 declare v_result jsonb; v_rows int;
 begin
   assert (select count(*) from public.event_codes) = 0, 'member cannot read any event code';
-  assert (select count(*) from public.events) >= 2, 'member can read events';
+  assert (select count(*) from public.events where id::text in (current_setting('test.e1'), current_setting('test.e2'))) = 2, 'member can read events';
   assert (select count(*) from public.profiles) = 1, 'member reads only their own profile';
 
   begin
@@ -261,8 +264,8 @@ select set_config('request.jwt.claims',
 set local role authenticated;
 do $$ begin
   perform public.set_officer('00000000-0000-0000-0000-00000000000b', true);
-  assert (select count(*) from public.profiles) = 3, 'officer reads all profiles';
-  assert (select count(*) from public.attendance) = 2, 'officer reads all attendance';
+  assert (select count(*) from public.profiles where id::text like '00000000-0000-0000-0000-00000000000_') = 3, 'officer reads all profiles';
+  assert (select count(*) from public.attendance where event_id::text in (current_setting('test.e1'), current_setting('test.e2'))) = 2, 'officer reads all attendance';
 end $$;
 reset role;
 
@@ -270,7 +273,7 @@ select set_config('request.jwt.claims',
   '{"sub":"00000000-0000-0000-0000-00000000000b","email":"member@umich.edu","role":"authenticated"}', true);
 set local role authenticated;
 do $$ begin
-  assert (select count(*) from public.event_codes) = 2, 'a promoted officer can read codes';
+  assert (select count(*) from public.event_codes where event_id::text in (current_setting('test.e1'), current_setting('test.e2'))) = 2, 'a promoted officer can read codes';
   perform public.set_officer('00000000-0000-0000-0000-00000000000a', false);
   begin
     perform public.set_officer('00000000-0000-0000-0000-00000000000b', false);
@@ -287,6 +290,46 @@ select set_config('request.jwt.claims',
 set local role authenticated;
 do $$ begin
   assert (select count(*) from public.event_codes) = 0, 'a removed officer can no longer read codes';
+end $$;
+reset role;
+
+-------------------------------------------------------------------------------
+-- Live count broadcasts (officers only, count only)
+-------------------------------------------------------------------------------
+do $$
+declare v_payload jsonb;
+begin
+  select payload into v_payload from realtime.messages
+   where topic = 'attendance:' || current_setting('test.e1') and event = 'count'
+   order by inserted_at desc, id desc limit 1;
+  assert (v_payload ->> 'count')::int = 1, 'a check-in broadcasts the new count';
+  assert not (v_payload ?| array['user_id', 'uniqname', 'full_name']), 'broadcast carries no member data';
+end $$;
+
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000b","email":"member@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare v_payload jsonb;
+begin
+  -- b is the remaining officer at this point.
+  delete from public.attendance
+   where event_id = current_setting('test.e2')::uuid
+     and user_id = '00000000-0000-0000-0000-00000000000c';
+  perform set_config('realtime.topic', 'attendance:' || current_setting('test.e2'), true);
+  select payload into v_payload from realtime.messages
+   where topic = realtime.topic() order by inserted_at desc, id desc limit 1;
+  assert (v_payload ->> 'count')::int = 0, 'removing a check-in broadcasts the new count, and officers can receive it';
+end $$;
+reset role;
+
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000c","email":"newbie@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$ begin
+  perform set_config('realtime.topic', 'attendance:' || current_setting('test.e2'), true);
+  assert (select count(*) from realtime.messages where topic = realtime.topic()) = 0,
+    'members cannot receive live counts';
 end $$;
 reset role;
 
