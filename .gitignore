@@ -47,3 +47,6 @@ next-env.d.ts
 
 # Mockups are large reference images; kept locally only
 design/mockups/
+
+# Printed flyer files (kept locally and in the club Drive)
+design/flyers/
