@@ -28,15 +28,6 @@ export default function HomePage() {
         <HeroScene className="-z-10" />
         <div className={`${container} pt-12 pb-40 sm:pt-20 sm:pb-44 lg:pt-28 lg:pb-36`}>
           <div className="relative max-w-xl">
-            {/* Desktop: a soft navy backdrop that follows the text column, so the logo, tagline
-                and buttons stay readable over the sketch at every width (it fades out ~10rem past
-                the text and at the top and bottom, leaving the scene beside it untouched). */}
-            {art.hero && (
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-y-[-40%] right-[-10rem] left-[-50vw] -z-10 hidden bg-[linear-gradient(to_right,var(--color-bg)_calc(100%-14rem),rgb(6_21_37/0.88)_calc(100%-8rem),transparent)] [mask-image:linear-gradient(to_bottom,transparent,black_20%,black_80%,transparent)] lg:block"
-              />
-            )}
             <SectionLabel>University of Michigan</SectionLabel>
             <h1 className="mt-5">
               <TaglineWordmark preload className="h-auto w-full max-w-[min(100%,540px)]" />
@@ -47,7 +38,7 @@ export default function HomePage() {
                 <Users aria-hidden="true" />
                 Join the Community
               </Link>
-              {/* Solid backdrop so the sketch lines don't show through the outline button. */}
+              {/* Solid backdrop so the scene doesn't show through the outline button. */}
               <Link href="/events" className={button({ variant: "secondary", size: "lg", className: "bg-bg/85! backdrop-blur-sm" })}>
                 <CalendarDays aria-hidden="true" />
                 View Events
