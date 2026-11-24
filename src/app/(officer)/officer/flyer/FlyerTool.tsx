@@ -1,10 +1,58 @@
 "use client";
 
-import { Check, Copy, Download, FileCode2 } from "lucide-react";
+import { Check, Copy, Download, FileCode2, Link2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import icon from "@/assets/brand/icon.png";
+import { Alert } from "@/components/ui/Alert";
 import { button, card, field, label } from "@/components/ui/styles";
+import { shortlinks, type ShortLink } from "@/content/shortlinks";
+import { isShortlinkExpired } from "@/lib/shortlinks";
+import { CLUB_TIME_ZONE } from "@/lib/time";
 import { drawQr, joinUrl, qrSvg, sanitizeLabel } from "./qr";
+
+const expiryFmt = new Intl.DateTimeFormat("en-US", {
+  timeZone: CLUB_TIME_ZONE,
+  weekday: "short",
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  timeZoneName: "short",
+});
+
+/** How a site path shows up in Vercel Analytics (see WebAnalytics: /join?src=x → /join/src/x). */
+function analyticsPath(path: string) {
+  const u = new URL(path, "https://x.invalid");
+  const src = u.pathname === "/join" ? u.searchParams.get("src") : null;
+  return src ? `/join/src/${src}` : u.pathname;
+}
+
+function ShortlinkDetails({ link }: { link: ShortLink }) {
+  // Only rendered after the officer picks a short link, so this runs in the browser.
+  const expired = isShortlinkExpired(link, new Date());
+  const after = link.afterExpiry === "/" ? "the homepage (/)" : link.afterExpiry;
+  return (
+    <div className="space-y-3">
+      {expired && (
+        <Alert tone="warning" title="This short link has expired">
+          Scans now go to {after}. To bring it back, change its expiresAt in src/content/shortlinks.ts.
+        </Alert>
+      )}
+      <dl className="grid gap-x-4 gap-y-2 rounded-[10px] border border-line/60 bg-bg-2 p-4 text-sm sm:grid-cols-[auto_minmax(0,1fr)]">
+        <dt className="text-fg-3">{expired ? "Went to" : "Goes to"}</dt>
+        <dd className="font-mono break-all text-fg">{link.target}</dd>
+        <dt className="text-fg-3">{expired ? "Expired" : "Until"}</dt>
+        <dd className="text-fg">{expiryFmt.format(new Date(link.expiresAt))}</dd>
+        <dt className="text-fg-3">Then</dt>
+        <dd className="text-fg">{after}</dd>
+        <dt className="text-fg-3">Analytics</dt>
+        <dd className="font-mono break-all text-fg">{analyticsPath(link.target)}</dd>
+      </dl>
+      <p className="text-sm text-fg-3">Short links are set in src/content/shortlinks.ts. The shorter URL also makes a simpler QR code that scans more easily.</p>
+    </div>
+  );
+}
 
 function download(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
@@ -17,13 +65,15 @@ function download(blob: Blob, filename: string) {
 
 export function FlyerTool({ baseUrl }: { baseUrl: string }) {
   const [raw, setRaw] = useState("");
+  const [slug, setSlug] = useState(""); // "" = the /join page with a label
   const [copied, setCopied] = useState(false);
   const [logo, setLogo] = useState<{ img: HTMLImageElement; dataUrl: string } | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const labelValue = sanitizeLabel(raw);
-  const url = joinUrl(baseUrl, labelValue);
-  const filename = `roblox-at-um-qr-${labelValue || "join"}`;
+  const shortlink = shortlinks.find((l) => l.slug === slug) ?? null;
+  const url = shortlink ? `${baseUrl.replace(/\/$/, "")}/go/${shortlink.slug}` : joinUrl(baseUrl, labelValue);
+  const filename = shortlink ? `roblox-at-um-qr-go-${shortlink.slug}` : `roblox-at-um-qr-${labelValue || "join"}`;
 
   // Load the square logo once (as an <img> for the canvas and a data URL for the SVG).
   useEffect(() => {
@@ -54,25 +104,44 @@ export function FlyerTool({ baseUrl }: { baseUrl: string }) {
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)]">
       <div className={`${card} space-y-5 p-5 sm:p-6`}>
         <div>
-          <label htmlFor="flyer-label" className={label}>
-            Label <span className="font-normal text-fg-3">(where this flyer goes)</span>
+          <label htmlFor="flyer-link" className={label}>
+            <Link2 aria-hidden="true" className="mr-1.5 inline size-4 align-[-3px] text-maize" />
+            QR goes to
           </label>
-          <input
-            id="flyer-label"
-            value={raw}
-            onChange={(e) => setRaw(e.target.value)}
-            maxLength={60}
-            autoComplete="off"
-            spellCheck={false}
-            placeholder="e.g. flyer-winter27 or diag-board"
-            aria-describedby="flyer-label-help"
-            className={field}
-          />
-          <p id="flyer-label-help" className="mt-1.5 text-sm text-fg-2">
-            Lowercase letters, numbers, - and _. Visits show up in Vercel Analytics as{" "}
-            <code className="rounded bg-bg-2 px-1.5 py-0.5 text-fg">/join/src/{labelValue || "<label>"}</code>.
-          </p>
+          <select id="flyer-link" value={slug} onChange={(e) => setSlug(e.target.value)} className={field}>
+            <option value="">Join page, with a label</option>
+            {shortlinks.map((l) => (
+              <option key={l.slug} value={l.slug}>
+                Short link: /go/{l.slug}
+              </option>
+            ))}
+          </select>
         </div>
+
+        {shortlink ? (
+          <ShortlinkDetails link={shortlink} />
+        ) : (
+          <div>
+            <label htmlFor="flyer-label" className={label}>
+              Label <span className="font-normal text-fg-3">(where this flyer goes)</span>
+            </label>
+            <input
+              id="flyer-label"
+              value={raw}
+              onChange={(e) => setRaw(e.target.value)}
+              maxLength={60}
+              autoComplete="off"
+              spellCheck={false}
+              placeholder="e.g. flyer-winter27 or diag-board"
+              aria-describedby="flyer-label-help"
+              className={field}
+            />
+            <p id="flyer-label-help" className="mt-1.5 text-sm text-fg-2">
+              Lowercase letters, numbers, - and _. Visits show up in Vercel Analytics as{" "}
+              <code className="rounded bg-bg-2 px-1.5 py-0.5 text-fg">/join/src/{labelValue || "<label>"}</code>.
+            </p>
+          </div>
+        )}
 
         <div>
           <p className={label}>Link in the QR code</p>
