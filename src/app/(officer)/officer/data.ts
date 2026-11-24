@@ -66,3 +66,14 @@ export async function getGameLink(eventId: string) {
   if (error) console.error("Failed to load game link", error.message);
   return data ?? null;
 }
+
+/** The current announcement, even past its hide-after time (officer RLS). */
+export async function getAnnouncementForOfficer() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("announcements")
+    .select("id, message, link, style, hide_after, created_at")
+    .maybeSingle<import("@/lib/announcement").Announcement & { created_at: string }>();
+  if (error) console.error("Failed to load announcement", error.message);
+  return data ?? null;
+}
