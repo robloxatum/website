@@ -6,6 +6,7 @@ import { Alert } from "@/components/ui/Alert";
 import { Skeleton } from "@/components/ui/Primitives";
 import { container } from "@/components/ui/styles";
 import { getProfile, getUser } from "@/lib/auth";
+import { callName } from "@/lib/names";
 import { safeNext } from "@/lib/safe-next";
 import { ProfileForm } from "../profile/ProfileForm";
 
@@ -45,12 +46,15 @@ async function WelcomeForm({ searchParams }: { searchParams: PageProps<"/welcome
 
   return (
     <div className="space-y-4">
-      <p className="text-lg text-fg-2">Check your name, and add your Roblox username if you&apos;d like.</p>
+      <p className="text-lg text-fg-2">
+        Hi {callName(profile)}! Add a nickname and your Roblox username if you&apos;d like.
+      </p>
       <ProfileForm
         mode="welcome"
         next={next}
         uniqname={profile.uniqname}
         fullName={profile.full_name}
+        nickname={profile.nickname}
         robloxUsername={profile.roblox_username}
       />
     </div>

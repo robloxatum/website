@@ -54,7 +54,13 @@ async function ProfileContent() {
         </div>
       </div>
 
-      <ProfileForm mode="edit" uniqname={profile.uniqname} fullName={profile.full_name} robloxUsername={profile.roblox_username} />
+      <ProfileForm
+        mode="edit"
+        uniqname={profile.uniqname}
+        fullName={profile.full_name}
+        nickname={profile.nickname}
+        robloxUsername={profile.roblox_username}
+      />
 
       <section>
         <h2 className="mb-3 flex items-center gap-2.5 text-xl text-fg">

@@ -9,9 +9,10 @@ export async function GET() {
 
   const members = await getMembers();
   const csv = toCsv([
-    ["Name", "Uniqname", "Email", "Roblox username", "Officer", "Events attended", "Last check-in", "Joined"],
+    ["Name", "Nickname", "Uniqname", "Email", "Roblox username", "Officer", "Events attended", "Last check-in", "Joined"],
     ...members.map((m) => [
       m.full_name,
+      m.nickname,
       m.uniqname,
       `${m.uniqname}@umich.edu`,
       m.roblox_username,

@@ -4,9 +4,10 @@ import { Download, Search, ShieldCheck } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import { button, card, field, label } from "@/components/ui/styles";
+import { officerName } from "@/lib/names";
 import { formatDate } from "@/lib/time";
 import type { MemberRow } from "@/lib/types";
-import { setOfficer } from "../actions";
+import { clearNickname, setOfficer } from "../actions";
 import { ActionButton } from "../_components/ActionButton";
 
 type Sort = "attendance" | "name" | "joined";
@@ -20,8 +21,22 @@ function OfficerBadge() {
   );
 }
 
+/** Officers can remove a nickname (e.g. an inappropriate one); members pick their own. */
+function ClearNickname({ m, className = "" }: { m: MemberRow; className?: string }) {
+  if (!m.nickname) return null;
+  return (
+    <ActionButton
+      action={clearNickname.bind(null, m.id)}
+      confirmText={`Clear the nickname “${m.nickname}” for ${m.full_name || m.uniqname}? They'll be called by their first name until they pick a new one.`}
+      className={button({ variant: "ghost", size: "sm", className: `text-xs ${className}` })}
+    >
+      Clear nickname
+    </ActionButton>
+  );
+}
+
 function RoleAction({ m, isMe }: { m: MemberRow; isMe: boolean }) {
-  const name = m.full_name || m.uniqname;
+  const name = officerName(m);
   return m.is_officer ? (
     <ActionButton
       action={setOfficer.bind(null, m.id, false)}
@@ -53,7 +68,7 @@ export function MembersTable({
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
     const filtered = q
-      ? members.filter((m) => [m.full_name, m.uniqname, m.roblox_username ?? ""].some((v) => v.toLowerCase().includes(q)))
+      ? members.filter((m) => [m.full_name, m.nickname ?? "", m.uniqname, m.roblox_username ?? ""].some((v) => v.toLowerCase().includes(q)))
       : members;
     return [...filtered].sort((a, b) => {
       if (sort === "name") return a.full_name.localeCompare(b.full_name);
@@ -76,7 +91,7 @@ export function MembersTable({
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Name, uniqname or Roblox username"
+              placeholder="Name, nickname, uniqname or Roblox"
               className={`${field} pl-10`}
             />
           </div>
@@ -121,8 +136,11 @@ export function MembersTable({
                   <td className="px-4 py-3 font-semibold text-fg">
                     <span className="flex items-center gap-2.5">
                       <Avatar name={m.full_name || m.uniqname} src={m.avatar} size="sm" />
-                      <span>
-                        {m.full_name || m.uniqname} {isMe && <span className="font-normal text-fg-3">(you)</span>}
+                      <span className="flex flex-col items-start">
+                        <span>
+                          {officerName(m)} {isMe && <span className="font-normal text-fg-3">(you)</span>}
+                        </span>
+                        <ClearNickname m={m} className="-ml-3.5 min-h-9!" />
                       </span>
                     </span>
                   </td>
@@ -158,7 +176,7 @@ export function MembersTable({
                 <Avatar name={m.full_name || m.uniqname} src={m.avatar} size="md" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-semibold text-fg">
-                    {m.full_name || m.uniqname} {isMe && <span className="font-normal text-fg-3">(you)</span>}
+                    {officerName(m)} {isMe && <span className="font-normal text-fg-3">(you)</span>}
                   </p>
                   <p className="truncate text-sm text-fg-2">
                     {m.uniqname}
@@ -174,7 +192,8 @@ export function MembersTable({
                 <span className="text-xs text-fg-3">
                   Last seen {m.last_checked_in_at ? formatDate(m.last_checked_in_at) : "—"}
                 </span>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <ClearNickname m={m} />
                   {m.is_officer && <OfficerBadge />}
                   <RoleAction m={m} isMe={isMe} />
                 </div>

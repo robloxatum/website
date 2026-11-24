@@ -110,7 +110,7 @@ export function EventForm({ defaults = {} }: { defaults?: Defaults }) {
   const endsRef = useRef<HTMLInputElement>(null);
 
   return (
-    <form action={action} className={`${card} space-y-5 p-5 sm:p-6`}>
+    <form action={action} className={`${card} min-w-0 space-y-5 p-5 sm:p-6`}>
       {defaults.id && <input type="hidden" name="id" value={defaults.id} />}
 
       <div>
@@ -118,7 +118,7 @@ export function EventForm({ defaults = {} }: { defaults?: Defaults }) {
         <input id="title" name="title" required maxLength={120} defaultValue={defaults.title} className={field} placeholder="Scripting Workshop: Tweens" />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="category" className={label}>Category</label>
           <select id="category" name="category" defaultValue={defaults.category ?? "meeting"} className={field}>
@@ -148,7 +148,7 @@ export function EventForm({ defaults = {} }: { defaults?: Defaults }) {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="starts_at" className={label}>Starts</label>
           <input

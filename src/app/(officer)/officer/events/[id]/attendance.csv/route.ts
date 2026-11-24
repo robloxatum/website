@@ -17,6 +17,7 @@ export async function GET(_request: Request, ctx: RouteContext<"/officer/events/
   const checkedIn = new Set(attendees.map((a) => a.user_id));
   const person = (p: AttendeeRow["profiles"]) => [
     p?.full_name,
+    p?.nickname,
     p?.uniqname,
     p ? `${p.uniqname}@umich.edu` : "",
     p?.roblox_username,
@@ -24,7 +25,7 @@ export async function GET(_request: Request, ctx: RouteContext<"/officer/events/
 
   // Everyone who checked in, then people who RSVP'd but didn't check in.
   const csv = toCsv([
-    ["Name", "Uniqname", "Email", "Roblox username", "Checked in", "Checked in at (Ann Arbor time)", "RSVP"],
+    ["Name", "Nickname", "Uniqname", "Email", "Roblox username", "Checked in", "Checked in at (Ann Arbor time)", "RSVP"],
     ...attendees.map((a) => [
       ...person(a.profiles),
       "Yes",

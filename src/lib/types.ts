@@ -1,7 +1,10 @@
 export type Profile = {
   id: string;
   uniqname: string;
+  /** From the member's U-M Google account; members can't edit it. */
   full_name: string;
+  /** Optional; what the site calls the member (see lib/names.ts). */
+  nickname: string | null;
   roblox_username: string | null;
   /** Looked up from roblox_username when saved; only used for the avatar. */
   roblox_user_id: number | null;
@@ -79,4 +82,5 @@ export type MemberRow = {
   total_attendance: number;
   last_checked_in_at: string | null;
   roblox_user_id: number | null;
+  nickname: string | null;
 };

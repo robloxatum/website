@@ -3,6 +3,7 @@
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { getProfile, getUser } from "@/lib/auth";
+import { cleanNickname, NICKNAME_RULES, nicknameError } from "@/lib/names";
 import { headshotFor, lookupRobloxUser } from "@/lib/roblox";
 import { safeNext } from "@/lib/safe-next";
 import { createClient } from "@/lib/supabase/server";
@@ -53,12 +54,13 @@ export async function saveProfile(
   const user = await getUser();
   if (!user) redirect("/login");
 
-  const fullName = String(formData.get("full_name") ?? "").trim().replace(/\s+/g, " ");
+  // Name and uniqname aren't editable (they come from the U-M Google account).
+  const nickname = cleanNickname(formData.get("nickname"));
   let roblox = cleanUsername(formData.get("roblox_username"));
   const onboarding = formData.get("mode") === "welcome";
 
-  if (!fullName) return { error: "Please enter your name." };
-  if (fullName.length > 100) return { error: "That name is too long (100 characters max)." };
+  const nickProblem = nicknameError(nickname);
+  if (nickProblem) return { error: nickProblem };
   if (roblox && !ROBLOX_USERNAME.test(roblox)) return { error: USERNAME_RULES };
 
   // Resolve the Roblox user ID server-side (never trusted from the browser).
@@ -88,16 +90,18 @@ export async function saveProfile(
   const { error } = await supabase
     .from("profiles")
     .update({
-      full_name: fullName,
+      nickname: nickname || null,
       roblox_username: roblox || null,
       roblox_user_id: robloxUserId,
       ...(onboarding ? { onboarded_at: new Date().toISOString() } : {}),
     })
     .eq("id", user.id);
 
-  if (error) return { error: "Couldn't save your profile. Please try again." };
+  if (error) {
+    return { error: error.code === "23514" ? NICKNAME_RULES : "Couldn't save your profile. Please try again." };
+  }
 
   if (onboarding) redirect(safeNext(String(formData.get("next") ?? "/")));
-  refresh(); // the header icon shows the new avatar
+  refresh(); // the header shows the new avatar and nickname
   return { saved: true, notice };
 }

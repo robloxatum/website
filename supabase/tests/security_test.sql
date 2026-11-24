@@ -126,11 +126,11 @@ begin
     raise exception 'FAIL: member changed their uniqname';
   exception when insufficient_privilege then null; end;
 
-  update public.profiles set roblox_username = 'Max_Builds', full_name = 'Max M.' where id = auth.uid();
+  update public.profiles set roblox_username = 'Max_Builds' where id = auth.uid();
   assert (select roblox_username from public.profiles where id = auth.uid()) = 'Max_Builds',
     'member can edit their own Roblox username';
 
-  update public.profiles set full_name = 'Hacked' where id = '00000000-0000-0000-0000-00000000000a';
+  update public.profiles set roblox_username = 'Hacked' where id = '00000000-0000-0000-0000-00000000000a';
   get diagnostics v_rows = row_count;
   assert v_rows = 0, 'member cannot edit someone else''s profile';
 
@@ -1100,6 +1100,135 @@ do $$ begin
     insert into public.event_rsvps (event_id, user_id)
       values (current_setting('test.g_future')::uuid, '00000000-0000-0000-0000-00000000000c');
     raise exception 'FAIL: anon RSVPed';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+
+-------------------------------------------------------------------------------
+-- Name (locked, from Google) and nickname (member's own; officers can clear)
+-------------------------------------------------------------------------------
+-- Known roles for this section: a is the only officer; b and c are members.
+update public.profiles set is_officer = (id = '00000000-0000-0000-0000-00000000000a')
+ where id::text like '00000000-0000-0000-0000-00000000000%';
+update public.profiles set nickname = null where id::text like '00000000-0000-0000-0000-00000000000%';
+
+-- Member c: sets their own nickname; can't edit their name or anyone else's nickname.
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000c","email":"newbie@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare v_rows int;
+begin
+  update public.profiles set nickname = 'Nor' where id = auth.uid();
+  assert (select nickname from public.profiles where id = auth.uid()) = 'Nor',
+    'members can set and read their own nickname';
+  update public.profiles set nickname = 'Zoë O''Neil-Smith (Z)!' where id = auth.uid();
+  assert (select nickname from public.profiles where id = auth.uid()) = 'Zoë O''Neil-Smith (Z)!',
+    'nicknames allow accented letters and basic punctuation';
+  update public.profiles set nickname = null where id = auth.uid();
+  assert (select nickname from public.profiles where id = auth.uid()) is null,
+    'members can clear their own nickname';
+
+  -- Ignored rather than refused, so the older site version keeps saving.
+  update public.profiles set full_name = 'Someone Else', roblox_username = 'Nora_Builds2' where id = auth.uid();
+  assert (select full_name from public.profiles where id = auth.uid()) = 'Nora Newbie',
+    'members cannot change their own name';
+  assert (select roblox_username from public.profiles where id = auth.uid()) = 'Nora_Builds2',
+    'the rest of a save that includes full_name still goes through';
+
+  update public.profiles set nickname = 'Hacked' where id = '00000000-0000-0000-0000-00000000000b';
+  get diagnostics v_rows = row_count;
+  assert v_rows = 0, 'members cannot set someone else''s nickname';
+
+  begin
+    update public.profiles set nickname = '' where id = auth.uid();
+    raise exception 'FAIL: empty nickname accepted';
+  exception when check_violation then null; end;
+  begin
+    update public.profiles set nickname = repeat('a', 31) where id = auth.uid();
+    raise exception 'FAIL: 31-character nickname accepted';
+  exception when check_violation then null; end;
+  begin
+    update public.profiles set nickname = ' Nora' where id = auth.uid();
+    raise exception 'FAIL: untrimmed nickname accepted';
+  exception when check_violation then null; end;
+  begin
+    update public.profiles set nickname = '<script>' where id = auth.uid();
+    raise exception 'FAIL: nickname with < > accepted';
+  exception when check_violation then null; end;
+  begin
+    update public.profiles set nickname = '...' where id = auth.uid();
+    raise exception 'FAIL: punctuation-only nickname accepted';
+  exception when check_violation then null; end;
+
+  begin
+    perform public.clear_nickname('00000000-0000-0000-0000-00000000000b');
+    raise exception 'FAIL: member cleared a nickname';
+  exception when insufficient_privilege then null; end;
+
+  update public.profiles set nickname = 'Nora B' where id = auth.uid();
+end $$;
+reset role;
+
+-- Name syncs from Google on sign-in (non-empty names only).
+update auth.users set raw_user_meta_data = '{"full_name":"Nora Newbie-Google"}'
+ where id = '00000000-0000-0000-0000-00000000000c';
+update auth.users set raw_user_meta_data = '{"full_name":""}'
+ where id = '00000000-0000-0000-0000-00000000000b';
+do $$ begin
+  assert (select full_name from public.profiles where id = '00000000-0000-0000-0000-00000000000c') = 'Nora Newbie-Google',
+    'name is refreshed from Google on sign-in';
+  assert (select full_name from public.profiles where id = '00000000-0000-0000-0000-00000000000b') = 'Max Member',
+    'an empty name from Google doesn''t wipe the saved name';
+end $$;
+
+-- Officer a: reads nicknames (table and members view); clears one; can't set one.
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000a","email":"officer@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare v_rows int;
+begin
+  assert (select nickname from public.profiles where id = '00000000-0000-0000-0000-00000000000c') = 'Nora B',
+    'officers can read members'' nicknames';
+  assert (select nickname from public.member_attendance where id = '00000000-0000-0000-0000-00000000000c') = 'Nora B',
+    'officers see nicknames in the members view';
+
+  update public.profiles set nickname = 'Officer Pick' where id = '00000000-0000-0000-0000-00000000000c';
+  get diagnostics v_rows = row_count;
+  assert v_rows = 0, 'officers cannot set a member''s nickname';
+
+  perform public.clear_nickname('00000000-0000-0000-0000-00000000000c');
+  assert (select nickname from public.profiles where id = '00000000-0000-0000-0000-00000000000c') is null,
+    'officers can clear a member''s nickname';
+
+  begin
+    perform public.clear_nickname('00000000-0000-0000-0000-0000000000ff');
+    raise exception 'FAIL: cleared a nickname for a missing member';
+  exception when no_data_found then null; end;
+end $$;
+reset role;
+
+-- Member b reading: nobody else's nickname. Anon: nothing.
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000b","email":"member@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$ begin
+  assert (select count(*) from public.profiles where id <> auth.uid() and nickname is not null) = 0,
+    'members cannot read other members'' nicknames';
+end $$;
+reset role;
+
+select set_config('request.jwt.claims', '', true);
+set local role anon;
+do $$ begin
+  begin
+    perform nickname from public.profiles;
+    raise exception 'FAIL: anon read nicknames';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform public.clear_nickname('00000000-0000-0000-0000-00000000000c');
+    raise exception 'FAIL: anon cleared a nickname';
   exception when insufficient_privilege then null; end;
 end $$;
 reset role;

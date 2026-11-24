@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 import { button } from "@/components/ui/styles";
 import type { CalendarEvent } from "@/lib/calendar";
 import { createClient } from "@/lib/supabase/client";
-import { AddToCalendar } from "./AddToCalendar";
 
 type State =
   | { kind: "loading" }
@@ -99,13 +98,10 @@ export function RsvpToggle({ event, className = "" }: { event: CalendarEvent; cl
       <div aria-live="polite">
         {error && <p className="text-sm font-semibold text-bad">{error}</p>}
         {state.kind === "ready" && state.going && (
-          <div className="space-y-3">
-            <p className="text-sm text-fg-2">
-              {state.justJoined ? "You're on the list. " : "You said you're going. "}
-              Only officers can see RSVPs. Tap again to undo.
-            </p>
-            {state.justJoined && <AddToCalendar event={event} />}
-          </div>
+          <p className="text-sm text-fg-2">
+            {state.justJoined ? "You're on the list. " : "You said you're going. "}
+            Only officers can see RSVPs. Tap again to undo.
+          </p>
         )}
       </div>
     </div>

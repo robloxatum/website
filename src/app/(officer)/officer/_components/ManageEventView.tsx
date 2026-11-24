@@ -10,6 +10,7 @@ import { eventStatus } from "@/lib/events";
 import { uploadedCoverOf } from "@/lib/event-covers";
 import { flyerOf } from "@/lib/flyers";
 import type { OfficerEvent } from "@/lib/types";
+import { officerName } from "@/lib/names";
 import { formatDate, formatLongDate, formatTime, formatTimeRange, toClubInputValue } from "@/lib/time";
 import { deleteEvent, regenerateCode, removeAttendance } from "../actions";
 import { ActionButton } from "./ActionButton";
@@ -134,7 +135,7 @@ export function ManageEventView({
                     <td className="px-4 py-3 font-semibold text-fg">
                       <span className="flex items-center gap-2.5">
                         <Avatar name={a.profiles?.full_name || a.profiles?.uniqname || "?"} src={a.avatar} size="sm" />
-                        {a.profiles?.full_name || "—"}
+                        {a.profiles ? officerName(a.profiles) : "—"}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-fg-2">{a.profiles?.uniqname}</td>
@@ -143,7 +144,7 @@ export function ManageEventView({
                     <td className="px-4 py-2 text-right">
                       <ActionButton
                         action={removeAttendance.bind(null, event.id, a.user_id)}
-                        confirmText={`Remove ${a.profiles?.full_name || a.profiles?.uniqname}'s check-in?`}
+                        confirmText={`Remove ${a.profiles ? officerName(a.profiles) : "this member"}'s check-in?`}
                       >
                         Remove
                       </ActionButton>
@@ -190,7 +191,7 @@ export function ManageEventView({
                     <td className="px-4 py-3 font-semibold text-fg">
                       <span className="flex items-center gap-2.5">
                         <Avatar name={r.profiles?.full_name || r.profiles?.uniqname || "?"} src={r.avatar} size="sm" />
-                        {r.profiles?.full_name || "—"}
+                        {r.profiles ? officerName(r.profiles) : "—"}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-fg-2">{r.profiles?.uniqname}</td>
