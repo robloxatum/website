@@ -1,8 +1,10 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
-import { MIN_PUBLIC_COUNT } from "@/content/highlights";
 import { createPublicClient } from "./supabase/public";
-import type { EventStatus, ListedEvent, PublicEvent, PublicStats } from "./types";
+import type { EventStatus, ListedEvent, PublicEvent } from "./types";
+
+/** Past-event attendance is only shown publicly once it reaches this. */
+export const MIN_PUBLIC_COUNT = 10;
 
 const PUBLIC_COLUMNS = "id, title, description, location, starts_at, ends_at, category, capacity";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -75,28 +77,6 @@ export async function getPublicEvent(id: string): Promise<PublicEvent | null> {
     .maybeSingle<PublicEvent>();
   if (error) console.error("Failed to load event", error.message);
   return data ?? null;
-}
-
-/**
- * Site-wide totals (aggregates only). Each one is null until it reaches
- * MIN_PUBLIC_COUNT, so public pages never show a tiny or zero number.
- */
-export async function getPublicStats(): Promise<{ [K in keyof PublicStats]: number | null }> {
-  "use cache";
-  cacheTag("events", "stats");
-  cacheLife("minutes");
-
-  const { data, error } = await createPublicClient().rpc("public_stats").maybeSingle<PublicStats>();
-  if (error || !data) {
-    if (error) console.error("Failed to load stats", error.message);
-    return { members: null, events_held: null, total_checkins: null };
-  }
-  const gate = (n: number) => (n >= MIN_PUBLIC_COUNT ? n : null);
-  return {
-    members: gate(data.members),
-    events_held: gate(data.events_held),
-    total_checkins: gate(data.total_checkins),
-  };
 }
 
 export function isUuid(id: string) {

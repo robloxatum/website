@@ -2,20 +2,20 @@
  * Artwork manifest. Every image is optional: while a value is null the site
  * draws an SVG fallback. To swap in real art, put the file in public/art/
  * (see design/ASSETS.md for sizes) and set its path here, e.g. "/art/hero.webp".
+ *
+ * The club mascot (public/art/mascot.png) is always used; see <Mascot />.
  */
 import type { EventCategory } from "@/lib/types";
 
 export const art: {
   hero: string | null;
   joinHero: string | null;
-  bannerCharacter: string | null;
   emptyState: string | null;
   featured: string | null;
   covers: Record<EventCategory, string | null>;
 } = {
   hero: null,
   joinHero: null,
-  bannerCharacter: null,
   emptyState: null,
   featured: null,
   covers: {

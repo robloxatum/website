@@ -248,9 +248,9 @@ reset role;
 select set_config('request.jwt.claims', '{"role":"anon"}', true);
 set local role anon;
 do $$ begin
-  assert (select members from public.public_stats()) >= 3, 'anyone can read the member total';
-  assert (select total_checkins from public.public_stats()) >= 2, 'anyone can read the check-in total';
-  assert (select events_held from public.public_stats()) >= 1, 'anyone can read the events-held total';
+  assert not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                      where n.nspname = 'public' and p.proname = 'public_stats'),
+    'site-wide public totals are no longer exposed';
   assert (select attendance from public.public_past_event_counts()
            where event_id = current_setting('test.e2')::uuid) = 1,
     'past events expose an aggregate attendance count';

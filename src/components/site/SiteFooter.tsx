@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Wordmark } from "@/components/Logo";
+import { ClubLinkIcons } from "@/components/ui/ClubLinkButtons";
 import { container } from "@/components/ui/styles";
+import { COMMUNITY_KEYS } from "@/lib/links";
 
 const columns = [
   {
@@ -28,6 +30,9 @@ export function SiteFooter() {
           <Wordmark tone="white" className="h-6 w-auto" />
           <p className="text-sm font-semibold tracking-[0.18em] text-maize uppercase">Build · Create · Connect</p>
           <p className="max-w-sm text-sm text-fg-2">A student organization at the University of Michigan.</p>
+          <div className="pt-2">
+            <ClubLinkIcons keys={COMMUNITY_KEYS} />
+          </div>
         </div>
         {columns.map((col) => (
           <nav key={col.title} aria-label={col.title}>

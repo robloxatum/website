@@ -3,36 +3,6 @@ import type { ReactNode } from "react";
 import { EmptyStateArt } from "@/components/art/Art";
 import { card } from "./styles";
 
-export type Stat = { value: string; label: string; icon: LucideIcon };
-
-const lgCols: Record<number, string> = {
-  1: "lg:grid-cols-1",
-  2: "lg:grid-cols-2",
-  3: "lg:grid-cols-3",
-  4: "lg:grid-cols-4",
-};
-
-/** The horizontal stats bar from the home mockup. */
-export function StatsBar({ stats, className = "" }: { stats: Stat[]; className?: string }) {
-  if (stats.length === 0) return null;
-  return (
-    <dl
-      className={`grid grid-cols-2 gap-px [&>*:last-child:nth-child(odd)]:col-span-2 lg:[&>*:last-child:nth-child(odd)]:col-span-1 overflow-hidden rounded-2xl border border-line/70 bg-line/60 shadow-card ${lgCols[Math.min(stats.length, 4)]} ${className}`}
-    >
-      {stats.map(({ value, label, icon: Icon }) => (
-        <div key={label} className="flex items-center gap-3 bg-surface px-4 py-4 sm:gap-4 sm:px-6 sm:py-5">
-          <Icon aria-hidden="true" className="size-8 shrink-0 text-maize sm:size-10" strokeWidth={1.75} />
-          {/* Value first visually, label first in the markup (dt before dd). */}
-          <div className="flex min-w-0 flex-col-reverse">
-            <dt className="mt-1 text-xs leading-snug text-fg-2 sm:text-sm">{label}</dt>
-            <dd className="font-display text-2xl leading-none font-extrabold text-fg sm:text-3xl">{value}</dd>
-          </div>
-        </div>
-      ))}
-    </dl>
-  );
-}
-
 export function EmptyState({
   title,
   children,

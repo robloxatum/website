@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { EventCard } from "@/components/EventCard";
 import { PageTitle } from "@/components/Notice";
+import { CalendarButton } from "@/components/ui/ClubLinkButtons";
 import { getEventLists } from "@/lib/events";
 
 export const metadata: Metadata = { title: "Events" };
@@ -11,6 +12,10 @@ export default async function EventsPage() {
   return (
     <div>
       <PageTitle kicker="What's happening">Events</PageTitle>
+      {/* Phase 2 restyles this page; the calendar button is already final. */}
+      <div className="mb-8">
+        <CalendarButton variant="primary" />
+      </div>
 
       <section className="space-y-4">
         <h2 className="text-xl">Upcoming</h2>

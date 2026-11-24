@@ -1,19 +1,19 @@
 import { ArrowRight, CalendarDays, Code2, Gamepad2, Sparkles, Trophy, Users } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
-import { BannerCharacter, HeroScene } from "@/components/art/Art";
+import { HeroScene, Mascot } from "@/components/art/Art";
 import { CubeCluster } from "@/components/art/Cubes";
 import { TaglineWordmark } from "@/components/Logo";
-import { EmptyState, Panel, StatsBar } from "@/components/ui/Blocks";
+import { EmptyState, Panel } from "@/components/ui/Blocks";
+import { MailingListButton } from "@/components/ui/ClubLinkButtons";
 import { EventCard } from "@/components/ui/EventCards";
 import { SectionLabel, Skeleton } from "@/components/ui/Primitives";
 import { button, card, container } from "@/components/ui/styles";
 import { featured } from "@/content/highlights";
 import { pitch, whatWeDo } from "@/content/join";
 import { getEventLists } from "@/lib/events";
-import { getStats } from "@/lib/stats";
 
-const whatWeDoIcons = { game_night: Gamepad2, workshop: Code2, game_jam: Trophy, social: Users } as const;
+const whatWeDoIcons = { game_night: Gamepad2, social: Users, game_jam: Trophy, workshop: Code2 } as const;
 
 export default function HomePage() {
   return (
@@ -44,11 +44,6 @@ export default function HomePage() {
       </section>
 
       <div className={`${container} space-y-8 sm:space-y-10`}>
-        {/* Stats */}
-        <Suspense fallback={<Skeleton className="h-28" />}>
-          <HomeStats />
-        </Suspense>
-
         {/* Upcoming events + featured */}
         <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
           <Panel
@@ -78,15 +73,15 @@ export default function HomePage() {
               { x: 130, y: 96, s: 20, tone: "sky", float: "c" },
             ]}
           />
-          <div className="relative flex flex-col items-center gap-6 p-6 text-center sm:flex-row sm:p-8 sm:text-left">
-            <BannerCharacter className="-mb-6 h-36 w-auto shrink-0 self-center sm:-mb-8 sm:h-44 sm:self-end" />
+          <div className="relative flex flex-col items-center gap-6 p-6 text-center sm:flex-row sm:gap-8 sm:p-8 sm:pl-12 sm:text-left">
+            <Mascot className="h-48 shrink-0 sm:h-52" />
             <div className="flex-1">
               <h2 className="text-2xl text-fg sm:text-3xl">
                 Build <span className="text-maize">·</span> Create <span className="text-maize">·</span> Connect
               </h2>
               <p className="mt-2 max-w-xl text-fg-2">
-                From game nights to game jams, Roblox at UM brings together students who love creating and
-                playing on Roblox. No experience needed.
+                Game nights, hangouts and the occasional game jam. If you like Roblox, you&apos;ll fit right in.
+                No experience needed.
               </p>
             </div>
             <Link href="/join" className={button({ size: "lg", className: "shrink-0" })}>
@@ -119,22 +114,13 @@ export default function HomePage() {
   );
 }
 
-async function HomeStats() {
-  const stats = await getStats();
-  return <StatsBar stats={stats} />;
-}
-
 async function UpcomingEvents() {
   const { upcoming } = await getEventLists();
   if (upcoming.length === 0) {
     return (
       <EmptyState
         title="Ready for the next game night?"
-        action={
-          <Link href="/join" className={button({ variant: "secondary" })}>
-            Get notified: join us
-          </Link>
-        }
+        action={<MailingListButton />}
       >
         New events are announced on our Discord and Instagram. Check back soon.
       </EmptyState>

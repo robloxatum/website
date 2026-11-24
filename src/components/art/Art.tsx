@@ -86,44 +86,32 @@ export function EventCover({
   );
 }
 
-/** An original block character (no logos, no real avatar), used in the join banner. */
-export function BannerCharacter({ className = "" }: { className?: string }) {
-  if (art.bannerCharacter) {
-    return (
-      <div aria-hidden="true" className={`relative ${className}`}>
-        <Image src={art.bannerCharacter} alt="" fill sizes="240px" className="object-contain object-bottom" />
-      </div>
-    );
-  }
+/**
+ * The club mascot (public/art/mascot.png, 268x504 transparent PNG). Its navy
+ * shirt blends into navy, so it always sits on a soft maize glow and a lighter
+ * platform. Never rendered above its natural size (height is capped).
+ */
+export function Mascot({ className = "h-56", priority = false }: { className?: string; priority?: boolean }) {
   return (
-    <svg viewBox="0 0 160 180" className={className} aria-hidden="true" focusable="false">
-      {/* hair */}
-      <rect x="44" y="10" width="72" height="18" fill="#1b1f2a" />
-      <rect x="38" y="20" width="14" height="22" fill="#1b1f2a" />
-      <rect x="112" y="20" width="10" height="16" fill="#1b1f2a" />
-      {/* head */}
-      <rect x="48" y="24" width="64" height="58" rx="6" fill="#f2c79b" />
-      <rect x="48" y="24" width="64" height="12" fill="#1b1f2a" />
-      <rect x="64" y="48" width="8" height="10" rx="2" fill="#1b1f2a" />
-      <rect x="90" y="48" width="8" height="10" rx="2" fill="#1b1f2a" />
-      <rect x="72" y="66" width="18" height="4" rx="2" fill="#9c5b3a" />
-      {/* torso: plain maize hoodie with a cube print */}
-      <rect x="36" y="86" width="88" height="70" rx="6" fill="#163e63" />
-      <rect x="36" y="86" width="88" height="14" fill="#1d4a73" />
-      <g transform="translate(70 108)">
-        <polygon points="10,0 20,5 10,10 0,5" fill="#f7d64a" />
-        <polygon points="0,5 10,10 10,22 0,17" fill="#f0c413" />
-        <polygon points="10,10 20,5 20,17 10,22" fill="#c49a08" />
-      </g>
-      {/* arms */}
-      <rect x="14" y="90" width="22" height="58" rx="5" fill="#163e63" />
-      <rect x="124" y="90" width="22" height="58" rx="5" fill="#163e63" />
-      <rect x="14" y="146" width="22" height="14" rx="4" fill="#f2c79b" />
-      <rect x="124" y="146" width="22" height="14" rx="4" fill="#f2c79b" />
-      {/* legs */}
-      <rect x="44" y="156" width="34" height="24" fill="#0c2741" />
-      <rect x="82" y="156" width="34" height="24" fill="#0c2741" />
-    </svg>
+    <div className={`relative isolate aspect-[268/504] max-h-[504px] ${className}`}>
+      <div
+        aria-hidden="true"
+        className="absolute inset-[-30%_-55%_-6%] -z-10 bg-[radial-gradient(closest-side,rgb(240_196_19/0.42),rgb(240_196_19/0.12)_55%,transparent)]"
+      />
+      <div
+        aria-hidden="true"
+        className="absolute -bottom-[3%] left-1/2 -z-10 h-[9%] w-[130%] -translate-x-1/2 rounded-[50%] bg-[#dfe8f3]/25 blur-[2px]"
+      />
+      <Image
+        src="/art/mascot.png"
+        alt="The Roblox at UM mascot"
+        width={268}
+        height={504}
+        sizes="(min-width: 640px) 160px, 120px"
+        loading={priority ? "eager" : "lazy"}
+        className="size-full object-contain drop-shadow-[0_6px_16px_rgb(0_0_0/0.35)]"
+      />
+    </div>
   );
 }
 

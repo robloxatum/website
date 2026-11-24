@@ -2,12 +2,13 @@ import { CalendarDays, PartyPopper, QrCode } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { ClubLinkButtons } from "@/components/ui/ClubLinkButtons";
+import { ClubLinkButtons, MailingListButton } from "@/components/ui/ClubLinkButtons";
 import { NextEventRow } from "@/components/ui/EventCards";
 import { Skeleton } from "@/components/ui/Primitives";
 import { button, card, container } from "@/components/ui/styles";
 import { requireMember } from "@/lib/auth";
 import { getEventLists } from "@/lib/events";
+import { COMMUNITY_KEYS } from "@/lib/links";
 
 export const metadata: Metadata = { title: "You're in!", robots: { index: false } };
 
@@ -43,8 +44,13 @@ async function Welcome() {
         </div>
       )}
 
-      <div className="mt-6 text-left">
-        <ClubLinkButtons keys={["discord", "instagram", "maizepages", "roblox"]} />
+      <div className="mt-6">
+        <MailingListButton variant="primary" full />
+      </div>
+
+      <h2 className="mt-8 text-left text-xl text-fg">Join the community</h2>
+      <div className="mt-3 text-left">
+        <ClubLinkButtons keys={COMMUNITY_KEYS} />
       </div>
 
       <div className={`mt-6 ${card} flex flex-col gap-3 p-4 sm:flex-row`}>
@@ -52,7 +58,7 @@ async function Welcome() {
           <CalendarDays aria-hidden="true" />
           See events
         </Link>
-        <Link href="/checkin" className={button({ full: true })}>
+        <Link href="/checkin" className={button({ variant: "secondary", full: true })}>
           <QrCode aria-hidden="true" />
           Check in now
         </Link>

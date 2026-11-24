@@ -9,10 +9,10 @@ import { ClubLinkButtons } from "@/components/ui/ClubLinkButtons";
 import { NextEventRow } from "@/components/ui/EventCards";
 import { SectionLabel } from "@/components/ui/Primitives";
 import { button, card, container } from "@/components/ui/styles";
-import { highlights } from "@/content/highlights";
 import { faq, pitch, typicalMeeting, whatWeDo } from "@/content/join";
 import { getProfile } from "@/lib/auth";
 import { getEventLists } from "@/lib/events";
+import { COMMUNITY_KEYS } from "@/lib/links";
 
 export const metadata: Metadata = {
   title: "Join",
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   twitter: { title: "Join Roblox at UM", description: `${pitch} Free, and no experience needed.` },
 };
 
-const icons = { game_night: Gamepad2, workshop: Code2, game_jam: Trophy, social: Users } as const;
+const icons = { game_night: Gamepad2, social: Users, game_jam: Trophy, workshop: Code2 } as const;
 
 // ?src=<label> (from flyer QR codes) is only read by analytics; the page ignores it.
 export default function JoinPage() {
@@ -60,25 +60,13 @@ export default function JoinPage() {
         <Suspense fallback={<SignUp />}>
           <PrimaryAction />
         </Suspense>
-        <ClubLinkButtons keys={["discord", "instagram", "maizepages"]} />
+        <ClubLinkButtons keys={COMMUNITY_KEYS} />
       </section>
 
       {/* Below the fold */}
-      <section aria-labelledby="highlights" className="mt-12">
-        <h2 id="highlights" className="sr-only">Highlights</h2>
-        <ul className="grid gap-3 sm:grid-cols-3">
-          {highlights.items.map((h) => (
-            <li key={h.label} className={`${card} p-4`}>
-              <p className="font-display text-2xl font-extrabold text-maize">{h.value}</p>
-              <p className="mt-1 text-sm text-fg-2">{h.label}</p>
-            </li>
-          ))}
-        </ul>
-      </section>
-
       <section aria-labelledby="what" className="mt-12">
         <SectionLabel>What we do</SectionLabel>
-        <h2 id="what" className="mt-2 text-2xl text-fg">Play, learn and build together</h2>
+        <h2 id="what" className="mt-2 text-2xl text-fg">Play, hang out, make friends</h2>
         <ul className="mt-5 grid gap-3 sm:grid-cols-2">
           {whatWeDo.map((item) => {
             const Icon = icons[item.key];
@@ -156,7 +144,7 @@ async function NextEvent() {
     return (
       <p className={`${card} flex items-center gap-3 p-4 text-sm text-fg-2`}>
         <CalendarDays aria-hidden="true" className="size-5 shrink-0 text-maize" />
-        Our next event will be announced soon. Join the Discord to hear first.
+        Our next event will be announced soon. Join the GroupMe or Discord to hear first.
       </p>
     );
   }

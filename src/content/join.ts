@@ -3,23 +3,21 @@
  * phone right after scanning a flyer).
  */
 export const pitch =
-  "A student-led community for Roblox creators, players, and developers at U-M.";
+  "A club for anyone at U-M who likes playing Roblox, hanging out, or making games together.";
 
 export const whatWeDo = [
   { key: "game_night", title: "Game Nights", body: "Play popular Roblox games together with the community." },
-  { key: "workshop", title: "Workshops", body: "Learn scripting, building, UI and game design from other students." },
-  { key: "game_jam", title: "Game Jams", body: "Team up, build a game in a weekend, and show it off." },
-  { key: "social", title: "Community", body: "Meet other creators, developers and Roblox fans at U-M." },
+  { key: "social", title: "Community", body: "Hang out and meet other Roblox fans at U-M." },
+  { key: "game_jam", title: "Game Jams", body: "Team up with friends and build a game together." },
+  { key: "workshop", title: "Workshops", body: "Want to make games? Optional sessions on scripting and building, no experience needed." },
 ] as const;
 
-// REVIEW: describe a real meeting. This is a reasonable default, not a record.
 export const typicalMeeting = [
   "Quick announcements and what's coming up",
   "The main activity: a workshop, a game night, or jam time",
   "Hang out, team up, and help each other with projects",
 ];
 
-// REVIEW: confirm these answers.
 export const faq = [
   { q: "Does it cost anything?", a: "No. Membership and events are free." },
   { q: "Do I need experience?", a: "None at all. Plenty of members have never opened Roblox Studio. Bring a laptop if you have one." },

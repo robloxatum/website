@@ -27,8 +27,6 @@ export type EventStatus = "upcoming" | "live" | "completed";
 /** A public event with its status and (past events only) aggregate attendance. */
 export type ListedEvent = PublicEvent & { status: EventStatus; attendance: number | null };
 
-export type PublicStats = { members: number; events_held: number; total_checkins: number };
-
 /** Event as officers see it, including check-in state. */
 export type OfficerEvent = PublicEvent & {
   checkin_open: boolean;
