@@ -9,6 +9,8 @@ export type Profile = {
   /** Looked up from roblox_username when saved; only used for the avatar. */
   roblox_user_id: number | null;
   is_officer: boolean;
+  /** Above officer: only owners make or remove officers. Set only via SQL. */
+  is_owner: boolean;
   onboarded_at: string | null;
   created_at: string;
 };
@@ -83,4 +85,5 @@ export type MemberRow = {
   last_checked_in_at: string | null;
   roblox_user_id: number | null;
   nickname: string | null;
+  is_owner: boolean;
 };

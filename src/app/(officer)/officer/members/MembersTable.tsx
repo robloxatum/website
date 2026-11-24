@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, Search, ShieldCheck } from "lucide-react";
+import { Crown, Download, Search, ShieldCheck } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import { button, card, field, label } from "@/components/ui/styles";
@@ -13,7 +13,16 @@ import { ActionButton } from "../_components/ActionButton";
 type Sort = "attendance" | "name" | "joined";
 const th = "px-4 py-3 text-xs font-semibold tracking-wider text-fg-3 uppercase";
 
-function OfficerBadge() {
+/** Owner (always also an officer) or Officer badge; nothing for members. */
+function RoleBadge({ m }: { m: MemberRow }) {
+  if (m.is_owner) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-md bg-maize px-2 py-0.5 text-xs font-bold text-navy">
+        <Crown aria-hidden="true" className="size-3.5" /> Owner
+      </span>
+    );
+  }
+  if (!m.is_officer) return null;
   return (
     <span className="inline-flex items-center gap-1 rounded-md bg-maize/15 px-2 py-0.5 text-xs font-bold text-maize">
       <ShieldCheck aria-hidden="true" className="size-3.5" /> Officer
@@ -35,12 +44,14 @@ function ClearNickname({ m, className = "" }: { m: MemberRow; className?: string
   );
 }
 
-function RoleAction({ m, isMe }: { m: MemberRow; isMe: boolean }) {
+/** Make/Remove officer: owners only (the database enforces it too), never on owners. */
+function RoleAction({ m, canManage }: { m: MemberRow; canManage: boolean }) {
+  if (!canManage || m.is_owner) return null;
   const name = officerName(m);
   return m.is_officer ? (
     <ActionButton
       action={setOfficer.bind(null, m.id, false)}
-      confirmText={isMe ? "Remove YOURSELF as an officer? You'll lose access to officer pages." : `Remove ${name} as an officer?`}
+      confirmText={`Remove ${name} as an officer?`}
     >
       Remove officer
     </ActionButton>
@@ -57,10 +68,13 @@ function RoleAction({ m, isMe }: { m: MemberRow; isMe: boolean }) {
 export function MembersTable({
   members,
   currentUserId,
+  canManageOfficers,
 }: {
   /** Each member with their Roblox headshot URL (null: initial-letter icon). */
   members: (MemberRow & { avatar: string | null })[];
   currentUserId: string;
+  /** Owners only: shows Make officer / Remove officer. */
+  canManageOfficers: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<Sort>("attendance");
@@ -150,8 +164,8 @@ export function MembersTable({
                   <td className="px-4 py-3 whitespace-nowrap text-fg-2">{m.last_checked_in_at ? formatDate(m.last_checked_in_at) : "—"}</td>
                   <td className="px-4 py-2">
                     <div className="flex flex-wrap items-center gap-2">
-                      {m.is_officer && <OfficerBadge />}
-                      <RoleAction m={m} isMe={isMe} />
+                      <RoleBadge m={m} />
+                      <RoleAction m={m} canManage={canManageOfficers} />
                     </div>
                   </td>
                 </tr>
@@ -194,8 +208,8 @@ export function MembersTable({
                 </span>
                 <div className="flex flex-wrap items-center gap-2">
                   <ClearNickname m={m} />
-                  {m.is_officer && <OfficerBadge />}
-                  <RoleAction m={m} isMe={isMe} />
+                  <RoleBadge m={m} />
+                  <RoleAction m={m} canManage={canManageOfficers} />
                 </div>
               </div>
             </li>
