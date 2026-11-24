@@ -3,7 +3,7 @@
 import Link from "next/link";
 import QRCode from "qrcode";
 import { useEffect, useRef, useState } from "react";
-import { CubeIcon } from "@/components/Logo";
+import { Wordmark } from "@/components/Logo";
 import { createClient } from "@/lib/supabase/client";
 import type { CheckinFlags } from "@/app/(site)/officer/actions";
 import { statusText, useCheckinFlags } from "@/app/(site)/officer/_components/CheckinControls";
@@ -35,7 +35,7 @@ export function PresentClient({
       type: "svg",
       margin: 1,
       errorCorrectionLevel: "M",
-      color: { dark: "#00274c", light: "#ffffff" },
+      color: { dark: "#081f40", light: "#ffffff" },
     }).then((svg) => setQr(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`));
   }, [checkinUrl]);
 
@@ -102,10 +102,7 @@ export function PresentClient({
   return (
     <div className="flex min-h-dvh flex-col p-4 sm:p-8">
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <CubeIcon className="size-10" />
-          <span className="font-display text-xl text-maize sm:text-2xl">Roblox at UM</span>
-        </div>
+        <Wordmark tone="white" className="h-8 w-auto sm:h-10" />
         <div className="flex gap-2">
           <button
             type="button"
@@ -154,7 +151,7 @@ export function PresentClient({
               <span
                 key={i}
                 className="grid size-16 place-items-center border-4 border-blue bg-maize font-display text-5xl text-blue sm:size-24 sm:text-7xl xl:size-32 xl:text-8xl"
-                style={{ boxShadow: "0 8px 0 0 #000d1a" }}
+                style={{ boxShadow: "0 8px 0 0 #030c1a" }}
               >
                 {ch}
               </span>

@@ -41,3 +41,6 @@ yarn-error.log*
 next-env.d.ts
 
 !.env.example
+
+# Original logo files (sources for scripts/make-brand-assets.py); not deployed
+/public/brand/

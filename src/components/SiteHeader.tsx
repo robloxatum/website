@@ -12,8 +12,8 @@ export function SiteHeader() {
   return (
     <header className="border-b-4 border-blue bg-blue text-white">
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
-        <Link href="/" aria-label="Roblox at UM home">
-          <Wordmark />
+        <Link href="/" className="shrink-0">
+          <Wordmark tone="white" className="h-7 w-auto sm:h-9" />
         </Link>
         <Suspense fallback={<div className="h-10 w-20" />}>
           <AccountNav />

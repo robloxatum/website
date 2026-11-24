@@ -1,16 +1,17 @@
 @import "tailwindcss";
 
+/* Brand: navy #081F40 and yellow #F0C413 (token names kept from the first theme). */
 @theme {
-  --color-maize: #ffcb05;
-  --color-maize-dark: #d9ab00;
-  --color-blue: #00274c;
-  --color-blue-mid: #0b3d6e;
+  --color-maize: #f0c413;
+  --color-maize-dark: #c9a20b;
+  --color-blue: #081f40;
+  --color-blue-mid: #14325e;
   --color-sky: #a7d3ff;
   --color-cream: #fff8e0;
   --color-grass: #3bb273;
   --color-brick: #e4572e;
 
-  --font-display: var(--font-bungee), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
   --font-sans: var(--font-rubik), ui-sans-serif, system-ui, sans-serif;
 }
 
@@ -22,12 +23,12 @@
     @apply bg-cream text-blue font-sans antialiased;
     /* Faint block grid, like a baseplate. */
     background-image:
-      linear-gradient(to right, rgb(0 39 76 / 0.05) 2px, transparent 2px),
-      linear-gradient(to bottom, rgb(0 39 76 / 0.05) 2px, transparent 2px);
+      linear-gradient(to right, rgb(8 31 64 / 0.05) 2px, transparent 2px),
+      linear-gradient(to bottom, rgb(8 31 64 / 0.05) 2px, transparent 2px);
     background-size: 32px 32px;
   }
   h1, h2, h3 {
-    @apply font-display tracking-wide;
+    @apply font-display font-extrabold tracking-tight;
   }
   :focus-visible {
     outline: 4px solid var(--color-maize);
@@ -51,7 +52,7 @@
     transform: translateY(5px);
     box-shadow: 0 0 0 0 var(--color-blue);
   }
-  .btn-maize { @apply bg-maize text-blue hover:bg-[#ffd633]; }
+  .btn-maize { @apply bg-maize text-blue hover:bg-[#f5d04a]; }
   .btn-blue { @apply bg-blue text-maize hover:bg-blue-mid; }
   .btn-white { @apply bg-white text-blue hover:bg-cream; }
   .btn-danger { @apply bg-brick text-white hover:brightness-110; }

@@ -1,20 +1,33 @@
-export function CubeIcon({ className = "size-9" }: { className?: string }) {
+import Image from "next/image";
+import icon from "@/assets/brand/icon.png";
+import wordmarkNavy from "@/assets/brand/wordmark-navy.png";
+import wordmarkWhite from "@/assets/brand/wordmark-white.png";
+
+/**
+ * Roblox at UM wordmark. Use tone="white" on navy/dark backgrounds and
+ * tone="navy" on light/cream ones. Size it with a height class (width follows).
+ */
+export function Wordmark({
+  tone,
+  className = "h-8 w-auto",
+}: {
+  tone: "white" | "navy";
+  className?: string;
+}) {
   return (
-    <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
-      <polygon points="32,6 58,19 32,32 6,19" fill="#ffcb05" stroke="#00274c" strokeWidth="3" strokeLinejoin="round" />
-      <polygon points="6,19 32,32 32,59 6,46" fill="#d9ab00" stroke="#00274c" strokeWidth="3" strokeLinejoin="round" />
-      <polygon points="58,19 32,32 32,59 58,46" fill="#a7d3ff" stroke="#00274c" strokeWidth="3" strokeLinejoin="round" />
-    </svg>
+    <Image
+      src={tone === "white" ? wordmarkWhite : wordmarkNavy}
+      alt="Roblox at UM"
+      className={className}
+      // Always eager: it's in the header, and on short pages the footer copy is
+      // above the fold too. Same file and sizes, so the browser fetches it once.
+      loading="eager"
+      sizes="(min-width: 640px) 400px, 300px"
+    />
   );
 }
 
-export function Wordmark() {
-  return (
-    <span className="flex items-center gap-2">
-      <CubeIcon />
-      <span className="font-display text-lg leading-none text-maize sm:text-xl">
-        Roblox <span className="text-white">at</span> UM
-      </span>
-    </span>
-  );
+/** The square brand icon. */
+export function BrandIcon({ className = "size-10" }: { className?: string }) {
+  return <Image src={icon} alt="Roblox at UM" className={className} sizes="160px" />;
 }

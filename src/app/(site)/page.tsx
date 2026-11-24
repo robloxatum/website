@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { DateBlock } from "@/components/EventCard";
-import { CubeIcon } from "@/components/Logo";
+import { BrandIcon } from "@/components/Logo";
 import { getEventLists } from "@/lib/events";
 import { formatLongDate, formatTimeRange } from "@/lib/time";
 
@@ -10,8 +10,13 @@ export default function HomePage() {
       <section className="block-card relative overflow-hidden bg-blue p-6 text-white sm:p-10">
         <div className="relative z-10 max-w-xl">
           <p className="font-display text-sm uppercase text-sky">University of Michigan</p>
-          <h1 className="mt-2 text-4xl leading-[1.05] text-maize sm:text-6xl">
-            Build. Script. Play.
+          {/* Stacked on phones/tablets, one line with dots on laptops and up. */}
+          <h1 className="mt-2 text-5xl leading-[1.05] text-maize sm:text-6xl lg:text-5xl lg:whitespace-nowrap xl:text-6xl">
+            <span className="block lg:inline">Build</span>
+            <span className="hidden text-white lg:inline"> · </span>
+            <span className="block lg:inline">Create</span>
+            <span className="hidden text-white lg:inline"> · </span>
+            <span className="block lg:inline">Connect</span>
           </h1>
           <p className="mt-4 text-lg text-white/90">
             We&apos;re UM students who make games together: game jams, scripting workshops and
@@ -26,9 +31,8 @@ export default function HomePage() {
             </Link>
           </div>
         </div>
-        <div aria-hidden="true" className="pointer-events-none absolute right-6 bottom-4 hidden gap-2 opacity-90 md:flex">
-          <CubeIcon className="size-28 rotate-6 sm:size-40" />
-          <CubeIcon className="size-16 -rotate-12 self-start sm:size-24" />
+        <div className="pointer-events-none absolute right-8 bottom-8 hidden md:block">
+          <BrandIcon className="size-40 drop-shadow-[6px_6px_0_rgb(0_0_0/0.35)]" />
         </div>
       </section>
 
