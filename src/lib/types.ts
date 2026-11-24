@@ -30,6 +30,8 @@ export type PublicEvent = {
   cover_path: string | null;
   cover_width: number | null;
   cover_height: number | null;
+  /** Last edit; the .ics file uses it so calendars pick up changes. */
+  updated_at: string;
 };
 
 /** The image an event shows on cards and as its page banner. */

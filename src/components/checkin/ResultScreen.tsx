@@ -5,9 +5,10 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { EventCover } from "@/components/art/Art";
 import { Cube } from "@/components/art/Cubes";
+import { AddToCalendar } from "@/components/events/AddToCalendar";
 import { JoinGamePanel } from "@/components/events/JoinGame";
 import { CategoryBadge } from "@/components/ui/Primitives";
 import { button } from "@/components/ui/styles";
@@ -96,6 +97,8 @@ export function ResultScreen({
   const t = toneStyles[s.tone];
   const Icon = s.icon;
   const headingRef = useRef<HTMLHeadingElement>(null);
+  // Read the clock once, when the result appears: no "Add to calendar" for an event that's over.
+  const [eventOver] = useState(() => !!result.event && new Date(result.event.ends_at).getTime() <= Date.now());
 
   // Move focus to the result so screen readers announce it and keyboard users land here.
   useEffect(() => headingRef.current?.focus(), []);
@@ -138,6 +141,11 @@ export function ResultScreen({
               className="animate-rise pb-2"
             />
           )}
+          {(result.status === "ok" || result.status === "already_checked_in") &&
+            result.event &&
+            !eventOver && (
+              <AddToCalendar event={{ ...result.event, description: "" }} full />
+            )}
           {s.retry && (
             <button type="button" onClick={onRetry} className={button({ size: "lg", full: true })}>
               <RotateCcw aria-hidden="true" />

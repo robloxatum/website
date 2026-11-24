@@ -8,7 +8,7 @@ import type { EventStatus, ListedEvent, PublicEvent } from "./types";
 export const MIN_PUBLIC_COUNT = 10;
 
 const PUBLIC_COLUMNS =
-  "id, title, description, location, starts_at, ends_at, category, capacity, flyer_path, flyer_width, flyer_height, cover_path, cover_width, cover_height";
+  "id, title, description, location, starts_at, ends_at, category, capacity, flyer_path, flyer_width, flyer_height, cover_path, cover_width, cover_height, updated_at";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function eventStatus(e: Pick<PublicEvent, "starts_at" | "ends_at">, now = Date.now()): EventStatus {

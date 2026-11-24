@@ -6,6 +6,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { EventCover } from "@/components/art/Art";
 import { FlyerViewer } from "@/components/events/FlyerViewer";
+import { AddToCalendar } from "@/components/events/AddToCalendar";
 import { JoinGameIfCheckedIn } from "@/components/events/JoinGame";
 import { CalendarButton } from "@/components/ui/ClubLinkButtons";
 import { CategoryBadge, Skeleton, StatusPill } from "@/components/ui/Primitives";
@@ -127,6 +128,8 @@ async function EventDetails({ params }: { params: PageProps<"/events/[id]">["par
                 {status === "live" ? "I'm here: check in" : "Check in at the event"}
               </Link>
             )}
+            {/* Past events: no "Add to calendar" (or RSVP). */}
+            {status !== "completed" && <AddToCalendar event={event} />}
             <CalendarButton />
           </div>
         </div>
