@@ -372,9 +372,9 @@ reset role;
 -- storage.allow_delete_query, which Supabase requires for direct SQL deletes.
 -------------------------------------------------------------------------------
 do $$ begin
-  assert (select public and file_size_limit = 5242880 and allowed_mime_types = array['image/png', 'image/jpeg']
+  assert (select public and file_size_limit = 5242880 and allowed_mime_types = array['image/png', 'image/jpeg', 'image/webp']
             from storage.buckets where id = 'event-flyers'),
-    'event-flyers bucket is public, 5 MB max, PNG/JPEG only';
+    'event-flyers bucket is public, 5 MB max, PNG/JPEG/WebP only';
   assert (select is_officer from public.profiles where id = '00000000-0000-0000-0000-00000000000b'),
     'flyer tests expect b to be an officer here';
   assert not (select is_officer from public.profiles where id = '00000000-0000-0000-0000-00000000000c'),
@@ -550,6 +550,119 @@ begin
   delete from storage.objects where bucket_id = 'event-flyers' and name = '22222222-2222-4222-8222-222222222222.jpg';
   get diagnostics v_rows = row_count;
   assert v_rows = 1, 'officers can delete flyers';
+  perform set_config('storage.allow_delete_query', 'false', true);
+end $$;
+reset role;
+
+-------------------------------------------------------------------------------
+-- Event covers: events.cover_* checks and covers/ names in the same bucket.
+-------------------------------------------------------------------------------
+
+-- Officer: upload a cover, bad names rejected, cover columns on an event.
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000b","email":"member@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare v_id uuid := current_setting('test.flyer_event')::uuid;
+begin
+  insert into storage.objects (bucket_id, name) values ('event-flyers', 'covers/66666666-6666-4666-8666-666666666666.webp');
+  insert into storage.objects (bucket_id, name) values ('event-flyers', 'covers/77777777-7777-4777-8777-777777777777.jpg');
+  assert (select count(*) from storage.objects where bucket_id = 'event-flyers' and name like 'covers/%') = 2,
+    'officers can upload covers';
+
+  begin
+    insert into storage.objects (bucket_id, name) values ('event-flyers', 'covers/../88888888-8888-4888-8888-888888888888.webp');
+    raise exception 'FAIL: officer uploaded a cover with a bad name';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into storage.objects (bucket_id, name) values ('event-flyers', 'covers/88888888-8888-4888-8888-888888888888.gif');
+    raise exception 'FAIL: officer uploaded a non-image cover name';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into storage.objects (bucket_id, name) values ('event-flyers', '88888888-8888-4888-8888-888888888888.webp');
+    raise exception 'FAIL: officer uploaded a WebP flyer at the bucket root';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into storage.objects (bucket_id, name) values ('event-flyers', 'other/88888888-8888-4888-8888-888888888888.png');
+    raise exception 'FAIL: officer uploaded into another folder';
+  exception when insufficient_privilege then null; end;
+  begin
+    update storage.objects set name = 'covers/x.webp'
+     where bucket_id = 'event-flyers' and name = 'covers/77777777-7777-4777-8777-777777777777.jpg';
+    raise exception 'FAIL: officer renamed a cover to a bad name';
+  exception when insufficient_privilege then null; end;
+
+  begin
+    update public.events set cover_path = '66666666-6666-4666-8666-666666666666.webp', cover_width = 1600, cover_height = 800 where id = v_id;
+    raise exception 'FAIL: cover_path accepted a name outside covers/';
+  exception when check_violation then null; end;
+  begin
+    update public.events set cover_path = 'covers/66666666-6666-4666-8666-666666666666.webp', cover_width = 1000, cover_height = 500 where id = v_id;
+    raise exception 'FAIL: cover smaller than 1200 x 600 accepted';
+  exception when check_violation then null; end;
+  begin
+    update public.events set cover_width = 1600, cover_height = 800 where id = v_id;
+    raise exception 'FAIL: cover size kept without a cover';
+  exception when check_violation then null; end;
+  begin
+    update public.events set flyer_path = '88888888-8888-4888-8888-888888888888.webp' where id = v_id;
+    raise exception 'FAIL: flyer_path accepted WebP';
+  exception when check_violation then null; end;
+
+  update public.events set cover_path = 'covers/66666666-6666-4666-8666-666666666666.webp', cover_width = 1600, cover_height = 800
+   where id = v_id;
+  assert (select cover_width from public.events where id = v_id) = 1600, 'officers can set an event cover';
+end $$;
+reset role;
+
+-- Member and anon: can read the cover path, cannot upload, rename or delete covers.
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000c","email":"newbie@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare v_rows int;
+begin
+  assert (select cover_path from public.events where id = current_setting('test.flyer_event')::uuid)
+    = 'covers/66666666-6666-4666-8666-666666666666.webp', 'members can read an event cover path';
+  begin
+    insert into storage.objects (bucket_id, name) values ('event-flyers', 'covers/99999999-9999-4999-8999-999999999999.webp');
+    raise exception 'FAIL: member uploaded a cover';
+  exception when insufficient_privilege then null; end;
+  perform set_config('storage.allow_delete_query', 'true', true);
+  delete from storage.objects where bucket_id = 'event-flyers' and name like 'covers/%';
+  get diagnostics v_rows = row_count;
+  assert v_rows = 0, 'members cannot delete covers';
+  perform set_config('storage.allow_delete_query', 'false', true);
+  update public.events set cover_path = null, cover_width = null, cover_height = null
+   where id = current_setting('test.flyer_event')::uuid;
+  get diagnostics v_rows = row_count;
+  assert v_rows = 0, 'members cannot remove an event cover';
+end $$;
+reset role;
+
+select set_config('request.jwt.claims', '', true);
+set local role anon;
+do $$ begin
+  assert (select cover_path from public.events where id = current_setting('test.flyer_event')::uuid)
+    = 'covers/66666666-6666-4666-8666-666666666666.webp', 'anyone can read an event cover path';
+  begin
+    insert into storage.objects (bucket_id, name) values ('event-flyers', 'covers/99999999-9999-4999-8999-999999999999.webp');
+    raise exception 'FAIL: anon uploaded a cover';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+
+-- Officer: delete a cover file.
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000b","email":"member@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare v_rows int;
+begin
+  perform set_config('storage.allow_delete_query', 'true', true);
+  delete from storage.objects where bucket_id = 'event-flyers' and name = 'covers/77777777-7777-4777-8777-777777777777.jpg';
+  get diagnostics v_rows = row_count;
+  assert v_rows = 1, 'officers can delete covers';
   perform set_config('storage.allow_delete_query', 'false', true);
 end $$;
 reset role;

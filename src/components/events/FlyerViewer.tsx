@@ -8,7 +8,19 @@ import { useRef, useState } from "react";
  * An event flyer at its natural aspect ratio (never cropped). Tapping it opens
  * a full-screen view in a native <dialog> (Escape, the X or tapping outside closes it).
  */
-export function FlyerViewer({ src, width, height, alt }: { src: string; width: number; height: number; alt: string }) {
+export function FlyerViewer({
+  src,
+  width,
+  height,
+  alt,
+  sizes = "(min-width: 640px) 576px, calc(100vw - 40px)",
+}: {
+  src: string;
+  width: number;
+  height: number;
+  alt: string;
+  sizes?: string;
+}) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState(false);
 
@@ -28,7 +40,7 @@ export function FlyerViewer({ src, width, height, alt }: { src: string; width: n
           alt={alt}
           width={width}
           height={height}
-          sizes="(min-width: 640px) 576px, calc(100vw - 40px)"
+          sizes={sizes}
           className="h-auto w-full"
         />
         <span className="pointer-events-none absolute right-3 bottom-3 inline-flex items-center gap-1.5 rounded-lg bg-bg/85 px-2.5 py-1.5 text-xs font-semibold text-fg backdrop-blur transition-colors duration-150 group-hover:bg-maize group-hover:text-navy">

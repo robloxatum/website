@@ -24,12 +24,19 @@ export type PublicEvent = {
   flyer_path: string | null;
   flyer_width: number | null;
   flyer_height: number | null;
+  /** Optional uploaded cover ("covers/<uuid>.ext" in the same bucket), with its pixel size. */
+  cover_path: string | null;
+  cover_width: number | null;
+  cover_height: number | null;
 };
+
+/** The image an event shows on cards and as its page banner. */
+export type EventCoverImage = { src: string; width: number; height: number; alt: string };
 
 export type EventStatus = "upcoming" | "live" | "completed";
 
 /** A public event with its status and (past events only) aggregate attendance. */
-export type ListedEvent = PublicEvent & { status: EventStatus; attendance: number | null };
+export type ListedEvent = PublicEvent & { status: EventStatus; attendance: number | null; cover: EventCoverImage | null };
 
 /** Event as officers see it, including check-in state. */
 export type OfficerEvent = PublicEvent & {

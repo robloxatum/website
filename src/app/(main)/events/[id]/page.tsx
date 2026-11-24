@@ -8,6 +8,7 @@ import { FlyerViewer } from "@/components/events/FlyerViewer";
 import { CalendarButton } from "@/components/ui/ClubLinkButtons";
 import { CategoryBadge, Skeleton, StatusPill } from "@/components/ui/Primitives";
 import { button, card, container } from "@/components/ui/styles";
+import { coverFor } from "@/lib/event-covers";
 import { eventStatus, getEventLists, getPublicEvent } from "@/lib/events";
 import { flyerOf, flyerUrl } from "@/lib/flyers";
 import { formatLongDate, formatTimeRange } from "@/lib/time";
@@ -19,7 +20,7 @@ export async function generateMetadata({ params }: PageProps<"/events/[id]">): P
 
 export default function EventPage({ params }: PageProps<"/events/[id]">) {
   return (
-    <div className={`${container} max-w-4xl! pt-6 sm:pt-10`}>
+    <div className={`${container} max-w-5xl! pt-6 sm:pt-10`}>
       <Link href="/events" className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-fg-2 hover:text-maize">
         <ArrowLeft aria-hidden="true" className="size-4" />
         All events
@@ -38,9 +39,13 @@ async function EventDetails({ params }: { params: PageProps<"/events/[id]">["par
 
   const status = eventStatus(event);
   const flyer = flyerOf(event);
+  // Same cover as the event's card: lists pick covers so neighbours differ, so
+  // look the event up in its list (cached) and fall back to its own pick.
+  const lists = await getEventLists();
+  const listed = [...lists.upcoming, ...lists.past].find((e) => e.id === event.id);
+  const cover = listed ? listed.cover : coverFor(event);
   // Aggregate count for ended events only (same rules as the list).
-  const attendance =
-    status === "completed" ? ((await getEventLists()).past.find((e) => e.id === event.id)?.attendance ?? null) : null;
+  const attendance = status === "completed" ? (listed?.attendance ?? null) : null;
 
   const facts = [
     { icon: CalendarDays, label: "Date", value: formatLongDate(event.starts_at) },
@@ -51,15 +56,27 @@ async function EventDetails({ params }: { params: PageProps<"/events/[id]">["par
 
   return (
     <article className={`mt-3 overflow-hidden ${card}`}>
-      <EventCover category={event.category} className="aspect-[16/7] w-full sm:aspect-[16/6]" sizes="(min-width: 896px) 896px, 100vw" />
-      <div className="relative p-5 sm:p-8 sm:pt-0">
-        <div className="-mt-3 flex flex-wrap items-center gap-2">
-          <CategoryBadge category={event.category} className="relative" />
-          <StatusPill status={status} />
+      <EventCover
+        category={event.category}
+        cover={cover}
+        preload
+        className="aspect-[2/1] w-full sm:aspect-[5/2]"
+        sizes="(min-width: 1024px) 1024px, 100vw"
+      />
+      {/* Reading order: title, details, flyer, then description and buttons. From lg up the
+          flyer moves to a column on the right, beside everything else. */}
+      <div
+        className={`relative p-5 sm:p-8 sm:pt-0 ${flyer ? "lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:grid-rows-[auto_auto_1fr] lg:gap-x-10" : ""}`}
+      >
+        <div className="lg:col-start-1">
+          <div className="-mt-3 flex flex-wrap items-center gap-2">
+            <CategoryBadge category={event.category} className="relative" />
+            <StatusPill status={status} />
+          </div>
+          <h1 className="mt-3 text-3xl leading-tight text-fg sm:text-4xl">{event.title}</h1>
         </div>
-        <h1 className="mt-3 text-3xl leading-tight text-fg sm:text-4xl">{event.title}</h1>
 
-        <dl className="mt-6 grid gap-3 sm:grid-cols-2">
+        <dl className="mt-6 grid gap-3 sm:grid-cols-2 lg:col-start-1">
           {facts.map(({ icon: Icon, label, value }) => (
             <div key={label} className="flex items-center gap-3 rounded-xl border border-line/60 bg-bg-2/60 p-3">
               <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-elevated">
@@ -73,25 +90,33 @@ async function EventDetails({ params }: { params: PageProps<"/events/[id]">["par
           ))}
         </dl>
 
-        {event.description && (
-          <p className="mt-6 text-lg leading-relaxed whitespace-pre-line text-fg-2">{event.description}</p>
-        )}
-
         {flyer && (
-          <section aria-labelledby="flyer-heading" className="mt-8">
+          <section aria-labelledby="flyer-heading" className="mt-8 lg:col-start-2 lg:row-span-3 lg:row-start-1 lg:mt-8">
             <h2 id="flyer-heading" className="mb-3 text-xl text-fg">Flyer</h2>
-            <FlyerViewer src={flyerUrl(flyer.path)} width={flyer.width} height={flyer.height} alt={`Flyer for ${event.title}`} />
+            <FlyerViewer
+              src={flyerUrl(flyer.path)}
+              width={flyer.width}
+              height={flyer.height}
+              alt={`Flyer for ${event.title}`}
+              sizes="(min-width: 1024px) 300px, (min-width: 640px) 576px, calc(100vw - 40px)"
+            />
           </section>
         )}
 
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-          {status !== "completed" && (
-            <Link href="/checkin" className={button({ size: "lg" })}>
-              <QrCode aria-hidden="true" />
-              {status === "live" ? "I'm here: check in" : "Check in at the event"}
-            </Link>
+        <div className="lg:col-start-1">
+          {event.description && (
+            <p className="mt-6 max-w-prose text-lg leading-relaxed whitespace-pre-line text-fg-2">{event.description}</p>
           )}
-          <CalendarButton />
+
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            {status !== "completed" && (
+              <Link href="/checkin" className={button({ size: "lg" })}>
+                <QrCode aria-hidden="true" />
+                {status === "live" ? "I'm here: check in" : "Check in at the event"}
+              </Link>
+            )}
+            <CalendarButton />
+          </div>
         </div>
       </div>
     </article>

@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/auth";
 import { CATEGORY_KEYS } from "@/lib/categories";
 import { isUuid } from "@/lib/events";
-import { FLYER_BUCKET, FLYER_MAX_DIMENSION, FLYER_PATH } from "@/lib/flyers";
+import { COVER_MIN_HEIGHT, COVER_MIN_WIDTH, COVER_PATH, FLYER_BUCKET, FLYER_MAX_DIMENSION, FLYER_PATH } from "@/lib/flyers";
 import { createClient } from "@/lib/supabase/server";
 import { fromClubInputValue } from "@/lib/time";
 
@@ -21,7 +21,7 @@ export type EventFormState = { error?: string };
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
-async function flyerExists(supabase: Supabase, path: string) {
+async function objectExists(supabase: Supabase, path: string) {
   try {
     const { data } = await supabase.storage.from(FLYER_BUCKET).exists(path); // exact name; officer RLS
     return data === true;
@@ -30,10 +30,37 @@ async function flyerExists(supabase: Supabase, path: string) {
   }
 }
 
-async function removeFlyer(supabase: Supabase, path: string) {
-  if (!FLYER_PATH.test(path)) return;
+/** Delete a flyer or cover file from the bucket (best effort). */
+async function removeObject(supabase: Supabase, path: string) {
+  if (!FLYER_PATH.test(path) && !COVER_PATH.test(path)) return;
   const { error } = await supabase.storage.from(FLYER_BUCKET).remove([path]);
-  if (error) console.error("Failed to delete old flyer", error.message);
+  if (error) console.error("Failed to delete old image", error.message);
+}
+
+type ImageKind = "flyer" | "cover";
+const IMAGE_RULES: Record<ImageKind, { path: RegExp; minWidth: number; minHeight: number }> = {
+  flyer: { path: FLYER_PATH, minWidth: 1, minHeight: 1 },
+  cover: { path: COVER_PATH, minWidth: COVER_MIN_WIDTH, minHeight: COVER_MIN_HEIGHT },
+};
+
+/**
+ * "<kind>_action" is "keep" (default), "remove", or "replace" with an object the
+ * browser already uploaded to Storage (officer RLS). Returns the columns to set
+ * (undefined = leave as is), or an error.
+ */
+function readImageField(formData: FormData, kind: ImageKind) {
+  const action = String(formData.get(`${kind}_action`) ?? "keep");
+  const rules = IMAGE_RULES[kind];
+  if (action === "remove") return { values: { [`${kind}_path`]: null, [`${kind}_width`]: null, [`${kind}_height`]: null }, path: null };
+  if (action !== "replace") return { values: undefined, path: undefined };
+  const path = String(formData.get(`${kind}_path`) ?? "");
+  const width = Number(formData.get(`${kind}_width`));
+  const height = Number(formData.get(`${kind}_height`));
+  const ok = (n: number, min: number) => Number.isInteger(n) && n >= min && n <= FLYER_MAX_DIMENSION;
+  if (!rules.path.test(path) || !ok(width, rules.minWidth) || !ok(height, rules.minHeight)) {
+    return { error: `That ${kind} upload didn't work. Please try again.` };
+  }
+  return { values: { [`${kind}_path`]: path, [`${kind}_width`]: width, [`${kind}_height`]: height }, path };
 }
 
 export async function saveEvent(_prev: EventFormState, formData: FormData): Promise<EventFormState> {
@@ -60,36 +87,30 @@ export async function saveEvent(_prev: EventFormState, formData: FormData): Prom
     return { error: "Capacity must be a whole number from 1 to 100,000, or left empty." };
   }
 
-  // Flyer: "keep" (default), "remove", or "replace" with an object the browser
-  // already uploaded to Storage (officer RLS) as <uuid>.png|jpg.
-  const flyerAction = String(formData.get("flyer_action") ?? "keep");
-  let flyer: { flyer_path: string | null; flyer_width: number | null; flyer_height: number | null } | null = null;
-  if (flyerAction === "remove") {
-    flyer = { flyer_path: null, flyer_width: null, flyer_height: null };
-  } else if (flyerAction === "replace") {
-    const path = String(formData.get("flyer_path") ?? "");
-    const width = Number(formData.get("flyer_width"));
-    const height = Number(formData.get("flyer_height"));
-    const okSize = (n: number) => Number.isInteger(n) && n >= 1 && n <= FLYER_MAX_DIMENSION;
-    if (!FLYER_PATH.test(path) || !okSize(width) || !okSize(height)) return { error: "That flyer upload didn't work. Please try again." };
-    flyer = { flyer_path: path, flyer_width: width, flyer_height: height };
-  }
+  const flyer = readImageField(formData, "flyer");
+  if ("error" in flyer) return { error: flyer.error };
+  const cover = readImageField(formData, "cover");
+  if ("error" in cover) return { error: cover.error };
 
-  const values = { title, location, description, starts_at: startsAt, ends_at: endsAt, category, capacity, ...flyer };
+  const values = { title, location, description, starts_at: startsAt, ends_at: endsAt, category, capacity, ...flyer.values, ...cover.values };
   const supabase = await createClient();
 
-  // Make sure an uploaded flyer really is in the bucket, so the page never shows a broken image.
-  if (flyer?.flyer_path && !(await flyerExists(supabase, flyer.flyer_path))) {
-    return { error: "The flyer upload didn't finish. Please try again." };
+  // Make sure uploaded files really are in the bucket, so the page never shows a broken image.
+  for (const [kind, path] of [["flyer", flyer.path], ["cover", cover.path]] as const) {
+    if (path && !(await objectExists(supabase, path))) return { error: `The ${kind} upload didn't finish. Please try again.` };
   }
 
   let eventId = id;
-  let oldFlyer: string | null = null;
+  let old: { flyer_path: string | null; cover_path: string | null } | null = null;
   if (id) {
     if (!isUuid(id)) return { error: "Unknown event." };
-    if (flyer) {
-      const { data } = await supabase.from("events").select("flyer_path").eq("id", id).maybeSingle<{ flyer_path: string | null }>();
-      oldFlyer = data?.flyer_path ?? null;
+    if (flyer.values || cover.values) {
+      const { data } = await supabase
+        .from("events")
+        .select("flyer_path, cover_path")
+        .eq("id", id)
+        .maybeSingle<{ flyer_path: string | null; cover_path: string | null }>();
+      old = data ?? null;
     }
     const { error } = await supabase.from("events").update(values).eq("id", id);
     if (error) return { error: "Couldn't save the event. Please try again." };
@@ -99,8 +120,9 @@ export async function saveEvent(_prev: EventFormState, formData: FormData): Prom
     eventId = data.id;
   }
 
-  // The event no longer points at the old flyer: delete the file (best effort).
-  if (oldFlyer && oldFlyer !== flyer?.flyer_path) await removeFlyer(supabase, oldFlyer);
+  // The event no longer points at the old files: delete them (best effort).
+  if (old?.flyer_path && flyer.values && old.flyer_path !== flyer.path) await removeObject(supabase, old.flyer_path);
+  if (old?.cover_path && cover.values && old.cover_path !== cover.path) await removeObject(supabase, old.cover_path);
 
   updateTag("events");
   redirect(`/officer/events/${eventId}?saved=1`);
@@ -110,9 +132,14 @@ export async function deleteEvent(eventId: string) {
   await requireOfficerAction();
   if (!isUuid(eventId)) return;
   const supabase = await createClient();
-  const { data } = await supabase.from("events").select("flyer_path").eq("id", eventId).maybeSingle<{ flyer_path: string | null }>();
+  const { data } = await supabase
+    .from("events")
+    .select("flyer_path, cover_path")
+    .eq("id", eventId)
+    .maybeSingle<{ flyer_path: string | null; cover_path: string | null }>();
   const { error } = await supabase.from("events").delete().eq("id", eventId);
-  if (!error && data?.flyer_path) await removeFlyer(supabase, data.flyer_path);
+  if (!error && data?.flyer_path) await removeObject(supabase, data.flyer_path);
+  if (!error && data?.cover_path) await removeObject(supabase, data.cover_path);
   updateTag("events");
   redirect("/officer");
 }

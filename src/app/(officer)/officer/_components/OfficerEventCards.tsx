@@ -3,6 +3,7 @@ import Link from "next/link";
 import { EventCover } from "@/components/art/Art";
 import { CategoryBadge, ProgressBar, StatusPill } from "@/components/ui/Primitives";
 import { button, card } from "@/components/ui/styles";
+import { coverFor } from "@/lib/event-covers";
 import { eventStatus } from "@/lib/events";
 import { formatDate, formatTimeRange } from "@/lib/time";
 import type { OfficerEventWithCount } from "../data";
@@ -43,7 +44,7 @@ export function OfficerEventCard({ event, highlight = false }: { event: OfficerE
   return (
     <article className={`${card} p-4 ${highlight ? "border-maize/40" : ""}`}>
       <div className="flex gap-4">
-        <EventCover category={event.category} className="aspect-square w-20 shrink-0 self-start rounded-xl sm:w-24" sizes="96px" />
+        <EventCover category={event.category} cover={coverFor(event)} className="aspect-[2/1] w-24 shrink-0 self-start rounded-xl sm:w-32" sizes="128px" />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             {highlight && <span className="rounded-md bg-maize px-2 py-0.5 text-[11px] font-bold tracking-wider text-navy uppercase">Next up</span>}
@@ -89,7 +90,7 @@ export function OfficerEventCard({ event, highlight = false }: { event: OfficerE
 export function PastEventRow({ event }: { event: OfficerEventWithCount }) {
   return (
     <Link href={`/officer/events/${event.id}`} className="flex items-center gap-3 rounded-xl p-2 transition-colors hover:bg-white/[0.04]">
-      <EventCover category={event.category} className="aspect-[4/3] w-20 shrink-0 rounded-lg" sizes="80px" />
+      <EventCover category={event.category} cover={coverFor(event)} className="aspect-[2/1] w-24 shrink-0 rounded-lg" sizes="96px" />
       <div className="min-w-0 flex-1">
         <p className="truncate font-display font-bold text-fg">{event.title}</p>
         <p className="mt-0.5 flex flex-wrap gap-x-3 text-sm text-fg-2">
