@@ -45,14 +45,14 @@ export const DesktopNav = withPathname(function DesktopNavInner({ pathname }) {
             key={item.href}
             href={item.href}
             aria-current={active ? "page" : undefined}
-            className={`group relative flex items-center px-3 text-[15px] font-semibold transition-colors duration-150 ${
+            className={`group relative flex items-center px-2.5 lg:px-3 text-[15px] font-semibold transition-colors duration-150 ${
               active ? "text-fg" : "text-fg-2 hover:text-fg"
             }`}
           >
             {item.label}
             <span
               aria-hidden="true"
-              className={`absolute inset-x-3 bottom-0 h-[3px] origin-center rounded-full bg-maize transition-transform duration-200 ease-out ${
+              className={`absolute inset-x-2.5 lg:inset-x-3 bottom-0 h-[3px] origin-center rounded-full bg-maize transition-transform duration-200 ease-out ${
                 active ? "scale-x-100" : "scale-x-0 group-hover:scale-x-50"
               }`}
             />

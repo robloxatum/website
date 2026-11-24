@@ -9,7 +9,8 @@ import { DesktopNav } from "./NavLinks";
 export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-line/60 bg-bg/85 backdrop-blur-md">
-      <div className={`${container} flex h-16 items-center gap-6`}>
+      {/* Tighter between md and lg so the full nav fits at 768px, signed in or out. */}
+      <div className={`${container} flex h-16 items-center gap-3 lg:gap-6`}>
         <Link href="/" className="flex min-h-11 shrink-0 items-center rounded-md" aria-label="Roblox at UM home">
           <Wordmark tone="white" className="h-6 w-auto sm:h-7" />
         </Link>
@@ -44,9 +45,14 @@ async function AccountActions() {
   return (
     <>
       {profile.is_officer && (
-        <Link href="/officer" className={button({ variant: "secondary", size: "sm", className: "border-maize/50" })}>
+        <Link
+          href="/officer"
+          title="Officer portal"
+          className={button({ variant: "secondary", size: "sm", className: "border-maize/50 max-lg:min-w-11 max-lg:px-0" })}
+        >
           <ShieldCheck aria-hidden="true" className="text-maize" />
-          Officer
+          {/* Icon-only below lg (still named for screen readers). */}
+          <span className="max-lg:sr-only">Officer</span>
         </Link>
       )}
       <Link
