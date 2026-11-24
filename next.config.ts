@@ -12,8 +12,9 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
-  // AVIF first (smallest), WebP for browsers without AVIF.
-  images: { formats: ["image/avif", "image/webp"] },
+  // AVIF first (smallest), WebP for browsers without AVIF. 75 is the default
+  // quality; 50 is for the hero sketch (light lines on flat navy compress well).
+  images: { formats: ["image/avif", "image/webp"], qualities: [50, 75] },
   turbopack: {
     rules: {
       "*.css": {

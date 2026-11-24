@@ -14,6 +14,15 @@ import { VoxelSkyline } from "./Skyline";
 const fadeLeft = "[mask-image:linear-gradient(to_right,transparent,black_35%)]";
 
 /**
+ * Desktop hero image: fade all four edges into the page so no image edge (or the
+ * sketch's frame lines) ever shows; the long left fade melts the hatched sky into
+ * the navy behind the text. Phones crop the sides off and fade top/bottom with
+ * overlays instead.
+ */
+const heroEdgeMask =
+  "lg:[mask-image:linear-gradient(to_bottom,transparent,black_10%,black_86%,transparent),linear-gradient(to_right,transparent,black_30%,black_95%,transparent)] lg:[mask-composite:intersect]";
+
+/**
  * Hero background for the home page. With an image (src/content/art.ts) it
  * fills the hero: on phones it's cropped toward the right so the tower and
  * characters stay in view, under a darker overlay for the text; from lg up a
@@ -26,23 +35,31 @@ export function HeroScene({ className = "" }: { className?: string }) {
       {art.hero ? (
         <>
           {/* Phones/tablets: the scene sits in the lower part of the hero (tower behind the
-              text, characters below the buttons); from lg up it fills the hero. */}
-          <div className="absolute inset-x-0 bottom-0 h-[440px] sm:h-[560px] lg:inset-0 lg:h-auto">
+              text, characters below the buttons). From lg up it is as tall as the hero, at its
+              own aspect ratio (never cropped), pinned right: on wide screens the scene stays
+              beside the text instead of growing behind it. */}
+          <div
+            className={`absolute inset-x-0 bottom-0 h-[440px] sm:h-[560px] lg:inset-y-0 lg:right-0 lg:left-auto lg:aspect-[1915/821] lg:h-full ${heroEdgeMask}`}
+          >
             <Image
               src={art.hero}
               alt=""
               fill
               preload
               fetchPriority="high"
+              // Same look as 75 for pencil lines on flat navy, at half the bytes
+              // (~39 KB AVIF at full size, the most any screen downloads).
+              quality={50}
               // Cover-cropping scales the image past the screen width on phones.
-              sizes="(max-width: 1023px) 1100px, 100vw"
-              className="object-cover object-[76%_100%] lg:object-[100%_45%]"
+              sizes="(max-width: 1023px) 1100px, 1400px"
+              className="object-cover object-[76%_100%]"
             />
             {/* Phones: fade the top into the page and darken behind the text. */}
-            <div className="absolute inset-0 bg-linear-to-b from-bg via-bg/60 via-45% to-bg/10 to-75% lg:hidden" />
+            <div className="absolute inset-0 bg-linear-to-b from-bg via-bg/70 via-50% to-bg/10 to-80% lg:hidden" />
           </div>
-          {/* Desktop: dark on the left behind the logo and buttons, clear on the right. */}
-          <div className="absolute inset-0 hidden bg-linear-to-r from-bg via-bg/75 via-35% to-transparent to-65% lg:block" />
+          {/* Desktop: soft navy over the left half (the sketch's hatched sky) so the logo,
+              tagline and buttons stay crisp; clear over the tower and characters. */}
+          <div className="absolute inset-0 hidden bg-linear-to-r from-bg via-bg/80 via-30% to-transparent to-55% lg:block" />
         </>
       ) : (
         <div className={`absolute inset-y-0 right-0 w-full lg:w-[62%] ${fadeLeft}`}>
@@ -50,7 +67,7 @@ export function HeroScene({ className = "" }: { className?: string }) {
         </div>
       )}
       {/* Blend into the page at the bottom */}
-      <div className="absolute inset-x-0 bottom-0 h-28 bg-linear-to-t from-bg to-transparent sm:h-36" />
+      <div className="absolute inset-x-0 bottom-0 h-28 bg-linear-to-t from-bg to-transparent sm:h-36 lg:h-16" />
     </div>
   );
 }
