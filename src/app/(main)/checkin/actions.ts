@@ -1,5 +1,6 @@
 "use server";
 
+import { refresh } from "next/cache";
 import { getUser } from "@/lib/auth";
 import { normalizeCode } from "@/lib/checkin-state";
 import { createClient } from "@/lib/supabase/server";
@@ -18,5 +19,8 @@ export async function checkIn(rawCode: string): Promise<CheckinResult> {
     console.error("check_in failed", error?.message);
     return { status: "error", event_title: null };
   }
-  return data as CheckinResult;
+  const result = data as CheckinResult;
+  // The nav swaps Check In for Play during a live event you're checked in to.
+  if (result.status === "ok" || result.status === "already_checked_in") refresh();
+  return result;
 }
