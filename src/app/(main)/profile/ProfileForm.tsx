@@ -5,7 +5,10 @@ import { useActionState, useRef, useState, useTransition } from "react";
 import { Alert } from "@/components/ui/Alert";
 import { Avatar } from "@/components/ui/Avatar";
 import { button, card, field, label } from "@/components/ui/styles";
+import { NICKNAME_MAX } from "@/lib/names";
 import { previewRobloxUser, type ProfileFormState, type RobloxPreview, saveProfile } from "./actions";
+
+const readOnly = "rounded-[10px] border border-line/50 bg-bg-2/50 px-4 py-3 font-semibold break-words text-fg-2";
 
 const norm = (v: string) => v.trim().replace(/^@/, "").toLowerCase();
 
@@ -14,12 +17,14 @@ export function ProfileForm({
   next = "/",
   uniqname,
   fullName,
+  nickname,
   robloxUsername,
 }: {
   mode: "welcome" | "edit";
   next?: string;
   uniqname: string;
   fullName: string;
+  nickname: string | null;
   robloxUsername: string | null;
 }) {
   const [state, action, pending] = useActionState<ProfileFormState, FormData>(saveProfile, {});
@@ -64,16 +69,37 @@ export function ProfileForm({
       <input type="hidden" name="mode" value={mode} />
       <input type="hidden" name="next" value={next} />
 
+      {/* Read-only: both come from the member's U-M Google account. */}
       <div>
-        <span className={label}>Uniqname</span>
-        <p className="rounded-[10px] border border-line/50 bg-bg-2/50 px-4 py-3 font-semibold text-fg-2">{uniqname}</p>
+        <span className={label} id="uniqname-label">Uniqname</span>
+        <p aria-labelledby="uniqname-label" className={readOnly}>{uniqname}</p>
       </div>
 
       <div>
-        <label htmlFor="full_name" className={label}>
-          Name
+        <span className={label} id="name-label">Name</span>
+        <p aria-labelledby="name-label" aria-describedby="name-help" className={readOnly}>
+          {fullName.trim() || <span className="font-normal text-fg-3">Not shared by Google</span>}
+        </p>
+        <p id="name-help" className="mt-1 text-xs text-fg-3">From your U-M Google account.</p>
+      </div>
+
+      <div>
+        <label htmlFor="nickname" className={label}>
+          Nickname <span className="font-normal text-fg-3">(optional)</span>
         </label>
-        <input id="full_name" name="full_name" required maxLength={100} autoComplete="name" defaultValue={fullName} className={field} />
+        <input
+          id="nickname"
+          name="nickname"
+          maxLength={NICKNAME_MAX}
+          autoComplete="nickname"
+          defaultValue={nickname ?? ""}
+          placeholder={fullName.trim().split(/\s+/)[0] || "e.g. Alex"}
+          aria-describedby="nickname-help"
+          className={field}
+        />
+        <p id="nickname-help" className="mt-1 text-xs text-fg-3">
+          What we call you. Leave blank to use your first name.
+        </p>
       </div>
 
       <div>

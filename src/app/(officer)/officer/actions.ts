@@ -209,6 +209,17 @@ export async function setOfficer(userId: string, makeOfficer: boolean): Promise<
   return {};
 }
 
+/** Clear a member's nickname, e.g. an inappropriate one (officers only; enforced by clear_nickname()). */
+export async function clearNickname(userId: string): Promise<{ error?: string }> {
+  await requireOfficerAction();
+  if (!isUuid(userId)) return { error: "Unknown member." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("clear_nickname", { p_user_id: userId });
+  if (error) return { error: "Couldn't clear the nickname. Please try again." };
+  refresh();
+  return {};
+}
+
 /** Post or replace the event's live game link (officers only; RLS enforces it too). */
 export async function setGameLink(eventId: string, rawUrl: string, rawLabel: string): Promise<{ error?: string }> {
   const officer = await requireOfficerAction();

@@ -63,12 +63,14 @@ async function EventDetails({ params }: { params: PageProps<"/events/[id]">["par
   ];
 
   return (
-    <article className={`mt-3 overflow-hidden ${card}`}>
+    // No overflow-hidden here: the "Add to calendar" menu must be able to extend
+    // past the card. The cover clips its own corners instead.
+    <article className={`mt-3 ${card}`}>
       <EventCover
         category={event.category}
         cover={cover}
         preload
-        className="aspect-[2/1] w-full sm:aspect-[5/2]"
+        className="aspect-[2/1] w-full rounded-t-2xl sm:aspect-[5/2]"
         sizes="(min-width: 1024px) 1024px, 100vw"
       />
       {/* Reading order: title, details, game link, flyer, then description and buttons. From lg

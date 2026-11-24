@@ -1,9 +1,20 @@
 "use client";
 
 import { CalendarPlus, ChevronDown, Download } from "lucide-react";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { button } from "@/components/ui/styles";
 import { type CalendarEvent, googleCalendarUrl } from "@/lib/calendar";
+
+/** Height of fixed bars pinned to the bottom of the screen (the phone tab bars). */
+function bottomBarHeight() {
+  let height = 0;
+  for (const el of document.querySelectorAll("nav")) {
+    if (getComputedStyle(el).position !== "fixed") continue;
+    const r = el.getBoundingClientRect();
+    if (r.height > 0 && r.bottom >= window.innerHeight - 1) height = Math.max(height, window.innerHeight - r.top);
+  }
+  return height;
+}
 
 /** Google icon-free mark (we don't ship third-party logos). */
 function Dot({ className }: { className: string }) {
@@ -25,11 +36,33 @@ export function AddToCalendar({
   full?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  // Opens below the button unless there isn't room in the viewport below and
+  // there is above; then it opens upward.
+  const [up, setUp] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
   // Absolute link for the calendar entry's details. The menu only renders after
   // a click (never on the server), so window is available here.
   const eventUrl = open ? `${window.location.origin}/events/${event.id}` : "";
+
+  // Pick a direction before paint, then make sure the whole menu is on screen
+  // (and not under the phone's bottom tab bar).
+  useLayoutEffect(() => {
+    const wrap = wrapRef.current;
+    const menu = menuRef.current;
+    if (!open || !wrap || !menu) return;
+    const margin = 12;
+    const visibleBottom = window.innerHeight - bottomBarHeight() - margin;
+    const btn = wrap.getBoundingClientRect();
+    const need = menu.offsetHeight + 8; // menu + its gap
+    const flip = visibleBottom - btn.bottom < need && btn.top - margin >= need;
+    setUp(flip);
+    if (!flip) {
+      const overflow = btn.bottom + need - visibleBottom;
+      if (overflow > 0) window.scrollBy({ top: overflow, behavior: "smooth" });
+    }
+  }, [open]);
 
   // Close on outside click or Escape.
   useEffect(() => {
@@ -62,8 +95,11 @@ export function AddToCalendar({
       </button>
       {open && (
         <div
+          ref={menuRef}
           id={menuId}
-          className="absolute top-full left-0 z-30 mt-2 w-full min-w-64 rounded-xl border border-line bg-elevated p-1.5 shadow-card"
+          className={`absolute left-0 z-30 w-full min-w-64 rounded-xl border border-line bg-elevated p-1.5 shadow-card ${
+            up ? "bottom-full mb-2" : "top-full mt-2"
+          }`}
         >
           <a
             href={googleCalendarUrl(event, eventUrl)}

@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/Primitives";
 import { container } from "@/components/ui/styles";
 import { requireMember } from "@/lib/auth";
+import { callName } from "@/lib/names";
 import { normalizeCode } from "@/lib/checkin-state";
 import { CheckinClient } from "./CheckinClient";
 
@@ -25,7 +26,7 @@ async function CheckinGate({ searchParams }: { searchParams: PageProps<"/checkin
 
   // Signed out -> Google -> (first time) /welcome -> back here with the code.
   const profile = await requireMember(returnTo);
-  const firstName = profile.full_name.split(" ")[0] || profile.uniqname;
+  const firstName = callName(profile);
 
   return <CheckinClient initialCode={code} firstName={firstName} />;
 }

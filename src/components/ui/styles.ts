@@ -49,7 +49,7 @@ export const container = "mx-auto w-full max-w-6xl px-4 sm:px-6";
 
 /** Form controls. */
 export const field =
-  "block w-full min-h-12 rounded-[10px] border border-line bg-bg-2 px-4 py-3 text-base text-fg " +
+  "box-border block w-full min-w-0 max-w-full min-h-12 rounded-[10px] border border-line bg-bg-2 px-4 py-3 text-base text-fg " +
   "placeholder:text-fg-3/70 transition-[border-color,box-shadow] duration-150 " +
   "focus:border-maize focus:outline-none focus:ring-3 focus:ring-maize/25 disabled:opacity-60";
 export const label = "mb-1.5 block text-sm font-semibold text-fg";

@@ -1,4 +1,4 @@
-import { BadgeCheck, CalendarDays, CircleCheck, Code2, Gamepad2, Sparkles, Trophy, Users } from "lucide-react";
+import { CalendarDays, CircleCheck, Code2, Gamepad2, Sparkles, Trophy, Users } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -8,7 +8,8 @@ import { GoogleButton } from "@/components/GoogleButton";
 import { BrandIcon } from "@/components/Logo";
 import { ClubLinkButtons } from "@/components/ui/ClubLinkButtons";
 import { NextEventRow } from "@/components/ui/EventCards";
-import { SectionLabel } from "@/components/ui/Primitives";
+import { YoureIn } from "@/components/join/YoureIn";
+import { SectionLabel, Skeleton } from "@/components/ui/Primitives";
 import { button, card, container } from "@/components/ui/styles";
 import { art } from "@/content/art";
 import { faq, pitch, typicalMeeting, whatWeDo } from "@/content/join";
@@ -27,6 +28,33 @@ const icons = { game_night: Gamepad2, social: Users, game_jam: Trophy, workshop:
 
 // ?src=<label> (from flyer QR codes) is only read by analytics; the page ignores it.
 export default function JoinPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className={`${container} max-w-2xl! pt-6 sm:pt-10`}>
+          <Skeleton className="h-96" />
+        </div>
+      }
+    >
+      <JoinOrWelcome />
+    </Suspense>
+  );
+}
+
+/** Members who are already signed up get the "You're in" screen; everyone else the Join page. */
+async function JoinOrWelcome() {
+  const profile = await getProfile();
+  if (profile?.onboarded_at) {
+    return (
+      <div className={`${container} max-w-xl! pt-10`}>
+        <YoureIn profile={profile} />
+      </div>
+    );
+  }
+  return <JoinLanding />;
+}
+
+function JoinLanding() {
   return (
     <div className={`${container} max-w-2xl! pt-6 sm:pt-10`}>
       {/* Above the fold on a phone: who we are, next event, join actions. */}
@@ -62,9 +90,7 @@ export default function JoinPage() {
       </div>
 
       <section aria-label="Join actions" className="mt-5 space-y-3">
-        <Suspense fallback={<SignUp />}>
-          <PrimaryAction />
-        </Suspense>
+        <SignUp />
         <ClubLinkButtons keys={COMMUNITY_KEYS} />
       </section>
 
@@ -164,19 +190,5 @@ function SignUp() {
         Uses your umich.edu Google account. Then check-in at events is one tap.
       </p>
     </div>
-  );
-}
-
-async function PrimaryAction() {
-  const profile = await getProfile();
-  if (!profile?.onboarded_at) return <SignUp />;
-  return (
-    <Link
-      href="/join/done"
-      className={`${card} flex min-h-13 items-center gap-3 border-ok/40 px-5 py-3.5 font-semibold text-fg hover:border-ok/70`}
-    >
-      <BadgeCheck aria-hidden="true" className="size-6 shrink-0 text-ok" />
-      <span className="flex-1">You&apos;re a member. See your community links</span>
-    </Link>
   );
 }

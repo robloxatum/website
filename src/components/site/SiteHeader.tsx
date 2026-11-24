@@ -5,6 +5,7 @@ import { Wordmark } from "@/components/Logo";
 import { button, container } from "@/components/ui/styles";
 import { Avatar } from "@/components/ui/Avatar";
 import { getProfile } from "@/lib/auth";
+import { callName } from "@/lib/names";
 import { headshotFor } from "@/lib/roblox";
 import { DesktopNav } from "./NavLinks";
 
@@ -43,7 +44,7 @@ async function AccountActions() {
       </Link>
     );
   }
-  const name = profile.full_name.trim() || profile.uniqname;
+  const name = callName(profile);
   // Cached about an hour; null (initial-letter icon) if Roblox is unavailable.
   const avatar = await headshotFor(profile);
   return (

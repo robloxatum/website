@@ -30,14 +30,14 @@ export async function getOfficerEvent(id: string) {
 export type AttendeeRow = {
   user_id: string;
   checked_in_at: string;
-  profiles: { full_name: string; uniqname: string; roblox_username: string | null; roblox_user_id: number | null } | null;
+  profiles: { full_name: string; nickname: string | null; uniqname: string; roblox_username: string | null; roblox_user_id: number | null } | null;
 };
 
 export async function getAttendees(eventId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("attendance")
-    .select("user_id, checked_in_at, profiles(full_name, uniqname, roblox_username, roblox_user_id)")
+    .select("user_id, checked_in_at, profiles(full_name, nickname, uniqname, roblox_username, roblox_user_id)")
     .eq("event_id", eventId)
     .order("checked_in_at", { ascending: true })
     .returns<AttendeeRow[]>();
@@ -81,7 +81,7 @@ export async function getAnnouncementForOfficer() {
 export type RsvpRow = {
   user_id: string;
   created_at: string;
-  profiles: { full_name: string; uniqname: string; roblox_username: string | null; roblox_user_id: number | null } | null;
+  profiles: { full_name: string; nickname: string | null; uniqname: string; roblox_username: string | null; roblox_user_id: number | null } | null;
 };
 
 /** Who said "I'm going" (officers only; RLS). Never shown publicly. */
@@ -89,7 +89,7 @@ export async function getRsvps(eventId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("event_rsvps")
-    .select("user_id, created_at, profiles(full_name, uniqname, roblox_username, roblox_user_id)")
+    .select("user_id, created_at, profiles(full_name, nickname, uniqname, roblox_username, roblox_user_id)")
     .eq("event_id", eventId)
     .order("created_at", { ascending: true })
     .returns<RsvpRow[]>();
