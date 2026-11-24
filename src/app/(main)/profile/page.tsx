@@ -5,7 +5,9 @@ import { Suspense } from "react";
 import { EmptyState } from "@/components/ui/Blocks";
 import { CategoryBadge, Skeleton } from "@/components/ui/Primitives";
 import { button, card, container } from "@/components/ui/styles";
+import { Avatar } from "@/components/ui/Avatar";
 import { requireMember } from "@/lib/auth";
+import { headshotFor } from "@/lib/roblox";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/time";
 import { ProfileForm } from "./ProfileForm";
@@ -30,21 +32,22 @@ type AttendanceRow = {
 async function ProfileContent() {
   const profile = await requireMember("/profile");
   const supabase = await createClient();
-  const { data } = await supabase
+  const [{ data }, avatar] = await Promise.all([
+    supabase
     .from("attendance")
     .select("checked_in_at, events(id, title, starts_at, category)")
     .eq("user_id", profile.id)
     .order("checked_in_at", { ascending: false })
-    .returns<AttendanceRow[]>();
+    .returns<AttendanceRow[]>(),
+    headshotFor(profile),
+  ]);
   const attendance = data ?? [];
   const name = profile.full_name.trim() || profile.uniqname;
 
   return (
     <div className="space-y-8">
       <div className="flex items-center gap-4">
-        <span className="grid size-16 shrink-0 place-items-center rounded-2xl bg-maize font-display text-3xl font-extrabold text-navy">
-          {name[0]?.toUpperCase()}
-        </span>
+        <Avatar name={name} src={avatar} size="lg" tone="maize" />
         <div className="min-w-0">
           <p className="text-sm font-semibold tracking-[0.18em] text-fg-2 uppercase">Your profile</p>
           <h1 className="truncate text-3xl text-fg">{name}</h1>

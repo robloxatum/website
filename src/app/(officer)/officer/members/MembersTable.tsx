@@ -2,6 +2,7 @@
 
 import { Download, Search, ShieldCheck } from "lucide-react";
 import { useMemo, useState } from "react";
+import { Avatar } from "@/components/ui/Avatar";
 import { button, card, field, label } from "@/components/ui/styles";
 import { formatDate } from "@/lib/time";
 import type { MemberRow } from "@/lib/types";
@@ -38,7 +39,14 @@ function RoleAction({ m, isMe }: { m: MemberRow; isMe: boolean }) {
   );
 }
 
-export function MembersTable({ members, currentUserId }: { members: MemberRow[]; currentUserId: string }) {
+export function MembersTable({
+  members,
+  currentUserId,
+}: {
+  /** Each member with their Roblox headshot URL (null: initial-letter icon). */
+  members: (MemberRow & { avatar: string | null })[];
+  currentUserId: string;
+}) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<Sort>("attendance");
 
@@ -111,7 +119,12 @@ export function MembersTable({ members, currentUserId }: { members: MemberRow[];
               return (
                 <tr key={m.id} className="hover:bg-white/[0.02]">
                   <td className="px-4 py-3 font-semibold text-fg">
-                    {m.full_name || m.uniqname} {isMe && <span className="font-normal text-fg-3">(you)</span>}
+                    <span className="flex items-center gap-2.5">
+                      <Avatar name={m.full_name || m.uniqname} src={m.avatar} size="sm" />
+                      <span>
+                        {m.full_name || m.uniqname} {isMe && <span className="font-normal text-fg-3">(you)</span>}
+                      </span>
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-fg-2">{m.uniqname}</td>
                   <td className="px-4 py-3 text-fg-2">{m.roblox_username ?? ""}</td>
@@ -142,7 +155,8 @@ export function MembersTable({ members, currentUserId }: { members: MemberRow[];
           return (
             <li key={m.id} className={`${card} p-4`}>
               <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
+                <Avatar name={m.full_name || m.uniqname} src={m.avatar} size="md" />
+                <div className="min-w-0 flex-1">
                   <p className="truncate font-semibold text-fg">
                     {m.full_name || m.uniqname} {isMe && <span className="font-normal text-fg-3">(you)</span>}
                   </p>

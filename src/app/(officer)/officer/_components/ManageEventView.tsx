@@ -1,6 +1,7 @@
 import { Download, MonitorPlay, RefreshCw, Trash2, Users } from "lucide-react";
 import Link from "next/link";
 import { Alert } from "@/components/ui/Alert";
+import { Avatar } from "@/components/ui/Avatar";
 import { EmptyState } from "@/components/ui/Blocks";
 import { CategoryBadge, StatusPill } from "@/components/ui/Primitives";
 import { button, card } from "@/components/ui/styles";
@@ -26,7 +27,7 @@ export function ManageEventView({
 }: {
   event: OfficerEvent;
   code: string | null;
-  attendees: AttendeeRow[];
+  attendees: (AttendeeRow & { avatar?: string | null })[];
   saved: boolean;
 }) {
   return (
@@ -113,7 +114,12 @@ export function ManageEventView({
               <tbody className="divide-y divide-line/40">
                 {attendees.map((a) => (
                   <tr key={a.user_id} className="hover:bg-white/[0.02]">
-                    <td className="px-4 py-3 font-semibold text-fg">{a.profiles?.full_name || "—"}</td>
+                    <td className="px-4 py-3 font-semibold text-fg">
+                      <span className="flex items-center gap-2.5">
+                        <Avatar name={a.profiles?.full_name || a.profiles?.uniqname || "?"} src={a.avatar} size="sm" />
+                        {a.profiles?.full_name || "—"}
+                      </span>
+                    </td>
                     <td className="px-4 py-3 text-fg-2">{a.profiles?.uniqname}</td>
                     <td className="hidden px-4 py-3 text-fg-2 sm:table-cell">{a.profiles?.roblox_username ?? ""}</td>
                     <td className="px-4 py-3 whitespace-nowrap text-fg-2">{formatTime(a.checked_in_at)}</td>

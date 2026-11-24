@@ -3,6 +3,8 @@ export type Profile = {
   uniqname: string;
   full_name: string;
   roblox_username: string | null;
+  /** Looked up from roblox_username when saved; only used for the avatar. */
+  roblox_user_id: number | null;
   is_officer: boolean;
   onboarded_at: string | null;
   created_at: string;
@@ -74,4 +76,5 @@ export type MemberRow = {
   created_at: string;
   total_attendance: number;
   last_checked_in_at: string | null;
+  roblox_user_id: number | null;
 };
