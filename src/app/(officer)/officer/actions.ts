@@ -3,6 +3,7 @@
 import { refresh, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/auth";
+import { CATEGORY_KEYS } from "@/lib/categories";
 import { isUuid } from "@/lib/events";
 import { createClient } from "@/lib/supabase/server";
 import { fromClubInputValue } from "@/lib/time";
@@ -26,6 +27,9 @@ export async function saveEvent(_prev: EventFormState, formData: FormData): Prom
   const description = String(formData.get("description") ?? "").trim();
   const startsAt = fromClubInputValue(String(formData.get("starts_at") ?? ""));
   const endsAt = fromClubInputValue(String(formData.get("ends_at") ?? ""));
+  const category = String(formData.get("category") ?? "meeting");
+  const capacityRaw = String(formData.get("capacity") ?? "").trim();
+  const capacity = capacityRaw ? Number(capacityRaw) : null;
 
   if (!title) return { error: "Give the event a title." };
   if (title.length > 120) return { error: "Title is too long (120 characters max)." };
@@ -33,8 +37,12 @@ export async function saveEvent(_prev: EventFormState, formData: FormData): Prom
   if (description.length > 5000) return { error: "Description is too long (5000 characters max)." };
   if (!startsAt || !endsAt) return { error: "Pick a start and end time." };
   if (new Date(endsAt) <= new Date(startsAt)) return { error: "The end time must be after the start time." };
+  if (!(CATEGORY_KEYS as string[]).includes(category)) return { error: "Pick a category." };
+  if (capacity !== null && (!Number.isInteger(capacity) || capacity < 1 || capacity > 100000)) {
+    return { error: "Capacity must be a whole number from 1 to 100,000, or left empty." };
+  }
 
-  const values = { title, location, description, starts_at: startsAt, ends_at: endsAt };
+  const values = { title, location, description, starts_at: startsAt, ends_at: endsAt, category, capacity };
   const supabase = await createClient();
 
   let eventId = id;

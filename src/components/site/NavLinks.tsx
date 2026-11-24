@@ -12,7 +12,7 @@ export const MAIN_NAV = [
   { href: "/links", label: "Links" },
 ] as const;
 
-function isActive(pathname: string | null, href: string) {
+export function isActive(pathname: string | null, href: string) {
   if (pathname === null) return false;
   return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
 }
@@ -21,7 +21,7 @@ function isActive(pathname: string | null, href: string) {
  * The pathname is request data, so on dynamic routes it streams in: the nav
  * prerenders without an active item and lights up as soon as it's known.
  */
-function withPathname(Nav: (props: { pathname: string | null }) => React.ReactNode) {
+export function withPathname(Nav: (props: { pathname: string | null }) => React.ReactNode) {
   function Live() {
     return <Nav pathname={usePathname()} />;
   }

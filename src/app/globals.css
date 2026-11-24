@@ -21,15 +21,6 @@
   --color-maize: #f0c413;
   --color-maize-hover: #f6d23f;
 
-  /* Legacy light theme: only pages not yet redesigned (removed in phase 3) */
-  --color-maize-dark: #c9a20b;
-  --color-blue: #081f40;
-  --color-blue-mid: #14325e;
-  --color-sky: #a7d3ff;
-  --color-cream: #fff8e0;
-  --color-grass: #3bb273;
-  --color-brick: #e4572e;
-
   --font-display: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 
@@ -88,51 +79,5 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-  }
-}
-
-/* ---------------------------------------------------------------------------
- * Legacy light theme, scoped to .legacy (the layout for pages not yet
- * redesigned). Deleted in phase 3 once every page uses the new components.
- * ------------------------------------------------------------------------- */
-@layer components {
-  .legacy {
-    @apply bg-cream text-blue;
-    color-scheme: light;
-    background-image:
-      linear-gradient(to right, rgb(8 31 64 / 0.05) 2px, transparent 2px),
-      linear-gradient(to bottom, rgb(8 31 64 / 0.05) 2px, transparent 2px);
-    background-size: 32px 32px;
-  }
-  .legacy .block-card {
-    @apply border-4 border-blue bg-white;
-    box-shadow: 6px 6px 0 0 var(--color-blue);
-  }
-  .legacy .btn, .legacy-present .btn {
-    @apply inline-flex min-h-12 cursor-pointer select-none items-center justify-center gap-2 border-4 border-blue px-5 py-2 font-display text-base uppercase tracking-wide transition-[transform,box-shadow] duration-75 disabled:cursor-not-allowed disabled:opacity-60;
-    box-shadow: 0 5px 0 0 var(--color-blue);
-  }
-  .legacy .btn:not(:disabled):active, .legacy-present .btn:not(:disabled):active {
-    transform: translateY(5px);
-    box-shadow: 0 0 0 0 var(--color-blue);
-  }
-  .legacy .btn-maize, .legacy-present .btn-maize { @apply bg-maize text-blue hover:bg-[#f5d04a]; }
-  .legacy .btn-blue, .legacy-present .btn-blue { @apply bg-blue text-maize hover:bg-blue-mid; }
-  .legacy .btn-white, .legacy-present .btn-white { @apply bg-white text-blue hover:bg-cream; }
-  .legacy .btn-danger { @apply bg-brick text-white hover:brightness-110; }
-  .legacy .btn-sm, .legacy-present .btn-sm { @apply min-h-10 px-3 py-1 text-sm; box-shadow: 0 3px 0 0 var(--color-blue); }
-  .legacy .btn-sm:not(:disabled):active, .legacy-present .btn-sm:not(:disabled):active { transform: translateY(3px); }
-  .legacy .field {
-    @apply block w-full border-4 border-blue bg-white px-3 py-3 text-base text-blue placeholder:text-blue/40 focus:border-maize-dark focus:outline-none;
-  }
-  .legacy .label {
-    @apply mb-1 block font-display text-sm uppercase tracking-wide;
-  }
-  .legacy .tag, .legacy-present .tag {
-    @apply inline-flex items-center gap-1 border-2 border-blue px-2 py-0.5 font-display text-xs uppercase tracking-wide;
-  }
-  .legacy-present .block-card {
-    @apply border-4 border-blue bg-white;
-    box-shadow: 6px 6px 0 0 var(--color-blue);
   }
 }

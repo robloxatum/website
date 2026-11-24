@@ -6,14 +6,14 @@ import { OfficersOnly } from "@/components/OfficersOnly";
 import { getOfficer } from "@/lib/auth";
 import { isUuid } from "@/lib/events";
 import { createClient } from "@/lib/supabase/server";
-import { getOfficerEvent } from "@/app/(site)/officer/data";
+import { getOfficerEvent } from "@/app/(officer)/officer/data";
 import { PresentClient } from "./PresentClient";
 
 export const metadata: Metadata = { title: "Check-in" };
 
 export default function PresentPage({ params }: PageProps<"/officer/events/[id]/present">) {
   return (
-    <Suspense fallback={<div className="grid min-h-dvh place-items-center font-display text-2xl text-maize">Loading…</div>}>
+    <Suspense fallback={<div className="grid min-h-dvh place-items-center font-display text-2xl font-bold text-maize">Loading…</div>}>
       <Present params={params} />
     </Suspense>
   );
@@ -23,7 +23,7 @@ async function Present({ params }: { params: PageProps<"/officer/events/[id]/pre
   const { id } = await params;
   if (!(await getOfficer(`/officer/events/${id}/present`))) {
     return (
-      <div className="mx-auto max-w-md p-8 text-blue">
+      <div className="mx-auto max-w-md p-8">
         <OfficersOnly />
       </div>
     );
@@ -48,6 +48,7 @@ async function Present({ params }: { params: PageProps<"/officer/events/[id]/pre
       checkinUrl={`${base}/checkin?code=${data.code}`}
       eventId={id}
       title={data.event.title}
+      capacity={data.event.capacity}
       code={data.code}
       initialCount={count ?? 0}
       initialFlags={{

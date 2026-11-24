@@ -44,3 +44,13 @@ export async function getAttendees(eventId: string) {
   if (error) console.error("Failed to load attendance", error.message);
   return data ?? [];
 }
+
+/** Totals for the dashboard summary cards (officer RLS: officers can count all rows). */
+export async function getOfficerTotals() {
+  const supabase = await createClient();
+  const [{ count: members }, { count: checkins }] = await Promise.all([
+    supabase.from("profiles").select("*", { count: "exact", head: true }),
+    supabase.from("attendance").select("*", { count: "exact", head: true }),
+  ]);
+  return { members: members ?? 0, checkins: checkins ?? 0 };
+}

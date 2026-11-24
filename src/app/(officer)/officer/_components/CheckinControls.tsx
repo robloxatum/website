@@ -1,6 +1,8 @@
 "use client";
 
+import { Lock, LockOpen } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
+import { button } from "@/components/ui/styles";
 import { isCheckinOpen } from "@/lib/checkin-state";
 import { formatTime } from "@/lib/time";
 import { setCheckinOpen, type CheckinFlags } from "../actions";
@@ -39,8 +41,12 @@ export function statusText(flags: CheckinFlags, isOpen: boolean, ended: boolean)
 
 export function StatusBadge({ isOpen, label }: { isOpen: boolean; label: string }) {
   return (
-    <span className={`tag ${isOpen ? "bg-grass text-white" : "bg-white"}`}>
-      <span className={`size-2 ${isOpen ? "animate-pulse bg-white" : "bg-blue/40"}`} aria-hidden="true" />
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${
+        isOpen ? "border-ok/50 bg-ok/10 text-ok" : "border-line bg-bg-2 text-fg-2"
+      }`}
+    >
+      <span className={`size-2 rounded-full ${isOpen ? "animate-pulse bg-ok" : "bg-fg-3"}`} aria-hidden="true" />
       {label}
     </span>
   );
@@ -55,11 +61,12 @@ export function CheckinToggle({ eventId, initial }: { eventId: string; initial: 
         type="button"
         onClick={toggle}
         disabled={pending}
-        className={`btn btn-sm ${isOpen ? "btn-white" : "btn-maize"}`}
+        className={button({ variant: isOpen ? "secondary" : "primary", size: "sm" })}
       >
+        {isOpen ? <Lock aria-hidden="true" /> : <LockOpen aria-hidden="true" />}
         {pending ? "…" : isOpen ? "Close check-in" : ended ? "Reopen check-in" : "Open check-in"}
       </button>
-      {error && <span role="alert" className="text-sm font-semibold text-brick">{error}</span>}
+      {error && <span role="alert" className="text-sm font-semibold text-bad">{error}</span>}
     </div>
   );
 }

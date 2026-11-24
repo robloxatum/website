@@ -1,8 +1,9 @@
+import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { OfficersOnly } from "@/components/OfficersOnly";
-import { PageTitle, SkeletonBlock } from "@/components/Notice";
+import { PageHeader, Skeleton } from "@/components/ui/Primitives";
 import { getOfficer } from "@/lib/auth";
 import { EventForm } from "../../_components/EventForm";
 
@@ -10,12 +11,12 @@ export const metadata: Metadata = { title: "New event" };
 
 export default function NewEventPage() {
   return (
-    <div className="mx-auto max-w-2xl">
-      <Link href="/officer" className="font-display text-sm uppercase hover:underline">
-        ← Dashboard
+    <div className="max-w-3xl">
+      <Link href="/officer/events" className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-fg-2 hover:text-maize">
+        <ArrowLeft aria-hidden="true" className="size-4" /> Events
       </Link>
-      <PageTitle kicker="Officers">New event</PageTitle>
-      <Suspense fallback={<SkeletonBlock className="h-96" />}>
+      <PageHeader label="Officer portal" title="New event" />
+      <Suspense fallback={<Skeleton className="h-96" />}>
         <Gate />
       </Suspense>
     </div>

@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { button } from "@/components/ui/styles";
 
 /** A button that runs a server action, optionally after a confirm() prompt. */
 export function ActionButton({
   action,
   confirmText,
-  className = "btn btn-white btn-sm",
+  className = button({ variant: "secondary", size: "sm" }),
   children,
 }: {
   action: () => Promise<{ error?: string } | void>;
@@ -35,7 +36,7 @@ export function ActionButton({
         {pending ? "…" : children}
       </button>
       {error && (
-        <span role="alert" className="max-w-64 text-xs font-semibold text-brick">
+        <span role="alert" className="max-w-64 text-xs font-semibold text-bad">
           {error}
         </span>
       )}
