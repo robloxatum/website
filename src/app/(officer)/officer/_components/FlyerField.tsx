@@ -37,7 +37,7 @@ export function FlyerField({ current, title }: { current: Flyer | null; title?: 
         Flyer <span className="font-normal text-fg-3">(optional)</span>
       </p>
       <p id={helpId} className="-mt-1 mb-3 text-sm text-fg-2">
-        PNG or JPG, up to 5 MB. Shown full-size on the event page. Event cards keep the category art.
+        PNG or JPG, up to 5 MB. Shown full-size on the event page, next to the details.
       </p>
 
       <input

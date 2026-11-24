@@ -1,4 +1,6 @@
+import { join } from "node:path";
 import type { NextConfig } from "next";
+import { readCoverManifest } from "./src/lib/cover-manifest";
 
 const securityHeaders = [
   { key: "X-Frame-Options", value: "DENY" },
@@ -13,7 +15,12 @@ const securityHeaders = [
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
 const flyerImages = supabaseUrl ? [new URL(`${supabaseUrl}/storage/v1/object/public/event-flyers/**`)] : [];
 
+// Default event covers: whatever images are in public/art/covers at build time
+// (restart `next dev` after adding one). Inlined as process.env.DEFAULT_COVERS.
+const defaultCovers = readCoverManifest(join(process.cwd(), "public", "art", "covers"));
+
 const nextConfig: NextConfig = {
+  env: { DEFAULT_COVERS: JSON.stringify(defaultCovers) },
   cacheComponents: true,
   partialPrefetching: true,
   // AVIF first (smallest), WebP for browsers without AVIF. 75 is the default

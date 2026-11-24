@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { art } from "@/content/art";
 import { categoryInfo } from "@/lib/categories";
-import type { EventCategory } from "@/lib/types";
+import type { EventCategory, EventCoverImage } from "@/lib/types";
 import { CubeCluster } from "./Cubes";
 import { VoxelSkyline } from "./Skyline";
 
@@ -70,16 +70,41 @@ export function HeroScene({ className = "" }: { className?: string }) {
   );
 }
 
-/** Cover art for an event card: category image, or a category gradient with cubes. */
+/**
+ * Cover for an event card or page banner. With `cover` (an uploaded cover or a
+ * default from public/art/covers) it shows that image, cropped to the box from
+ * the center. Without one it draws the category art. A soft gradient at the
+ * bottom keeps the category badge that overlaps it readable.
+ */
 export function EventCover({
   category,
+  cover,
   className = "",
   sizes = "(min-width: 1024px) 360px, (min-width: 640px) 50vw, 100vw",
+  preload = false,
 }: {
   category: EventCategory | string;
+  cover?: EventCoverImage | null;
   className?: string;
   sizes?: string;
+  preload?: boolean;
 }) {
+  if (cover) {
+    return (
+      <div aria-hidden={cover.alt ? undefined : true} className={`relative overflow-hidden bg-bg-2 ${className}`}>
+        <Image
+          src={cover.src}
+          alt={cover.alt}
+          width={cover.width}
+          height={cover.height}
+          sizes={sizes}
+          preload={preload}
+          className="absolute inset-0 size-full object-cover object-center"
+        />
+        <div className="absolute inset-x-0 bottom-0 h-2/5 bg-linear-to-t from-[#0d2741]/75 to-transparent" />
+      </div>
+    );
+  }
   const info = categoryInfo(category);
   const src = art.covers[category as EventCategory] ?? null;
   const Icon = info.icon;

@@ -1,5 +1,6 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
+import { withCovers } from "./event-covers";
 import { createPublicClient } from "./supabase/public";
 import type { EventStatus, ListedEvent, PublicEvent } from "./types";
 
@@ -7,7 +8,7 @@ import type { EventStatus, ListedEvent, PublicEvent } from "./types";
 export const MIN_PUBLIC_COUNT = 10;
 
 const PUBLIC_COLUMNS =
-  "id, title, description, location, starts_at, ends_at, category, capacity, flyer_path, flyer_width, flyer_height";
+  "id, title, description, location, starts_at, ends_at, category, capacity, flyer_path, flyer_width, flyer_height, cover_path, cover_width, cover_height";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function eventStatus(e: Pick<PublicEvent, "starts_at" | "ends_at">, now = Date.now()): EventStatus {
@@ -53,15 +54,14 @@ export async function getEventLists(): Promise<{ upcoming: ListedEvent[]; past: 
   }
 
   const now = Date.now();
-  const events = ((data ?? []) as PublicEvent[]).map(
-    (e): ListedEvent => {
-      const status = eventStatus(e, now);
-      return { ...e, status, attendance: status === "completed" ? (counts.get(e.id) ?? null) : null };
-    },
-  );
+  const events = ((data ?? []) as PublicEvent[]).map((e) => {
+    const status = eventStatus(e, now);
+    return { ...e, status, attendance: status === "completed" ? (counts.get(e.id) ?? null) : null };
+  });
+  // Covers are picked per list, in display order, so neighbouring cards differ.
   return {
-    upcoming: events.filter((e) => e.status !== "completed"),
-    past: events.filter((e) => e.status === "completed").reverse(),
+    upcoming: withCovers(events.filter((e) => e.status !== "completed")),
+    past: withCovers(events.filter((e) => e.status === "completed").reverse()),
   };
 }
 

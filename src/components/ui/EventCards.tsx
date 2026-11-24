@@ -28,8 +28,8 @@ export function EventMeta({ event, className = "" }: { event: Pick<ListedEvent, 
 }
 
 /**
- * Public event card with cover art (home and /events). A compact row with a
- * square thumbnail on phones (like the mobile mockup), a tall card from sm up.
+ * Public event card with its cover (home and /events). A compact row with a
+ * small 2:1 thumbnail on phones, a tall card with the cover on top from sm up.
  */
 export function EventCard({ event, headingLevel = "h3" }: { event: ListedEvent; headingLevel?: "h2" | "h3" }) {
   const Heading = headingLevel;
@@ -40,8 +40,9 @@ export function EventCard({ event, headingLevel = "h3" }: { event: ListedEvent; 
     >
       <EventCover
         category={event.category}
-        className="aspect-square w-24 shrink-0 self-start rounded-xl sm:aspect-[16/8] sm:w-full sm:rounded-none"
-        sizes="(min-width: 1024px) 360px, (min-width: 640px) 50vw, 96px"
+        cover={event.cover}
+        className="aspect-[2/1] w-32 shrink-0 self-start rounded-xl sm:w-full sm:rounded-none"
+        sizes="(min-width: 1024px) 360px, (min-width: 640px) 50vw, 128px"
       />
       <div className="relative flex min-w-0 flex-1 flex-col sm:p-4 sm:pt-0">
         <CategoryBadge category={event.category} className="relative self-start sm:-mt-3" />
