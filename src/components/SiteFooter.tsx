@@ -10,6 +10,10 @@ export function SiteFooter() {
         </p>
         <p className="text-xs text-white/60">
           Not affiliated with or endorsed by Roblox Corporation.{" "}
+          <Link href="/privacy" className="underline hover:text-maize">
+            Privacy
+          </Link>
+          {" · "}
           <Link href="/links" className="underline hover:text-maize">
             Contact
           </Link>

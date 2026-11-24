@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Notice, PageTitle, SkeletonBlock } from "@/components/Notice";
@@ -55,7 +56,10 @@ async function LoginPanel({ searchParams }: { searchParams: PageProps<"/login">[
         <GoogleButton next={next} />
         <p className="text-sm text-blue/70">
           Only @umich.edu accounts can sign in. We store your name, uniqname, optional Roblox
-          username and which events you attended.
+          username and which events you attended.{" "}
+          <Link href="/privacy" className="underline">
+            Privacy
+          </Link>
         </p>
       </div>
     </div>
