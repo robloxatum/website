@@ -99,6 +99,7 @@ async function EventDetails({ params }: { params: PageProps<"/events/[id]">["par
               height={flyer.height}
               alt={`Flyer for ${event.title}`}
               sizes="(min-width: 1024px) 300px, (min-width: 640px) 576px, calc(100vw - 40px)"
+              eager
             />
           </section>
         )}

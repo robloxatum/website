@@ -14,12 +14,15 @@ export function FlyerViewer({
   height,
   alt,
   sizes = "(min-width: 640px) 576px, calc(100vw - 40px)",
+  eager = false,
 }: {
   src: string;
   width: number;
   height: number;
   alt: string;
   sizes?: string;
+  /** Load right away (the flyer is above the fold next to the event details on desktop). */
+  eager?: boolean;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState(false);
@@ -41,6 +44,7 @@ export function FlyerViewer({
           width={width}
           height={height}
           sizes={sizes}
+          loading={eager ? "eager" : undefined}
           className="h-auto w-full"
         />
         <span className="pointer-events-none absolute right-3 bottom-3 inline-flex items-center gap-1.5 rounded-lg bg-bg/85 px-2.5 py-1.5 text-xs font-semibold text-fg backdrop-blur transition-colors duration-150 group-hover:bg-maize group-hover:text-navy">
