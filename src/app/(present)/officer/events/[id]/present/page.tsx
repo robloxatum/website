@@ -48,6 +48,7 @@ async function Present({ params }: { params: PageProps<"/officer/events/[id]/pre
       checkinUrl={`${base}/checkin?code=${data.code}`}
       eventId={id}
       title={data.event.title}
+      startsAt={data.event.starts_at}
       capacity={data.event.capacity}
       code={data.code}
       initialCount={count ?? 0}

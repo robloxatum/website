@@ -9,7 +9,7 @@ import { getOfficer } from "@/lib/auth";
 import { isUuid } from "@/lib/events";
 import { headshotsFor } from "@/lib/roblox";
 import { ManageEventView } from "../../_components/ManageEventView";
-import { getAttendees, getOfficerEvent } from "../../data";
+import { getAttendees, getGameLink, getOfficerEvent } from "../../data";
 
 export const metadata: Metadata = { title: "Manage event" };
 
@@ -32,7 +32,7 @@ async function ManageEvent({ params, searchParams }: PageProps<"/officer/events/
   if (!(await getOfficer(`/officer/events/${id}`))) return <OfficersOnly />;
   if (!isUuid(id)) notFound();
 
-  const [data, attendees] = await Promise.all([getOfficerEvent(id), getAttendees(id)]);
+  const [data, attendees, gameLink] = await Promise.all([getOfficerEvent(id), getAttendees(id), getGameLink(id)]);
   if (!data) notFound();
   // Roblox headshots (cached ~1 hour; null → initial-letter icon).
   const avatars = await headshotsFor(attendees.map((a) => a.profiles ?? {}));
@@ -41,6 +41,7 @@ async function ManageEvent({ params, searchParams }: PageProps<"/officer/events/
       event={data.event}
       code={data.code}
       attendees={attendees.map((a, i) => ({ ...a, avatar: avatars[i] }))}
+      gameLink={gameLink}
       saved={!!saved}
     />
   );
