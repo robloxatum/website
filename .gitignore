@@ -57,3 +57,6 @@ design/flyers/
 # ...but not route folders named like files (e.g. src/app/.../members.csv/route.ts)
 !src/**/*.csv/
 design/exports/
+
+# Local-only analytics demo numbers (npm run analytics:demo)
+.analytics-demo.json

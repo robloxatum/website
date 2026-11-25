@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, CalendarDays, LayoutDashboard, Megaphone, QrCode, Users } from "lucide-react";
+import { ArrowLeft, BarChart3, CalendarDays, LayoutDashboard, Megaphone, QrCode, Users } from "lucide-react";
 import Link from "next/link";
 import { withPathname } from "@/components/site/NavLinks";
 
@@ -8,6 +8,7 @@ const ITEMS = [
   { href: "/officer", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/officer/events", label: "Events", icon: CalendarDays },
   { href: "/officer/members", label: "Members", icon: Users },
+  { href: "/officer/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/officer/flyer", label: "Flyer QR", icon: QrCode },
   { href: "/officer/announcement", label: "Announce", icon: Megaphone },
 ] as const;
@@ -56,7 +57,7 @@ export const OfficerBottomNav = withPathname(function OfficerBottomNavInner({ pa
       aria-label="Officer"
       className="fixed inset-x-0 bottom-0 z-40 border-t border-line/70 bg-bg-2/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
     >
-      <ul className="mx-auto grid max-w-lg grid-cols-5">
+      <ul className="mx-auto grid max-w-lg grid-cols-6">
         {ITEMS.map((item) => {
           const on = active(pathname, item.href, "exact" in item);
           const Icon = item.icon;

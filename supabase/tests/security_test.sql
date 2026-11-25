@@ -1348,6 +1348,94 @@ do $$ begin
 end $$;
 reset role;
 
+-------------------------------------------------------------------------------
+-- Officer analytics: officers only, aggregates only, exact numbers
+-------------------------------------------------------------------------------
+-- Known data in January 2001 (nothing else exists that early). As the table
+-- owner, so check-in times can be set exactly.
+reset role;
+do $$
+declare v_a uuid; v_b uuid;
+begin
+  insert into public.events (title, starts_at, ends_at, category)
+  values ('Analytics A', '2001-01-10 18:00-05', '2001-01-10 20:00-05', 'game_night') returning id into v_a;
+  insert into public.events (title, starts_at, ends_at, category)
+  values ('Analytics B', '2001-01-20 18:00-05', '2001-01-20 20:00-05', 'workshop') returning id into v_b;
+  perform set_config('test.an_a', v_a::text, true);
+  -- Member b: both events (first time at A). Newbie c: only B (first time). Officer a: B only.
+  insert into public.attendance (event_id, user_id, checked_in_at) values
+    (v_a, '00000000-0000-0000-0000-00000000000b', '2001-01-10 18:05-05'),
+    (v_b, '00000000-0000-0000-0000-00000000000b', '2001-01-20 17:55-05'),
+    (v_b, '00000000-0000-0000-0000-00000000000c', '2001-01-20 18:12-05'),
+    (v_b, '00000000-0000-0000-0000-00000000000a', '2001-01-20 18:45-05');
+  -- RSVPs for B: b came, a came, and nobody else; A: none.
+  insert into public.event_rsvps (event_id, user_id) values
+    (v_b, '00000000-0000-0000-0000-00000000000b'),
+    (v_b, '00000000-0000-0000-0000-00000000000a');
+end $$;
+
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000a","email":"officer@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare r jsonb; ev jsonb;
+begin
+  r := public.officer_analytics('2001-01-01 00:00-05', '2001-02-01 00:00-05');
+  assert jsonb_array_length(r->'events') = 2, 'analytics: two events in January 2001';
+  ev := r->'events'->0;
+  assert ev->>'title' = 'Analytics A' and (ev->>'checkins')::int = 1 and (ev->>'first_timers')::int = 1
+     and (ev->>'rsvps')::int = 0, 'analytics: event A numbers';
+  ev := r->'events'->1;
+  assert (ev->>'checkins')::int = 3 and (ev->>'first_timers')::int = 2 and (ev->>'rsvps')::int = 2
+     and (ev->>'rsvps_showed')::int = 2, 'analytics: event B numbers (b is returning)';
+  assert not (ev ? 'user_id') and not (r::text like '%00000000-0000-0000-0000-00000000000b%'),
+    'analytics never returns who checked in';
+  assert r->'by_category' = '[{"category":"workshop","checkins":3},{"category":"game_night","checkins":1}]'::jsonb,
+    'analytics: check-ins by category';
+  assert (r->'returning'->>'attendees')::int = 3 and (r->'returning'->>'two_plus')::int = 1,
+    'analytics: 1 of 3 people came to 2+ events';
+  assert (r->'timing'->>'before_start')::int = 1 and (r->'timing'->>'min_0_10')::int = 1
+     and (r->'timing'->>'min_10_20')::int = 1 and (r->'timing'->>'min_30_60')::int = 1
+     and (r->'timing'->>'median')::int = 9, 'analytics: check-in timing';
+  assert (r->'prev'->>'events')::int = 0 and (r->'prev'->>'checkins')::int = 0,
+    'analytics: the previous period (December 2000) is empty';
+  assert jsonb_array_length(r->'growth') = 1 and r->'growth'->0->>'month' = '2001-01'
+     and (r->'growth'->0->>'new_members')::int = 0, 'analytics: one month, no members joined in 2001';
+  assert (r->>'members_total')::int = 0, 'analytics: no members existed yet in 2001';
+  r := public.officer_analytics(null, null);
+  assert r->'prev' = 'null'::jsonb, 'analytics: all time has no previous period';
+  assert (r->>'members_total')::int = (select count(*) from public.profiles), 'analytics: all-time member total';
+  begin
+    perform public.officer_analytics('2001-02-01', '2001-01-01');
+    raise exception 'FAIL: analytics accepted a backwards range';
+  exception when invalid_parameter_value then null; end;
+end $$;
+reset role;
+
+-- A member can't call it.
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000c","email":"newbie@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$ begin
+  assert not (select is_officer from public.profiles where id = auth.uid()), 'newbie is not an officer';
+  begin
+    perform public.officer_analytics(null, null);
+    raise exception 'FAIL: member read analytics';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+
+-- Signed-out visitors can't call it.
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
+set local role anon;
+do $$ begin
+  begin
+    perform public.officer_analytics(null, null);
+    raise exception 'FAIL: anon read analytics';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+
 select 'ALL SECURITY TESTS PASSED' as result;
 
 rollback;
