@@ -70,7 +70,7 @@ async function save(sec: Locator) {
   await sec.getByRole("button", { name: "Save" }).click();
 }
 
-test("officer adds a link and an FAQ question; they're live on /links and /join", async ({ page }) => {
+test("officer adds a link and an FAQ question; they're live on /links and /join", async ({ page, browser }) => {
   const label = `E2E Link ${randomUUID().slice(0, 4)}`;
   const question = `E2E Do I need a laptop ${randomUUID().slice(0, 4)}?`;
   await signIn(page, SEEDED.officer, "/officer/content");
@@ -90,10 +90,21 @@ test("officer adds a link and an FAQ question; they're live on /links and /join"
   await save(join);
   await expect(join.getByText("Saved. It's live on the site now.")).toBeVisible();
 
-  await page.goto("/links");
-  await expect(page.getByRole("link", { name: new RegExp(label) }).first()).toHaveAttribute("href", "https://example.com/e2e");
-  await page.goto("/join");
-  await expect(page.getByText(question)).toBeVisible();
+  // As a visitor (signed-in members get "You're in" on /join, not the FAQ; this
+  // test used to check as the officer and only passed when it caught the page
+  // before that swap). The very first HTML after the save must already have both.
+  const visitor = await browser.newContext({ viewport: page.viewportSize()! });
+  for (const [path, text] of [["/join", question], ["/links", label]]) {
+    const html = await (await visitor.request.get(path)).text();
+    expect(html, `${path} first HTML after the save`).toContain(text);
+  }
+  const v = await visitor.newPage();
+  await v.goto("/links");
+  await expect(v.getByRole("link", { name: new RegExp(label) }).first()).toHaveAttribute("href", "https://example.com/e2e");
+  await v.goto("/join");
+  // Visible only: while /join streams, React briefly holds a hidden second copy.
+  await expect(v.getByText(question).filter({ visible: true })).toBeVisible();
+  await visitor.close();
 });
 
 test("content validation: http, HTML and //evil.com are refused", async ({ page }) => {
