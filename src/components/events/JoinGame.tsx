@@ -3,7 +3,7 @@
 import { Gamepad2, Hourglass } from "lucide-react";
 import { useEffect, useState } from "react";
 import { button } from "@/components/ui/styles";
-import { createClient } from "@/lib/supabase/client";
+import { loadClient } from "@/lib/supabase/client-lazy";
 import { useGameLink } from "@/lib/use-game-link";
 
 type EventTimes = { eventId: string; startsAt: string; endsAt: string };
@@ -57,9 +57,9 @@ export function JoinGameIfCheckedIn({ eventId, startsAt, endsAt, className = "" 
 
   useEffect(() => {
     if (Date.now() >= new Date(endsAt).getTime()) return;
-    const supabase = createClient();
     let cancelled = false;
     void (async () => {
+      const supabase = await loadClient();
       const { data: auth } = await supabase.auth.getClaims();
       const userId = auth?.claims?.sub;
       if (!userId || cancelled) return;

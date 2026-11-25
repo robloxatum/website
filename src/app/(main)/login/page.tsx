@@ -60,8 +60,8 @@ async function LoginPanel({ searchParams }: { searchParams: PageProps<"/login">[
         </p>
         <GoogleButton next={next} />
         <p className="text-sm text-fg-2">
-          Only @umich.edu accounts can sign in. We store your name, uniqname, optional Roblox username and which events
-          you attended.{" "}
+          Only @umich.edu accounts can sign in. We store your name, uniqname, optional nickname and Roblox username,
+          and the events you check in to or RSVP for.{" "}
           <Link href="/privacy" className="font-semibold text-maize hover:underline">
             Privacy
           </Link>

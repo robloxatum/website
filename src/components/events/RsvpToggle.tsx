@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { button } from "@/components/ui/styles";
 import type { CalendarEvent } from "@/lib/calendar";
-import { createClient } from "@/lib/supabase/client";
+import { loadClient } from "@/lib/supabase/client-lazy";
 
 type State =
   | { kind: "loading" }
@@ -24,9 +24,9 @@ export function RsvpToggle({ event, className = "" }: { event: CalendarEvent; cl
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const supabase = createClient();
     let cancelled = false;
     void (async () => {
+      const supabase = await loadClient();
       const { data: auth } = await supabase.auth.getClaims();
       const userId = auth?.claims?.sub;
       if (cancelled) return;
@@ -48,7 +48,7 @@ export function RsvpToggle({ event, className = "" }: { event: CalendarEvent; cl
     if (state.kind !== "ready" || busy) return;
     setBusy(true);
     setError(null);
-    const supabase = createClient();
+    const supabase = await loadClient();
     const { error: err } = state.going
       ? await supabase.from("event_rsvps").delete().eq("event_id", event.id).eq("user_id", state.userId)
       : await supabase.from("event_rsvps").upsert({ event_id: event.id }, { onConflict: "event_id,user_id", ignoreDuplicates: true });

@@ -48,6 +48,8 @@ export function HeroScene({ className = "" }: { className?: string }) {
               preload
               fetchPriority="high"
               placeholder="blur"
+              // Under dark gradients, so the lower quality doesn't show (and it's ~40% smaller).
+              quality={50}
               // Phones: cover scales the image to the box height (~980-1220px wide).
               // Desktop: full-bleed at the screen width.
               sizes="(max-width: 1023px) 1220px, 100vw"

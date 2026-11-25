@@ -1,5 +1,6 @@
 import { CalendarDays } from "lucide-react";
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/metadata";
 import { EmptyState } from "@/components/ui/Blocks";
 import { CalendarButton, MailingListButton } from "@/components/ui/ClubLinkButtons";
 import { EventGrid } from "@/components/ui/EventCards";
@@ -8,10 +9,11 @@ import { container } from "@/components/ui/styles";
 import { Tabs } from "@/components/ui/Tabs";
 import { getEventLists } from "@/lib/events";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Events",
-  description: "Game nights, hangouts, game jams and workshops from Roblox at UM.",
-};
+  description: "Game nights, hangouts, game jams and workshops from Roblox at UM. Free for all U-M students.",
+  path: "/events",
+});
 
 export default async function EventsPage() {
   const { upcoming, past } = await getEventLists();

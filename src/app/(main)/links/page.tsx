@@ -1,10 +1,15 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/metadata";
 import { CalendarButton, ClubLinkButtons, MailingListButton } from "@/components/ui/ClubLinkButtons";
 import { PageHeader } from "@/components/ui/Primitives";
 import { container } from "@/components/ui/styles";
 import { getCommunityLinks } from "@/lib/site-content-data";
 
-export const metadata: Metadata = { title: "Links" };
+export const metadata: Metadata = pageMetadata({
+  title: "Links",
+  description: "Instagram, GroupMe, Discord, our Roblox group and more: everywhere Roblox at UM hangs out.",
+  path: "/links",
+});
 
 // Linked from our Instagram bio: keep it fast and simple.
 export default async function LinksPage() {

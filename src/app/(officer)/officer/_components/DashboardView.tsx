@@ -1,4 +1,4 @@
-import { ArrowRight, CalendarDays, History, Plus, ScanLine, Users, type LucideIcon } from "lucide-react";
+import { ArrowRight, CalendarDays, DatabaseBackup, History, Plus, ScanLine, Users, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { CornerCubes } from "@/components/art/Cubes";
 import { EmptyState, Panel } from "@/components/ui/Blocks";
@@ -39,10 +39,22 @@ export function DashboardView({
         title="Dashboard"
         description="Manage events, check-in and members."
         actions={
-          <Link href="/officer/events/new" className={button({ size: "lg" })}>
-            <Plus aria-hidden="true" />
-            New Event
-          </Link>
+          <>
+            {/* Plain link: a file download, not a page. */}
+            <a
+              href="/officer/backup.zip"
+              download
+              title="Members, events, attendance and RSVPs as CSV files in a .zip"
+              className={button({ variant: "secondary", size: "lg" })}
+            >
+              <DatabaseBackup aria-hidden="true" />
+              Download full backup
+            </a>
+            <Link href="/officer/events/new" className={button({ size: "lg" })}>
+              <Plus aria-hidden="true" />
+              New Event
+            </Link>
+          </>
         }
       />
 

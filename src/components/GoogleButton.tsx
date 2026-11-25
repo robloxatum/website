@@ -1,9 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
+import { InAppBrowserNotice } from "@/components/InAppBrowserNotice";
 import { button } from "@/components/ui/styles";
-import { createClient } from "@/lib/supabase/client";
+import { detectInAppBrowser } from "@/lib/in-app-browser";
+import { loadClient } from "@/lib/supabase/client-lazy";
 
+const noSubscribe = () => () => {};
+
+/** The in-app browser we're in (Instagram, GroupMe, ...), or null. Null on the server. */
+function useInAppBrowser() {
+  const ua = useSyncExternalStore(noSubscribe, () => navigator.userAgent, () => "");
+  return detectInAppBrowser(ua);
+}
+
+/**
+ * "Sign in with Google" (login, /join sign-up; check-in goes through /login).
+ * In an in-app browser it shows how to open the page in Safari/Chrome instead,
+ * and never starts the Google flow there (Google answers disallowed_useragent).
+ */
 export function GoogleButton({
   next,
   label = "Sign in with Google",
@@ -15,11 +30,14 @@ export function GoogleButton({
 }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const inApp = useInAppBrowser();
 
   async function signIn() {
+    // Belt and braces: the button isn't shown in in-app browsers anyway.
+    if (detectInAppBrowser(navigator.userAgent)) return;
     setPending(true);
     setError(null);
-    const { error } = await createClient().auth.signInWithOAuth({
+    const { error } = await (await loadClient()).auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
@@ -32,6 +50,8 @@ export function GoogleButton({
       setPending(false);
     }
   }
+
+  if (inApp) return <InAppBrowserNotice browser={inApp} />;
 
   return (
     <div>
