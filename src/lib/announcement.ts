@@ -17,10 +17,13 @@ export function normalizeMessage(raw: string): { message: string } | { error: st
   const message = raw.trim().replace(/\s+/g, " ");
   if (!message) return { error: "Write the announcement." };
   if (message.length > ANNOUNCEMENT_MAX) return { error: `Keep it to ${ANNOUNCEMENT_MAX} characters (it's ${message.length}).` };
+  // Same rule as the site content editor: it's shown as text, so tags would show up literally.
+  if (LOOKS_LIKE_HTML.test(message)) return { error: "Write it as plain text only, no HTML." };
   return { message };
 }
 
 const ALLOWED = /(^|\.)(roblox\.com|umich\.edu)$/;
+const LOOKS_LIKE_HTML = /<[A-Za-z/!?]/;
 const BAD_CHARS = /[\s"'<>\\]/;
 
 /**

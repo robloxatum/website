@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useRef } from "react";
+import { useActionState, useRef, useTransition } from "react";
+import { submitKeepingFields } from "@/lib/form-submit";
 import { Alert } from "@/components/ui/Alert";
 import { button, card, field, label } from "@/components/ui/styles";
 import { CATEGORIES, CATEGORY_KEYS } from "@/lib/categories";
@@ -108,9 +109,11 @@ function plusHours(local: string, hours: number) {
 export function EventForm({ defaults = {} }: { defaults?: Defaults }) {
   const [state, action, pending] = useActionState<EventFormState, FormData>(saveWithImages, {});
   const endsRef = useRef<HTMLInputElement>(null);
+  const [, startSubmit] = useTransition();
 
   return (
-    <form action={action} className={`${card} min-w-0 space-y-5 p-5 sm:p-6`}>
+    // Keeps what was typed (and chosen images) when the save is refused.
+    <form action={action} onSubmit={(e) => submitKeepingFields(e, action, startSubmit)} className={`${card} min-w-0 space-y-5 p-5 sm:p-6`}>
       {defaults.id && <input type="hidden" name="id" value={defaults.id} />}
 
       <div>

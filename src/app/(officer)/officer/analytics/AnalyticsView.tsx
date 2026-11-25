@@ -434,8 +434,9 @@ function RecentEvents({ events }: { events: AnalyticsEvent[] }) {
   const recent = withCovers([...events].reverse().slice(0, RECENT_LIMIT));
   return (
     <div>
-      {/* Table when there's room; cards otherwise. */}
-      <table className="hidden w-full text-left text-sm md:table">
+      {/* Table when there's room (from xl, like Members: below that, with the officer
+          sidebar, five columns don't fit and the page scrolled sideways); cards otherwise. */}
+      <table className="hidden w-full text-left text-sm xl:table">
         <thead className="border-b border-line/60 text-xs tracking-wider text-fg-3 uppercase">
           <tr>
             <th scope="col" className="py-2 pr-3 font-semibold">Event</th>
@@ -457,7 +458,7 @@ function RecentEvents({ events }: { events: AnalyticsEvent[] }) {
           ))}
         </tbody>
       </table>
-      <ul className="divide-y divide-line/40 md:hidden">
+      <ul className="divide-y divide-line/40 xl:hidden">
         {recent.map((e) => (
           <li key={e.id} className="py-3 first:pt-0 last:pb-0">
             <EventLink e={e} />

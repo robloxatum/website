@@ -3,6 +3,7 @@
 import { CircleCheck, Pencil, Search } from "lucide-react";
 import { useActionState, useRef, useState, useTransition } from "react";
 import { Alert } from "@/components/ui/Alert";
+import { submitKeepingFields } from "@/lib/form-submit";
 import { Avatar } from "@/components/ui/Avatar";
 import { button, card, field, label } from "@/components/ui/styles";
 import { NICKNAME_MAX } from "@/lib/names";
@@ -35,6 +36,7 @@ export function ProfileForm({
   const [confirmed, setConfirmed] = useState(norm(robloxUsername ?? ""));
   const [preview, setPreview] = useState<{ for: string; result: RobloxPreview } | null>(null);
   const [checking, startCheck] = useTransition();
+  const [, startSubmit] = useTransition();
 
   const needsCheck = norm(roblox) !== "" && norm(roblox) !== confirmed;
   const shownPreview = preview && preview.for === norm(roblox) ? preview.result : null;
@@ -52,11 +54,12 @@ export function ProfileForm({
       ref={formRef}
       action={action}
       onSubmit={(e) => {
+        // Saving: submitted by hand so a refused nickname stays in the box.
         if (skipCheck.current) {
           skipCheck.current = false;
-          return;
+          return submitKeepingFields(e, action, startSubmit);
         }
-        if (!needsCheck) return;
+        if (!needsCheck) return submitKeepingFields(e, action, startSubmit);
         e.preventDefault();
         const value = norm(roblox);
         startCheck(async () => {
@@ -124,9 +127,11 @@ export function ProfileForm({
         </p>
 
         {/* "Is this you?" — only to catch typos; nothing is verified. */}
-        <div aria-live="polite">
+        {/* Side by side only when THIS box is wide enough (the profile page), not on
+            wide screens in general: the /welcome card is narrow even on desktop. */}
+        <div aria-live="polite" className="@container">
           {shownPreview?.status === "found" && (
-            <div className="mt-3 flex flex-col gap-3 rounded-xl border border-maize/40 bg-bg-2/60 p-4 sm:flex-row sm:items-center">
+            <div className="mt-3 flex flex-col gap-3 rounded-xl border border-maize/40 bg-bg-2/60 p-4 @md:flex-row @md:items-center">
               <div className="flex min-w-0 flex-1 items-center gap-3">
                 <Avatar name={shownPreview.displayName || shownPreview.name} src={shownPreview.headshot} size="lg" />
                 <div className="min-w-0">
@@ -160,7 +165,7 @@ export function ProfileForm({
             </p>
           )}
           {shownPreview?.status === "unavailable" && (
-            <div className="mt-3 flex flex-col gap-3 rounded-xl border border-line bg-bg-2/60 p-4 sm:flex-row sm:items-center">
+            <div className="mt-3 flex flex-col gap-3 rounded-xl border border-line bg-bg-2/60 p-4 @md:flex-row @md:items-center">
               <p className="flex-1 text-sm text-fg-2">{shownPreview.message}</p>
               <button type="button" onClick={confirmAndSave} disabled={pending} className={button({ variant: "secondary", size: "sm" })}>
                 Save anyway
