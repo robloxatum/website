@@ -18,11 +18,12 @@ export function SiteHeader() {
         <Link href="/" className="flex min-h-11 shrink-0 items-center rounded-md" aria-label="Roblox at UM home">
           <Wordmark tone="white" className="h-6 w-auto sm:h-7" />
         </Link>
-        <Suspense fallback={<DesktopNav member={null} />}>
+        {/* Fallbacks are the signed-out header, so nothing shifts for signed-out visitors. */}
+        <Suspense fallback={<DesktopNav member={false} />}>
           <MemberDesktopNav />
         </Suspense>
         <div className="ml-auto flex items-center gap-2">
-          <Suspense fallback={<div className="size-11" />}>
+          <Suspense fallback={<SignInLink />}>
             <AccountActions />
           </Suspense>
           {/* Phones get Check In / Play in the bottom tab bar instead. */}
@@ -49,15 +50,17 @@ async function MemberCheckIn() {
   return <HeaderCheckIn events={checkedIn} />;
 }
 
+function SignInLink() {
+  return (
+    <Link href="/login" className={button({ variant: "ghost", size: "sm" })}>
+      Sign in
+    </Link>
+  );
+}
+
 async function AccountActions() {
   const profile = await getProfile();
-  if (!profile) {
-    return (
-      <Link href="/login" className={button({ variant: "ghost", size: "sm" })}>
-        Sign in
-      </Link>
-    );
-  }
+  if (!profile) return <SignInLink />;
   const name = callName(profile);
   // Cached about an hour; null (initial-letter icon) if Roblox is unavailable.
   const avatar = await headshotFor(profile);

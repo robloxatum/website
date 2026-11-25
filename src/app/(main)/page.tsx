@@ -116,11 +116,14 @@ async function UpcomingEvents() {
       </EmptyState>
     );
   }
+  // Fill the panel: one event gets a wide card, two share the row, three go up to three columns.
+  const shown = upcoming.slice(0, 3);
+  const cols = shown.length === 1 ? "" : shown.length === 2 ? "sm:grid-cols-2" : "sm:grid-cols-2 xl:grid-cols-3";
   return (
-    <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-      {upcoming.slice(0, 3).map((event) => (
+    <ul className={`grid gap-4 ${cols}`}>
+      {shown.map((event) => (
         <li key={event.id}>
-          <EventCard event={event} />
+          <EventCard event={event} layout={shown.length === 1 ? "wide" : "card"} alignTitles={shown.length > 1} />
         </li>
       ))}
     </ul>

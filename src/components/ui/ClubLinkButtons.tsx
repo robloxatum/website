@@ -14,7 +14,7 @@ const PLATFORM_META: Record<LinkPlatform, { action: string; icon: Icon }> = {
   discord: { action: "Join our Discord", icon: DiscordIcon },
   roblox: { action: "Join our Roblox Group", icon: Gamepad2 },
   linkedin: { action: "Follow us on LinkedIn", icon: LinkedInIcon },
-  maizepages: { action: "Maize Pages", icon: GraduationCap },
+  maizepages: { action: "Find us on Maize Pages", icon: GraduationCap },
 };
 
 export function linkMeta(link: { label: string; url: string }): { action: string; icon: Icon } {

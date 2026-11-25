@@ -141,8 +141,9 @@ export function HeaderCheckIn({ events }: { events: CheckedInEvent[] }) {
 }
 
 /* ---------------------------------------------------------------------------
- * Desktop header nav. `member` is null until the session is known: Join is
- * last so it can appear (signed out) or not (members) without moving the rest.
+ * Desktop header nav. The server renders the signed-out nav (with Join) until
+ * the session is known, so nothing shifts for signed-out visitors; Join is
+ * last, so for members it drops off without moving the rest.
  * ------------------------------------------------------------------------- */
 
 const navLink = (active: boolean) =>
@@ -155,26 +156,18 @@ export const DesktopNav = withPathnameProps(function DesktopNavInner({
   member,
 }: {
   pathname: string | null;
-  member: boolean | null;
+  member: boolean;
 }) {
   const items = [
     { href: "/", label: "Home" },
     { href: "/events", label: "Events" },
     { href: "/links", label: "Links" },
-    ...(member === true ? [] : [{ href: "/join", label: "Join", pending: member === null }]),
+    ...(member ? [] : [{ href: "/join", label: "Join" }]),
   ];
   return (
     <nav aria-label="Main" className="hidden h-full items-stretch gap-1 md:flex">
       {items.map((item) => {
         const active = isActive(pathname, item.href);
-        if ("pending" in item && item.pending) {
-          // Holds the space until we know whether to show it.
-          return (
-            <span key={item.href} aria-hidden="true" className={`${navLink(false)} invisible`}>
-              {item.label}
-            </span>
-          );
-        }
         return (
           <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined} className={navLink(active)}>
             {item.label}
@@ -192,9 +185,13 @@ export const DesktopNav = withPathnameProps(function DesktopNavInner({
 });
 
 /* ---------------------------------------------------------------------------
- * Phone bottom tab bar (hidden from md up). `nav` is null until the session is
- * known. Slot 3: Check In / Play. Slot 4: Join (signed out) / Links (members).
+ * Phone bottom tab bar (hidden from md up). Renders as signed out (SIGNED_OUT)
+ * until the session is known. Slot 3: Check In / Play. Slot 4: Join (signed
+ * out) / Links (members).
  * ------------------------------------------------------------------------- */
+
+/** What the nav shows before (or without) a session. */
+export const SIGNED_OUT: MemberNav = { member: false, checkedIn: [] };
 
 const tabClass = (active: boolean) =>
   `relative flex min-h-16 flex-col items-center justify-center gap-1 text-[11px] font-semibold transition-colors duration-150 ${
@@ -234,9 +231,9 @@ export const MobileTabBar = withPathnameProps(function MobileTabBarInner({
   nav,
 }: {
   pathname: string | null;
-  nav: MemberNav | null;
+  nav: MemberNav;
 }) {
-  const events = nav?.checkedIn ?? [];
+  const events = nav.checkedIn;
   return (
     <nav
       aria-label="Main"
@@ -259,9 +256,7 @@ export const MobileTabBar = withPathnameProps(function MobileTabBarInner({
           />
         </li>
         <li>
-          {nav === null ? (
-            <span aria-hidden="true" className="block min-h-16" />
-          ) : nav.member ? (
+          {nav.member ? (
             <Tab href="/links" label="Links" icon={Link2} pathname={pathname} />
           ) : (
             <Tab href="/join" label="Join" icon={UserPlus} pathname={pathname} />

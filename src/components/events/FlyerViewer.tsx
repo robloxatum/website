@@ -37,6 +37,7 @@ export function FlyerViewer({
         }}
         className="group relative mx-auto block w-full max-w-xl cursor-zoom-in overflow-hidden rounded-xl border border-line/60 bg-bg-2"
         aria-label={`${alt}. Open full screen`}
+        title="Open full screen"
       >
         <Image
           src={src}
@@ -47,9 +48,13 @@ export function FlyerViewer({
           loading={eager ? "eager" : undefined}
           className="h-auto w-full"
         />
-        <span className="pointer-events-none absolute right-3 bottom-3 inline-flex items-center gap-1.5 rounded-lg bg-bg/85 px-2.5 py-1.5 text-xs font-semibold text-fg backdrop-blur transition-colors duration-150 group-hover:bg-maize group-hover:text-navy">
-          <Maximize2 aria-hidden="true" className="size-3.5" />
-          Tap to open full screen
+        {/* Small icon in the top-right corner, so it never covers the bottom of a flyer
+            (where the QR code and location usually are). The button's label says what it does. */}
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute top-2 right-2 grid size-8 place-items-center rounded-full border border-line/60 bg-bg/80 text-fg shadow-card backdrop-blur transition-colors duration-150 group-hover:bg-maize group-hover:text-navy group-focus-visible:bg-maize group-focus-visible:text-navy"
+        >
+          <Maximize2 className="size-4" />
         </span>
       </button>
 

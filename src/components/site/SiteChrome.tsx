@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { getActiveAnnouncement } from "@/lib/announcements";
 import { getMemberNav } from "@/lib/member-nav";
 import { AnnouncementBanner } from "./AnnouncementBanner";
-import { MobileTabBar } from "./NavLinks";
+import { MobileTabBar, SIGNED_OUT } from "./NavLinks";
 import { SiteFooter } from "./SiteFooter";
 import { SiteHeader } from "./SiteHeader";
 
@@ -16,7 +16,8 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
       </Suspense>
       <main id="main" className="flex-1">{children}</main>
       <SiteFooter />
-      <Suspense fallback={<MobileTabBar nav={null} />}>
+      {/* Signed-out tabs until the session is known, so signed-out visitors see no shift. */}
+      <Suspense fallback={<MobileTabBar nav={SIGNED_OUT} />}>
         <MemberTabBar />
       </Suspense>
     </div>

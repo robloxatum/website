@@ -135,7 +135,7 @@ async function EventDetails({ params }: { params: PageProps<"/events/[id]">["par
               </Link>
             )}
             {/* Past events: no "Add to calendar" (or RSVP). */}
-            {status !== "completed" && <AddToCalendar event={event} />}
+            {status !== "completed" && <AddToCalendar event={event} full="phone" />}
             <CalendarButton />
           </div>
         </div>

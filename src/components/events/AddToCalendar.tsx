@@ -33,7 +33,8 @@ export function AddToCalendar({
 }: {
   event: CalendarEvent;
   variant?: "primary" | "secondary";
-  full?: boolean;
+  /** true: always full width. "phone": full width on phones, natural width from sm up. */
+  full?: boolean | "phone";
 }) {
   const [open, setOpen] = useState(false);
   // Opens below the button unless there isn't room in the viewport below and
@@ -81,13 +82,13 @@ export function AddToCalendar({
     "flex min-h-12 w-full items-center gap-3 rounded-lg px-3 text-left font-semibold text-fg transition-colors duration-150 hover:bg-white/[0.06] focus-visible:bg-white/[0.06]";
 
   return (
-    <div ref={wrapRef} className={`relative ${full ? "w-full" : ""}`}>
+    <div ref={wrapRef} className={`relative ${full === "phone" ? "w-full sm:w-auto" : full ? "w-full" : ""}`}>
       <button
         type="button"
         aria-expanded={open}
         aria-controls={menuId}
         onClick={() => setOpen((o) => !o)}
-        className={button({ variant, size: "lg", full })}
+        className={button({ variant, size: "lg", full: full === true, className: full === "phone" ? "w-full sm:w-auto" : "" })}
       >
         <CalendarPlus aria-hidden="true" />
         Add to calendar
