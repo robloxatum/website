@@ -25,9 +25,11 @@ createServer((req, res) => {
     });
     return;
   }
-  if (url.pathname === "/thumbnails/v1/users/avatar-headshot") {
+  // Headshots and full-body avatars (".../full/<id>.webp", so tests can tell them apart).
+  if (url.pathname === "/thumbnails/v1/users/avatar-headshot" || url.pathname === "/thumbnails/v1/users/avatar") {
+    const kind = url.pathname.endsWith("/avatar") ? "full/" : "";
     const ids = (url.searchParams.get("userIds") ?? "").split(",").filter(Boolean).map(Number);
-    return send(200, { data: ids.map((id) => ({ targetId: id, state: "Completed", imageUrl: `https://tr.rbxcdn.com/e2e/${id}.webp` })) });
+    return send(200, { data: ids.map((id) => ({ targetId: id, state: "Completed", imageUrl: `https://tr.rbxcdn.com/e2e/${kind}${id}.webp` })) });
   }
   if (url.pathname === "/health") return send(200, { ok: true });
   send(404, {});

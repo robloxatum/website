@@ -1750,6 +1750,88 @@ do $$ begin
 end $$;
 reset role;
 
+-------------------------------------------------------------------------------
+-- About page: anyone reads (hidden people only officers), only officers save
+-------------------------------------------------------------------------------
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000a","email":"officer@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare v_at timestamptz; v_bad text;
+begin
+  assert (select array_agg(date_label || ' ' || title) from public.about_timeline) = array['Oct 2025 Roblox at UM founded'],
+    'timeline is seeded';
+  assert (select body like 'Roblox at UM started in October 2025%' from public.about_story), 'story placeholder is seeded';
+  assert (select count(*) from public.about_people) = 0, 'no founders seeded';
+  v_at := public.save_about_page(null, 'Our story.',
+    '[{"date_label":"Oct 2025","title":"Founded","body":""},{"date_label":"Jan 2026","title":"First jam"}]',
+    '[{"name":"Ada","role":"President","roblox_username":"builderman","roblox_user_id":156,"blurb":"Hi","visible":true},
+      {"name":"Hidden Hal","role":"Secret","visible":false}]');
+  assert (select body from public.about_story) = 'Our story.', 'story saved';
+  assert (select array_agg(title order by position) from public.about_timeline) = array['Founded', 'First jam'], 'timeline saved in order';
+  assert (select count(*) from public.about_people) = 2, 'officers see hidden people';
+  assert (select updated_by from public.site_content_edits where section = 'about') = auth.uid(), 'about edit records the officer';
+
+  begin
+    perform public.save_about_page(null, 'Stale.', '[]', '[]');
+    raise exception 'FAIL: stale about save overwrote a newer one';
+  exception when serialization_failure then null; end;
+
+  foreach v_bad in array array['<b>hi</b>', '', ' padded ', repeat('x', 1201)] loop
+    begin
+      perform public.save_about_page(v_at, v_bad, '[]', '[]');
+      raise exception 'FAIL: story accepted: %', left(v_bad, 20);
+    exception when check_violation then null; end;
+  end loop;
+  begin
+    perform public.save_about_page(v_at, 'Ok.', '[]', '[{"name":"A","role":"R","roblox_username":"bad name!"}]');
+    raise exception 'FAIL: bad roblox username accepted';
+  exception when check_violation then null; end;
+  begin
+    perform public.save_about_page(v_at, 'Ok.', '[]', '[{"name":"A","role":"R","roblox_user_id":5}]');
+    raise exception 'FAIL: roblox id without a username accepted';
+  exception when check_violation then null; end;
+  begin
+    perform public.save_about_page(v_at, 'Ok.', '[{"date_label":"x","title":"<script>"}]', '[]');
+    raise exception 'FAIL: html in timeline accepted';
+  exception when check_violation then null; end;
+end $$;
+reset role;
+
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
+set local role anon;
+do $$ begin
+  assert (select array_agg(name) from public.about_people) = array['Ada'], 'anon sees only shown people';
+  assert (select body from public.about_story) = 'Our story.', 'anon reads the story';
+  begin
+    perform public.save_about_page(null, 'x', '[]', '[]');
+    raise exception 'FAIL: anon saved the about page';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000b","email":"member@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$ begin
+  assert (select count(*) from public.about_people where name = 'Hidden Hal') = 0, 'members cannot see hidden people';
+  begin
+    perform public.save_about_page((select updated_at from public.site_content_edits where section = 'about'), 'Hacked.', '[]', '[]');
+    raise exception 'FAIL: member saved the about page';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into public.about_people (position, name, role) values (9, 'Me', 'Founder');
+    raise exception 'FAIL: member added a person';
+  exception when insufficient_privilege then null; end;
+  update public.about_story set body = 'Hacked.';
+  delete from public.about_timeline;
+end $$;
+reset role;
+do $$ begin
+  assert (select body from public.about_story) = 'Our story.', 'members cannot change the story';
+  assert (select count(*) from public.about_timeline) = 2, 'members cannot delete milestones';
+end $$;
+
 select 'ALL SECURITY TESTS PASSED' as result;
 
 rollback;

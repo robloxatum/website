@@ -1,4 +1,4 @@
-import { CalendarDays, CircleCheck, Sparkles } from "lucide-react";
+import { CalendarDays, CircleCheck, Sparkles, UsersRound } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -137,11 +137,17 @@ async function JoinLanding() {
       )}
 
       <div className="mt-12 flex flex-col items-center gap-3 text-center">
-        <p className="text-fg-2">Want to see what&apos;s coming up first?</p>
-        <Link href="/events" className={button({ variant: "secondary" })}>
-          <CalendarDays aria-hidden="true" />
-          Browse events
-        </Link>
+        <p className="text-fg-2">Want to see what&apos;s coming up first, or who started it all?</p>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Link href="/events" className={button({ variant: "secondary" })}>
+            <CalendarDays aria-hidden="true" />
+            Browse events
+          </Link>
+          <Link href="/about#founders" className={button({ variant: "secondary" })}>
+            <UsersRound aria-hidden="true" />
+            Meet the founders
+          </Link>
+        </div>
       </div>
     </div>
   );

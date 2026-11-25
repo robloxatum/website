@@ -29,7 +29,7 @@ async function check(page: import("@playwright/test").Page, path: string) {
   await expectAccessible(page, path);
 }
 
-const PUBLIC = ["/", "/join", "/events", "EVENT", "/links", "/privacy", "/login", "/install", "/this-page-does-not-exist"];
+const PUBLIC = ["/", "/join", "/events", "EVENT", "/links", "/privacy", "/about", "/login", "/install", "/this-page-does-not-exist"];
 const MEMBER = ["/", "/events", "EVENT", "/checkin", "/play", "/profile", "/join/done", "/officer"];
 const OFFICER = [
   "/officer",

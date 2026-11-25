@@ -5,12 +5,15 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/auth";
 import { officerName } from "@/lib/names";
+import { lookupRobloxUser } from "@/lib/roblox";
 import {
+  type AboutContent,
   type CommunityLink,
   type FaqItem,
   type FeaturedPanelContent,
   type LastEdit,
   type WhatWeDoItem,
+  normalizeAbout,
   normalizeFaq,
   normalizeFeatured,
   normalizeLinks,
@@ -36,6 +39,7 @@ export type SaveState<T> = {
 export type LinksState = SaveState<CommunityLink[]>;
 export type JoinState = SaveState<{ faq: FaqItem[]; whatWeDo: WhatWeDoItem[] }>;
 export type FeaturedState = SaveState<FeaturedPanelContent>;
+export type AboutState = SaveState<AboutContent> & { notice?: string };
 
 async function requireOfficer() {
   const profile = await getProfile();
@@ -127,4 +131,58 @@ export async function saveFeatured(prev: FeaturedState, formData: FormData): Pro
   if (error) return { ...prev, error: saveError(error) };
   updateTag(SITE_CONTENT_TAG);
   return { version: (prev.version ?? 0) + 1, content: f, lastEdit: { at: data as string, by: officerName(officer) } };
+}
+
+export async function saveAbout(prev: AboutState, formData: FormData): Promise<AboutState> {
+  const officer = await requireOfficer();
+  const about = normalizeAbout(parseJson(formData, "about"));
+  if ("error" in about) return { ...prev, error: about.error };
+  const supabase = await createClient();
+
+  // Roblox user IDs, looked up here (never taken from the browser). A username
+  // that's already saved keeps its ID; Roblox unreachable: saved without one
+  // (the page looks it up from the username later).
+  const { data: current, error: readError } = await supabase.from("about_people").select("roblox_username, roblox_user_id");
+  if (readError) return { ...prev, error: saveError(readError) };
+  const known = new Map(
+    (current ?? []).filter((p) => p.roblox_username && p.roblox_user_id).map((p) => [String(p.roblox_username).toLowerCase(), Number(p.roblox_user_id)]),
+  );
+  let unreachable = false;
+  const people: (AboutContent["people"][number] & { roblox_user_id: number | null })[] = [];
+  for (const person of about.ok.people) {
+    let username = person.roblox_username;
+    let id: number | null = null;
+    if (username) {
+      id = known.get(username.toLowerCase()) ?? null;
+      if (!id) {
+        const result = await lookupRobloxUser(username);
+        if (result.status === "not_found") {
+          return { ...prev, error: `${person.name}: we couldn't find a Roblox user called “${username}”. Check the spelling.` };
+        }
+        if (result.status === "found") {
+          id = result.user.id;
+          username = result.user.name || username; // Roblox's own capitalization
+        } else unreachable = true;
+      }
+    }
+    people.push({ ...person, roblox_username: username, roblox_user_id: id });
+  }
+
+  const { data, error } = await supabase.rpc("save_about_page", {
+    p_expected: expected(formData),
+    p_story: about.ok.story,
+    p_timeline: about.ok.timeline,
+    p_people: people,
+  });
+  if (error) return { ...prev, error: saveError(error) };
+  updateTag(SITE_CONTENT_TAG);
+  return {
+    version: (prev.version ?? 0) + 1,
+    content: {
+      ...about.ok,
+      people: people.map((p) => ({ name: p.name, role: p.role, roblox_username: p.roblox_username, blurb: p.blurb, visible: p.visible })),
+    },
+    lastEdit: { at: data as string, by: officerName(officer) },
+    notice: unreachable ? "Saved. We couldn't reach Roblox just now, so some avatars may take a little while to appear." : undefined,
+  };
 }

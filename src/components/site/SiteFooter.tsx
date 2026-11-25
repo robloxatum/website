@@ -16,6 +16,7 @@ const columns = [
   {
     title: "Club",
     links: [
+      { href: "/about", label: "About" },
       { href: "/links", label: "Links & contact" },
       { href: "/privacy", label: "Privacy" },
     ],

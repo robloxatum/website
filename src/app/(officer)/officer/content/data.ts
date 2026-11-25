@@ -1,6 +1,8 @@
 import "server-only";
 import { officerName } from "@/lib/names";
 import type {
+  AboutContent,
+  AboutPerson,
   CommunityLink,
   ContentSection,
   FaqItem,
@@ -15,6 +17,7 @@ export type OfficerContent = {
   faq: FaqItem[];
   whatWeDo: WhatWeDoItem[];
   featured: FeaturedPanelContent;
+  about: AboutContent;
   edits: Record<ContentSection, LastEdit>;
 };
 
@@ -31,20 +34,23 @@ type EditRow = {
  */
 export async function getContentForOfficer(): Promise<OfficerContent | null> {
   const supabase = await createClient();
-  const [links, faq, what, featured, edits] = await Promise.all([
+  const [links, faq, what, featured, edits, story, timeline, people] = await Promise.all([
     supabase.from("community_links").select("label, url, blurb, visible").order("position"),
     supabase.from("join_faq").select("question, answer").order("position"),
     supabase.from("join_what_we_do").select("key, title, body").order("position"),
     supabase.from("featured_panel").select("enabled, title, body, link_text, link_href").maybeSingle<FeaturedPanelContent>(),
     supabase.from("site_content_edits").select("section, updated_at, profiles(full_name, uniqname, nickname)").returns<EditRow[]>(),
+    supabase.from("about_story").select("body").maybeSingle<{ body: string }>(),
+    supabase.from("about_timeline").select("date_label, title, body").order("position"),
+    supabase.from("about_people").select("name, role, roblox_username, blurb, visible").order("position"),
   ]);
-  const failed = [links, faq, what, featured, edits].find((r) => r.error);
+  const failed = [links, faq, what, featured, edits, story, timeline, people].find((r) => r.error);
   if (failed?.error) {
     console.error("Failed to load site content", failed.error.message);
     return null;
   }
-  if (!featured.data || (what.data ?? []).length !== 4) {
-    console.error("Site content is missing rows (featured panel or what we do)");
+  if (!featured.data || (what.data ?? []).length !== 4 || !story.data) {
+    console.error("Site content is missing rows (featured panel, what we do or the About story)");
     return null;
   }
   const lastEdit = (section: ContentSection): LastEdit => {
@@ -56,6 +62,11 @@ export async function getContentForOfficer(): Promise<OfficerContent | null> {
     faq: (faq.data ?? []) as FaqItem[],
     whatWeDo: (what.data ?? []) as WhatWeDoItem[],
     featured: featured.data,
-    edits: { links: lastEdit("links"), join: lastEdit("join"), featured: lastEdit("featured") },
+    about: {
+      story: story.data.body,
+      timeline: (timeline.data ?? []) as AboutContent["timeline"],
+      people: (people.data ?? []) as AboutPerson[],
+    },
+    edits: { links: lastEdit("links"), join: lastEdit("join"), featured: lastEdit("featured"), about: lastEdit("about") },
   };
 }

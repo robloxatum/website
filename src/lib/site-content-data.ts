@@ -1,6 +1,6 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
-import type { CommunityLink, FaqItem, FeaturedPanelContent, WhatWeDoItem } from "./site-content";
+import type { CommunityLink, FaqItem, FeaturedPanelContent, Milestone, WhatWeDoItem } from "./site-content";
 import { createPublicClient } from "./supabase/public";
 
 /**
@@ -50,4 +50,25 @@ export async function getFeaturedPanel(): Promise<FeaturedPanelContent | null> {
     .maybeSingle<FeaturedPanelContent>();
   if (error) console.error("Failed to load the featured panel", error.message);
   return data?.enabled ? data : null;
+}
+
+export type AboutPersonPublic = { name: string; role: string; blurb: string; roblox_username: string | null; roblox_user_id: number | null };
+
+/** The About page: story, timeline and the shown people, in order. Null story if it failed to load. */
+export async function getAboutContent(): Promise<{ story: string | null; timeline: Milestone[]; people: AboutPersonPublic[] }> {
+  "use cache";
+  cacheTag(SITE_CONTENT_TAG);
+  cacheLife("minutes");
+  const supabase = createPublicClient();
+  const [story, timeline, people] = await Promise.all([
+    supabase.from("about_story").select("body").maybeSingle<{ body: string }>(),
+    supabase.from("about_timeline").select("date_label, title, body").order("position"),
+    supabase.from("about_people").select("name, role, blurb, roblox_username, roblox_user_id").eq("visible", true).order("position"),
+  ]);
+  for (const r of [story, timeline, people]) if (r.error) console.error("Failed to load the About page", r.error.message);
+  return {
+    story: story.data?.body ?? null,
+    timeline: (timeline.data ?? []) as Milestone[],
+    people: (people.data ?? []) as AboutPersonPublic[],
+  };
 }
