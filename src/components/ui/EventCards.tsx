@@ -30,23 +30,45 @@ export function EventMeta({ event, className = "" }: { event: Pick<ListedEvent, 
 /**
  * Public event card with its cover (home and /events). A compact row with a
  * small 2:1 thumbnail on phones, a tall card with the cover on top from sm up.
+ *  - layout "wide": from sm up the cover sits on the left and the details on the
+ *    right, for a single card that fills a whole row.
+ *  - alignTitles: the title always takes two lines' height from sm up, so the
+ *    date/time/location rows line up across cards side by side even when one
+ *    title wraps.
  */
-export function EventCard({ event, headingLevel = "h3" }: { event: ListedEvent; headingLevel?: "h2" | "h3" }) {
+export function EventCard({
+  event,
+  headingLevel = "h3",
+  layout = "card",
+  alignTitles = false,
+}: {
+  event: ListedEvent;
+  headingLevel?: "h2" | "h3";
+  layout?: "card" | "wide";
+  alignTitles?: boolean;
+}) {
   const Heading = headingLevel;
+  const wide = layout === "wide";
   return (
     <Link
       href={`/events/${event.id}`}
-      className={`group flex h-full gap-3 overflow-hidden p-3 sm:flex-col sm:gap-0 sm:p-0 ${cardInteractive}`}
+      className={`group flex h-full gap-3 overflow-hidden p-3 sm:gap-0 sm:p-0 ${wide ? "sm:flex-row" : "sm:flex-col"} ${cardInteractive}`}
     >
       <EventCover
         category={event.category}
         cover={event.cover}
-        className="aspect-[2/1] w-32 shrink-0 self-start rounded-xl sm:w-full sm:rounded-none"
-        sizes="(min-width: 1024px) 360px, (min-width: 640px) 50vw, 128px"
+        className={`aspect-[2/1] w-32 shrink-0 self-start rounded-xl sm:rounded-none ${
+          wide ? "sm:aspect-auto sm:min-h-48 sm:w-2/5 sm:self-stretch" : "sm:w-full"
+        }`}
+        sizes={wide ? "(min-width: 1024px) 360px, (min-width: 640px) 40vw, 128px" : "(min-width: 1024px) 360px, (min-width: 640px) 50vw, 128px"}
       />
-      <div className="relative flex min-w-0 flex-1 flex-col sm:p-4 sm:pt-0">
-        <CategoryBadge category={event.category} className="relative self-start sm:-mt-3" />
-        <Heading className="mt-1.5 line-clamp-2 text-base leading-snug text-fg sm:mt-2 sm:text-lg">{event.title}</Heading>
+      <div className={`relative flex min-w-0 flex-1 flex-col ${wide ? "sm:p-5" : "sm:p-4 sm:pt-0"}`}>
+        <CategoryBadge category={event.category} className={`relative self-start ${wide ? "" : "sm:-mt-3"}`} />
+        <Heading
+          className={`mt-1.5 line-clamp-2 text-base leading-snug text-fg sm:mt-2 sm:text-lg ${alignTitles ? "sm:min-h-[2lh]" : ""}`}
+        >
+          {event.title}
+        </Heading>
         <EventMeta event={event} className="mt-1.5 sm:mt-2" />
         <div className="mt-auto flex items-center justify-between gap-2 pt-3 sm:pt-4">
           {event.status === "completed" && event.attendance !== null ? (
@@ -77,7 +99,7 @@ export function EventGrid({ events, headingLevel = "h3" }: { events: ListedEvent
     <ul className="grid gap-3 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
       {events.map((event) => (
         <li key={event.id}>
-          <EventCard event={event} headingLevel={headingLevel} />
+          <EventCard event={event} headingLevel={headingLevel} alignTitles={events.length > 1} />
         </li>
       ))}
     </ul>
