@@ -4,7 +4,9 @@
 
 Reads the originals in public/brand/ (git-ignored: kept locally, not deployed)
 and writes trimmed wordmarks/icon to src/assets/brand/ plus favicon.ico,
-icon.png, apple-icon.png, opengraph-image.png and twitter-image.png to src/app/.
+icon.png, opengraph-image.png and twitter-image.png to src/app/.
+The home-screen app icons (apple-icon.png, public/icons/) come from
+scripts/make-app-icons.py.
 Requires Pillow.
 """
 import sys, os
@@ -51,8 +53,6 @@ save_png(square(icon, 256), os.path.join(assets, "icon.png"))
 
 # App icons.
 save_png(square(icon, 512), os.path.join(app, "icon.png"))
-apple = square(icon, 180, pad_ratio=0.14, bg=NAVY)   # iOS shows transparency as black
-save_png(apple, os.path.join(app, "apple-icon.png"))
 fav = square(icon, 64)
 fav.save(os.path.join(app, "favicon.ico"), sizes=[(16, 16), (32, 32), (48, 48)])
 print("favicon.ico", os.path.getsize(os.path.join(app, "favicon.ico")) // 1024, "KB")

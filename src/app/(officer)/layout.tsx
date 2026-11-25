@@ -15,7 +15,7 @@ export default function OfficerLayout({ children }: { children: React.ReactNode 
         <aside className="hidden pt-10 lg:block">
           <OfficerSidebar />
         </aside>
-        <main id="main" className="min-w-0 pt-6 pb-28 lg:pt-10 lg:pb-16">
+        <main id="main" className="min-w-0 pt-6 pb-tab-bar lg:pt-10 lg:pb-16">
           {children}
         </main>
       </div>

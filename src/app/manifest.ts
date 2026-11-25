@@ -20,16 +20,16 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#061525",
     categories: ["social", "games", "education"],
     icons: [
-      { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
-      { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
-      { src: "/icons/maskable-192.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
-      { src: "/icons/maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+      { src: "/icons/v2/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: "/icons/v2/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: "/icons/v2/maskable-192.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
+      { src: "/icons/v2/maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
     // Long-press the home-screen icon (Android).
     shortcuts: [
-      { name: "Check In", short_name: "Check In", url: "/checkin?source=app", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
-      { name: "Events", short_name: "Events", url: "/events?source=app", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
-      { name: "Play", short_name: "Play", url: "/play?source=app", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
+      { name: "Check In", short_name: "Check In", url: "/checkin?source=app", icons: [{ src: "/icons/v2/icon-192.png", sizes: "192x192" }] },
+      { name: "Events", short_name: "Events", url: "/events?source=app", icons: [{ src: "/icons/v2/icon-192.png", sizes: "192x192" }] },
+      { name: "Play", short_name: "Play", url: "/play?source=app", icons: [{ src: "/icons/v2/icon-192.png", sizes: "192x192" }] },
     ],
   };
 }
