@@ -28,6 +28,19 @@ const BAD_CHARS = /[\s"'<>\\]/;
  * domain, stored as its path so it survives a domain change), or an https link
  * on roblox.com / umich.edu (or their subdomains).
  */
+/** A path on this site, also after dot segments resolve ("/..//x" would become "//x", another host). */
+function isSamePath(path: string) {
+  const notHost = (p: string) => p.startsWith("/") && !p.startsWith("//") && !p.startsWith("/\\");
+  if (!notHost(path)) return false;
+  try {
+    const base = "http://local.invalid";
+    const url = new URL(path, base);
+    return url.origin === base && notHost(url.pathname);
+  } catch {
+    return false;
+  }
+}
+
 export function normalizeLink(raw: string, siteHosts: readonly string[]): { link: string | null } | { error: string } {
   const text = raw.trim();
   if (!text) return { link: null };
@@ -35,7 +48,7 @@ export function normalizeLink(raw: string, siteHosts: readonly string[]): { link
   const notAllowed = { error: "Links can go to our own site, roblox.com or umich.edu." };
 
   if (text.startsWith("/")) {
-    if (text.startsWith("//") || text.startsWith("/\\")) return notAllowed;
+    if (!isSamePath(text)) return notAllowed;
     if (BAD_CHARS.test(text)) return { error: "That link has spaces or characters links can't use." };
     return text.length > 500 ? tooLong : { link: text };
   }
@@ -52,7 +65,7 @@ export function normalizeLink(raw: string, siteHosts: readonly string[]): { link
 
   if (siteHosts.map((h) => h.toLowerCase()).includes(host)) {
     const path = `${u.pathname}${u.search}${u.hash}` || "/";
-    return BAD_CHARS.test(path) || path.length > 500 ? notAllowed : { link: path };
+    return BAD_CHARS.test(path) || path.length > 500 || !isSamePath(path) ? notAllowed : { link: path };
   }
   if (!ALLOWED.test(host)) return notAllowed;
   const link = `https://${host}${u.pathname === "/" && !u.search ? "" : u.pathname}${u.search}${u.hash}`;

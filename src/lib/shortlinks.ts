@@ -3,9 +3,20 @@ import type { ShortLink } from "@/content/shortlinks";
 
 export const SHORTLINK_FALLBACK = "/";
 
-/** Only same-site paths ("/x"), never "//host" or "/\host" (open redirects). */
+/**
+ * Only same-site paths ("/x"), never "//host" or "/\host" (open redirects),
+ * including after dot segments are resolved ("/..//host" becomes "//host").
+ */
 export function isSitePath(path: string) {
-  return path.startsWith("/") && !path.startsWith("//") && !path.startsWith("/\\");
+  const notHost = (p: string) => p.startsWith("/") && !p.startsWith("//") && !p.startsWith("/\\");
+  if (!notHost(path)) return false;
+  try {
+    const base = "http://local.invalid";
+    const url = new URL(path, base);
+    return url.origin === base && notHost(url.pathname);
+  } catch {
+    return false;
+  }
 }
 
 export function findShortlink(links: readonly ShortLink[], slug: string) {

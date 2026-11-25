@@ -971,8 +971,6 @@ set local role authenticated;
 do $$ begin
   assert (select private.is_officer()), 'announcement tests expect b to be an officer here';
   insert into public.announcements (message, link, style) values ('Game night moved to BBB 1670', '/events', 'urgent');
-  assert (select created_by from public.announcements) = '00000000-0000-0000-0000-00000000000b',
-    'created_by defaults to the officer';
 
   begin
     insert into public.announcements (message) values ('A second one');
@@ -1013,6 +1011,11 @@ do $$ begin
   end;
 end $$;
 reset role;
+-- (Checked as the owner: created_by isn't readable through the API.)
+do $$ begin
+  assert (select created_by from public.announcements) = '00000000-0000-0000-0000-00000000000b',
+    'created_by defaults to the officer';
+end $$;
 
 -- Member (c) and anon: read the active announcement, can't write.
 select set_config('request.jwt.claims',
@@ -1305,6 +1308,42 @@ do $$ begin
   begin
     perform public.clear_nickname('00000000-0000-0000-0000-00000000000c');
     raise exception 'FAIL: anon cleared a nickname';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+
+-------------------------------------------------------------------------------
+-- created_by is not public (events: hidden from anon; announcements: hidden from all)
+-------------------------------------------------------------------------------
+select set_config('request.jwt.claims', '', true);
+set local role anon;
+do $$ begin
+  assert (select count(*) from public.events where id::text = current_setting('test.e1')) = 1,
+    'anon still reads public event columns';
+  perform id, title, description, location, starts_at, ends_at, category, capacity,
+          flyer_path, flyer_width, flyer_height, cover_path, cover_width, cover_height, updated_at
+     from public.events;
+  begin
+    perform created_by from public.events;
+    raise exception 'FAIL: anon read events.created_by';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform created_by from public.announcements;
+    raise exception 'FAIL: anon read announcements.created_by';
+  exception when insufficient_privilege then null; end;
+  perform id, message, link, style, hide_after from public.announcements;
+end $$;
+reset role;
+
+-- Officers keep the computed check-in column (a whole-row reference to events).
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000a","email":"officer@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$ begin
+  perform e.checkin_is_open from public.events e;
+  begin
+    perform created_by from public.announcements;
+    raise exception 'FAIL: signed-in user read announcements.created_by';
   exception when insufficient_privilege then null; end;
 end $$;
 reset role;
