@@ -181,7 +181,8 @@ test("officer About editor: layout and accessibility, preview open", async ({ pa
   await signIn(page, SEEDED.officer, "/officer/content");
   const section = page.getByRole("region", { name: "About page" });
   await section.getByRole("button", { name: "Add person" }).click();
-  await page.locator("#person-0-name").fill("Bea Builder");
+  // Regression: a long unbroken name made the editor wider than a phone screen.
+  await page.locator("#person-0-name").fill("Maximilian Extraordinarily-Longname");
   await page.locator("#person-0-role").fill("Co-founder");
   await section.getByRole("button", { name: "Preview" }).click();
   await expectLayoutOk(page, "/officer/content About");

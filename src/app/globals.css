@@ -6,6 +6,15 @@
  * muted text is #8BA5BC because the suggested #7893AB failed on cards.
  */
 @theme {
+  /*
+   * Room under the last content for the fixed phone tab bars (pb-tab-bar), so
+   * it always scrolls fully above them: the bar (4rem + 1px border), the raised
+   * Check In button (1.25rem above the bar) and the iPhone home-indicator strip
+   * the bar sits above in the installed app (env() is 0 in most browsers and on
+   * desktop). Turned off where the bar is hidden: md:pb-0 (site), lg:pb-16 (officer).
+   */
+  --spacing-tab-bar: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+
   /* Redesign (dark, layered navy) */
   --color-bg: #061525;
   --color-bg-2: #091f35;
@@ -64,6 +73,11 @@
   }
   body {
     @apply bg-bg text-fg font-sans antialiased;
+  }
+  /* Browsers size a fieldset to its widest content by default, so one long
+     word (a truncated founder name) widened the whole editor past a phone screen. */
+  fieldset {
+    min-width: 0;
   }
   h1, h2, h3 {
     @apply font-display font-extrabold tracking-tight;

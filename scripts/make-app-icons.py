@@ -4,24 +4,27 @@
 
 Reads the original logo files in public/brand/ (git-ignored, kept locally) and
 writes:
-  public/icons/icon-192.png, icon-512.png            manifest "any" (rounded navy tile)
-  public/icons/maskable-192.png, maskable-512.png    manifest "maskable" (full bleed,
-                                                       logo inside the 80% safe zone)
+  public/icons/v2/icon-192.png, icon-512.png         manifest "any"
+  public/icons/v2/maskable-192.png, maskable-512.png manifest "maskable" (logo inside
+                                                       the 80% safe zone)
   public/icons/badge-96.png                          Android notification badge (white
                                                        silhouette; Android uses the alpha)
-  src/app/apple-icon.png                             iOS home screen (180, full bleed;
-                                                       iOS rounds the corners)
+  src/app/apple-icon.png                             iOS home screen (180)
+Every app icon is a plain full-bleed navy square (no rounded corners, border or
+transparency: iOS and Android round it themselves) with the logo mark centred
+at 65% of the width (60% for maskable, so it stays in the safe zone).
+tests/app-icons.test.mjs checks exactly that. Bump the folder (v2 → v3) when the
+icons change, so phones fetch the new files.
   public/splash/<w>x<h>.png                          iPhone launch screens (portrait)
 The splash sizes must match SPLASH_SCREENS in src/lib/app-install.ts.
 Requires Pillow.
 """
 import os
 import sys
-from PIL import Image, ImageDraw
+from PIL import Image
 
 brand, public, app = sys.argv[1], sys.argv[2], sys.argv[3]
 NAVY = (6, 21, 37, 255)          # #061525: manifest background_color / theme_color
-TILE = (8, 31, 64, 255)          # the brand navy of the logo files
 
 # iPhone portrait screens in device pixels. Keep in sync with src/lib/app-install.ts.
 SPLASH = [
@@ -57,22 +60,25 @@ logo = load("robloxatum_logo_transparent.png")
 wordmark = load("robloxatum_no_tagline_transparent.png")
 
 
-def tile(size, logo_ratio, rounded):
+LOGO_RATIO = 0.65       # regular icons: logo width / icon width (like the Roblox app icon)
+MASKABLE_RATIO = 0.60   # maskable: inside the centre circle of 80% diameter
+ICONS = os.path.join(public, "icons", "v2")
+
+
+def icon(size, logo_ratio):
+    """Full-bleed navy square, logo centred at logo_ratio of the width. RGB: no transparency."""
     big = size * 4  # draw large, then downscale for smooth edges
-    canvas = Image.new("RGBA", (big, big), (0, 0, 0, 0))
-    if rounded:
-        ImageDraw.Draw(canvas).rounded_rectangle((0, 0, big - 1, big - 1), radius=round(big * 0.22), fill=NAVY)
-    else:
-        canvas.paste(NAVY, (0, 0, big, big))
-    centered(canvas, fit(logo, round(big * logo_ratio)))
-    return canvas.resize((size, size), Image.Resampling.LANCZOS)
+    canvas = Image.new("RGBA", (big, big), NAVY)
+    width = round(big * logo_ratio)
+    mark = logo.resize((width, round(width * logo.height / logo.width)), Image.Resampling.LANCZOS)
+    centered(canvas, mark)
+    return canvas.resize((size, size), Image.Resampling.LANCZOS).convert("RGB")
 
 
 for size in (192, 512):
-    save(tile(size, 0.62, rounded=True), os.path.join(public, "icons", f"icon-{size}.png"))
-    # Maskable: the logo's corners must stay inside the centre circle of 80% diameter.
-    save(tile(size, 0.52, rounded=False), os.path.join(public, "icons", f"maskable-{size}.png"))
-save(tile(180, 0.6, rounded=False).convert("RGB"), os.path.join(app, "apple-icon.png"))
+    save(icon(size, LOGO_RATIO), os.path.join(ICONS, f"icon-{size}.png"), colors=0)
+    save(icon(size, MASKABLE_RATIO), os.path.join(ICONS, f"maskable-{size}.png"), colors=0)
+save(icon(180, LOGO_RATIO), os.path.join(app, "apple-icon.png"), colors=0)
 
 # Notification badge: white where the logo is, transparent elsewhere.
 badge = Image.new("RGBA", (96, 96), (0, 0, 0, 0))

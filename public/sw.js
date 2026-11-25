@@ -4,9 +4,9 @@
 //    browser's error. Nothing else is cached: pages always come from the network.
 // Served with Cache-Control: no-cache (next.config.ts), so updates arrive on the next visit.
 
-const CACHE = "offline-v1";
+const CACHE = "offline-v2";
 const OFFLINE_URL = "/offline.html";
-const OFFLINE_ASSETS = [OFFLINE_URL, "/icons/icon-192.png"];
+const OFFLINE_ASSETS = [OFFLINE_URL, "/icons/v2/icon-192.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -56,7 +56,7 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(title, {
       body: typeof data.body === "string" ? data.body : "",
-      icon: "/icons/icon-192.png",
+      icon: "/icons/v2/icon-192.png",
       badge: "/icons/badge-96.png",
       // Same tag replaces the earlier notification (e.g. a replaced game link).
       tag: typeof data.tag === "string" ? data.tag : undefined,
