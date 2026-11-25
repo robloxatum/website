@@ -26,7 +26,18 @@ const dateTimeFmt = new Intl.DateTimeFormat("en-US", {
   minute: "2-digit",
 });
 
+const dateTimeYearFmt = new Intl.DateTimeFormat("en-US", {
+  timeZone: CLUB_TIME_ZONE,
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+});
+
 export const formatDate = (iso: string) => dateFmt.format(new Date(iso));
+/** "Nov 25, 2026, 3:04 PM" */
+export const formatDateTimeWithYear = (iso: string) => dateTimeYearFmt.format(new Date(iso));
 export const formatLongDate = (iso: string) => longDateFmt.format(new Date(iso));
 export const formatTime = (iso: string) => timeFmt.format(new Date(iso));
 export const formatDateTime = (iso: string) => dateTimeFmt.format(new Date(iso));

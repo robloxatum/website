@@ -1,9 +1,10 @@
-import { CalendarDays, CircleCheck, Code2, Gamepad2, Sparkles, Trophy, Users } from "lucide-react";
+import { CalendarDays, CircleCheck, Sparkles } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { JoinBanner } from "@/components/art/Art";
 import { CubeCluster } from "@/components/art/Cubes";
+import { FaqList, JoinWhatWeDo } from "@/components/content/SiteContent";
 import { GoogleButton } from "@/components/GoogleButton";
 import { BrandIcon } from "@/components/Logo";
 import { ClubLinkButtons } from "@/components/ui/ClubLinkButtons";
@@ -12,10 +13,10 @@ import { YoureIn } from "@/components/join/YoureIn";
 import { SectionLabel, Skeleton } from "@/components/ui/Primitives";
 import { button, card, container } from "@/components/ui/styles";
 import { art } from "@/content/art";
-import { faq, pitch, typicalMeeting, whatWeDo } from "@/content/join";
+import { pitch, typicalMeeting } from "@/content/join";
 import { getProfile } from "@/lib/auth";
 import { getEventLists } from "@/lib/events";
-import { COMMUNITY_KEYS } from "@/lib/links";
+import { getCommunityLinks, getJoinContent } from "@/lib/site-content-data";
 
 export const metadata: Metadata = {
   title: "Join",
@@ -23,8 +24,6 @@ export const metadata: Metadata = {
   openGraph: { title: "Join Roblox at UM", description: `${pitch} Free, and no experience needed.` },
   twitter: { title: "Join Roblox at UM", description: `${pitch} Free, and no experience needed.` },
 };
-
-const icons = { game_night: Gamepad2, social: Users, game_jam: Trophy, workshop: Code2 } as const;
 
 // ?src=<label> (from flyer QR codes) is only read by analytics; the page ignores it.
 export default function JoinPage() {
@@ -54,7 +53,8 @@ async function JoinOrWelcome() {
   return <JoinLanding />;
 }
 
-function JoinLanding() {
+async function JoinLanding() {
+  const [links, { faq, whatWeDo }] = await Promise.all([getCommunityLinks(), getJoinContent()]);
   return (
     <div className={`${container} max-w-2xl! pt-6 sm:pt-10`}>
       {/* Above the fold on a phone: who we are, next event, join actions. */}
@@ -91,28 +91,17 @@ function JoinLanding() {
 
       <section aria-label="Join actions" className="mt-5 space-y-3">
         <SignUp />
-        <ClubLinkButtons keys={COMMUNITY_KEYS} />
+        <ClubLinkButtons links={links} />
       </section>
 
       {/* Below the fold */}
-      <section aria-labelledby="what" className="mt-12">
-        <SectionLabel>What we do</SectionLabel>
-        <h2 id="what" className="mt-2 text-2xl text-fg">Play, hang out, make friends</h2>
-        <ul className="mt-5 grid gap-3 sm:grid-cols-2">
-          {whatWeDo.map((item) => {
-            const Icon = icons[item.key];
-            return (
-              <li key={item.key} className={`${card} flex gap-3 p-4`}>
-                <Icon aria-hidden="true" className="size-7 shrink-0 text-maize" strokeWidth={1.75} />
-                <div>
-                  <h3 className="text-base text-fg">{item.title}</h3>
-                  <p className="mt-0.5 text-sm text-fg-2">{item.body}</p>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
+      {whatWeDo.length > 0 && (
+        <section aria-labelledby="what" className="mt-12">
+          <SectionLabel>What we do</SectionLabel>
+          <h2 id="what" className="mt-2 text-2xl text-fg">Play, hang out, make friends</h2>
+          <JoinWhatWeDo items={whatWeDo} />
+        </section>
+      )}
 
       <section aria-labelledby="meeting" className="mt-12">
         <SectionLabel>A typical meeting</SectionLabel>
@@ -141,21 +130,13 @@ function JoinLanding() {
         </div>
       </section>
 
-      <section aria-labelledby="faq" className="mt-12">
-        <SectionLabel>FAQ</SectionLabel>
-        <h2 id="faq" className="mt-2 text-2xl text-fg">Questions</h2>
-        <div className="mt-5 space-y-3">
-          {faq.map((item) => (
-            <details key={item.q} className={`group ${card} p-0 [&_summary::-webkit-details-marker]:hidden`}>
-              <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 rounded-2xl px-5 font-semibold text-fg">
-                {item.q}
-                <span aria-hidden="true" className="text-xl text-maize transition-transform duration-200 group-open:rotate-45">+</span>
-              </summary>
-              <p className="px-5 pb-5 text-fg-2">{item.a}</p>
-            </details>
-          ))}
-        </div>
-      </section>
+      {faq.length > 0 && (
+        <section aria-labelledby="faq" className="mt-12">
+          <SectionLabel>FAQ</SectionLabel>
+          <h2 id="faq" className="mt-2 text-2xl text-fg">Questions</h2>
+          <FaqList items={faq} />
+        </section>
+      )}
 
       <div className="mt-12 flex flex-col items-center gap-3 text-center">
         <p className="text-fg-2">Want to see what&apos;s coming up first?</p>

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, BarChart3, CalendarDays, Ellipsis, LayoutDashboard, Megaphone, QrCode, Users } from "lucide-react";
+import { ArrowLeft, BarChart3, CalendarDays, Ellipsis, FilePenLine, LayoutDashboard, Megaphone, QrCode, Users } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { withPathname } from "@/components/site/NavLinks";
@@ -12,6 +12,7 @@ const ITEMS = [
   { href: "/officer/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/officer/flyer", label: "Flyer QR", icon: QrCode },
   { href: "/officer/announcement", label: "Announce", icon: Megaphone },
+  { href: "/officer/content", label: "Site content", icon: FilePenLine },
 ] as const;
 
 function active(pathname: string | null, href: string, exact?: boolean) {
@@ -52,7 +53,7 @@ export const OfficerSidebar = withPathname(function OfficerSidebarInner({ pathna
 });
 
 /** On the phone tab bar, these sit under "More" so the bar keeps 5 roomy tabs. */
-const MORE = new Set<string>(["/officer/flyer", "/officer/announcement"]);
+const MORE = new Set<string>(["/officer/flyer", "/officer/announcement", "/officer/content"]);
 const TABS = ITEMS.filter((i) => !MORE.has(i.href));
 const MORE_ITEMS = ITEMS.filter((i) => MORE.has(i.href));
 
