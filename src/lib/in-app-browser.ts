@@ -1,6 +1,6 @@
 // In-app browsers (Instagram, GroupMe, ...). Google refuses to sign in inside
 // them ("Error 403: disallowed_useragent"), so sign-in asks people to open the
-// page in Safari/Chrome first. No runtime imports: the unit tests run this file
+// page in their real browser first. No runtime imports: the unit tests run this file
 // directly with Node.
 
 export type InAppBrowser = {
@@ -35,23 +35,12 @@ export function detectInAppBrowser(userAgent: string | null | undefined): InAppB
 }
 
 /**
- * Instagram on iPhone ignores x-safari-https:// links (even a real tap on an
- * <a href>): the button would do nothing. There, the app's own menu is the way.
+ * Android only: an intent:// link that hands `url` to the phone's default
+ * browser (no app named, so whichever browser they use; falls back to the page
+ * itself). iPhone apps have no reliable equivalent, so people use the app's menu.
  */
-export function blocksDirectOpen(browser: InAppBrowser): boolean {
-  return browser.os === "ios" && browser.app === "Instagram";
-}
-
-/**
- * A link that opens `url` in the real browser, where the app and OS allow it:
- *  - Android: an intent: URL for Chrome (falls back to the page itself).
- *  - iOS 17+: x-safari-https:// opens Safari (older iOS ignores it), except in
- *    Instagram, which blocks it.
- * Null when there's no such trick; people use the app's "Open in browser" menu.
- */
-export function openInBrowserHref(url: string, browser: InAppBrowser): string | null {
-  if (blocksDirectOpen(browser)) return null;
-  const { os } = browser;
+export function openInBrowserHref(url: string, os: InAppBrowser["os"]): string | null {
+  if (os !== "android") return null;
   let u: URL;
   try {
     u = new URL(url);
@@ -59,11 +48,6 @@ export function openInBrowserHref(url: string, browser: InAppBrowser): string | 
     return null;
   }
   if (u.protocol !== "https:" && u.protocol !== "http:") return null;
-  const rest = `${u.host}${u.pathname}${u.search}`;
-  if (os === "android") {
-    const scheme = u.protocol.slice(0, -1);
-    return `intent://${rest}#Intent;scheme=${scheme};package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(u.href)};end`;
-  }
-  if (os === "ios" && u.protocol === "https:") return `x-safari-https://${rest}`;
-  return null;
+  const scheme = u.protocol.slice(0, -1);
+  return `intent://${u.host}${u.pathname}${u.search}#Intent;scheme=${scheme};action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;S.browser_fallback_url=${encodeURIComponent(u.href)};end`;
 }
