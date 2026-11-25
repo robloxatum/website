@@ -1,6 +1,6 @@
 "use server";
 
-import { refresh, updateTag } from "next/cache";
+import { refresh, revalidatePath, updateTag } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/auth";
@@ -128,6 +128,8 @@ export async function saveEvent(_prev: EventFormState, formData: FormData): Prom
   if (old?.cover_path && cover.values && old.cover_path !== cover.path) await removeObject(supabase, old.cover_path);
 
   updateTag("events");
+  // Also the event's own cached page, so its next visitor sees the change.
+  revalidatePath(`/events/${eventId}`);
   redirect(`/officer/events/${eventId}?saved=1`);
 }
 
@@ -144,6 +146,7 @@ export async function deleteEvent(eventId: string) {
   if (!error && data?.flyer_path) await removeObject(supabase, data.flyer_path);
   if (!error && data?.cover_path) await removeObject(supabase, data.cover_path);
   updateTag("events");
+  revalidatePath(`/events/${eventId}`);
   redirect("/officer");
 }
 

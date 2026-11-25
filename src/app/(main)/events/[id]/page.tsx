@@ -37,17 +37,16 @@ export async function generateMetadata({ params }: PageProps<"/events/[id]">): P
 }
 
 /**
- * Prerender every listed event, so its cover, title, details and flyer are in
- * the first HTML (fast first paint, link previews without waiting). Only what
- * depends on the current time or the visitor streams in: status, attendance,
- * RSVP and the check-in / calendar buttons. Events created later render on
- * first visit and are cached the same way (officer edits refresh "events").
+ * Lets each event page be cached: its cover, title, details and flyer go in the
+ * first HTML (fast first paint, link previews without waiting); only what
+ * depends on the current time or the visitor streams in (status, attendance,
+ * RSVP, the check-in / calendar buttons). Nothing is built ahead: each event is
+ * rendered on its first visit, then cached. Pages built during the build would
+ * serve that build-time copy once after an officer's edit or delete; pages
+ * rendered at runtime refresh straight away. ("none" isn't a UUID: a 404.)
  */
-export async function generateStaticParams() {
-  const { upcoming, past } = await getEventLists();
-  const ids = [...upcoming, ...past].map((e) => ({ id: e.id }));
-  // At least one entry is required; "none" isn't a UUID, so it's a 404.
-  return ids.length ? ids : [{ id: "none" }];
+export function generateStaticParams() {
+  return [{ id: "none" }];
 }
 
 export default function EventPage({ params }: PageProps<"/events/[id]">) {

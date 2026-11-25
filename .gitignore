@@ -60,3 +60,8 @@ design/exports/
 
 # Local-only analytics demo numbers (npm run analytics:demo)
 .analytics-demo.json
+
+# Backups and other zips: never commit (they contain members' data).
+*.zip
+# ...except the backup download route, a folder named like a file.
+!/src/app/(officer)/officer/backup.zip/
