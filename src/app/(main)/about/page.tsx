@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { AboutStory, FoundersGrid, Timeline } from "@/components/content/About";
+import { ScrollToHash } from "@/components/content/ScrollToHash";
 import { SectionLabel, Skeleton } from "@/components/ui/Primitives";
 import { button, card, container } from "@/components/ui/styles";
 import { pageMetadata } from "@/lib/metadata";
@@ -63,6 +64,8 @@ async function AboutContent() {
           </div>
         )}
       </section>
+
+      <ScrollToHash />
 
       <div className="mt-14 flex flex-col items-center gap-3 text-center">
         <p className="text-fg-2">Want to be part of the next chapter?</p>

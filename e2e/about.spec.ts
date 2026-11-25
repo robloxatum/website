@@ -49,6 +49,7 @@ test("visitor: story, the founding milestone, founders coming soon; reached from
   await page.goto("/");
   await page.getByRole("link", { name: "Meet the team" }).click();
   await expect(page).toHaveURL(/\/about#team$/);
+  await expect(page.getByRole("heading", { name: "Founders" })).toBeInViewport();
   await expect(page.getByRole("heading", { name: "Our story", level: 1 })).toBeVisible();
   await expect(page.getByText(story)).toBeVisible();
   await expect(page.getByRole("heading", { name: "How we got here" })).toBeVisible();
@@ -58,6 +59,19 @@ test("visitor: story, the founding milestone, founders coming soon; reached from
   await expect(page.getByText("Founder profiles are coming soon.")).toBeVisible();
 
   await expect(page.locator("footer").getByRole("link", { name: "About" })).toHaveAttribute("href", "/about");
+  await page.goto("/join");
+  await page.getByRole("link", { name: "Meet the founders" }).click();
+  await expect(page).toHaveURL(/\/about#founders$/);
+  await expect(page.getByRole("heading", { name: "Founders" })).toBeInViewport();
+});
+
+test("regression: 'Meet the founders' lands on the founders even when the page is slow to arrive", async ({ page }) => {
+  // Hold back the /about data (prefetch and navigation), like a slow phone
+  // connection: it used to arrive after the scroll, leaving people at the top.
+  await page.route(/\/about(\?|$)/, async (route) => {
+    if (route.request().headers()["rsc"]) await new Promise((r) => setTimeout(r, 2500));
+    await route.continue().catch(() => {});
+  });
   await page.goto("/join");
   await page.getByRole("link", { name: "Meet the founders" }).click();
   await expect(page).toHaveURL(/\/about#founders$/);
