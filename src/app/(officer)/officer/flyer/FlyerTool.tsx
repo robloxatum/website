@@ -100,8 +100,9 @@ export function FlyerTool({ baseUrl }: { baseUrl: string }) {
     if (canvasRef.current && logo) drawQr(canvasRef.current, url, logo.img);
   }, [url, logo]);
 
+  // Side by side only from xl: below that, next to the officer sidebar, the controls column is too narrow.
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)]">
+    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,420px)]">
       <div className={`${card} space-y-5 p-5 sm:p-6`}>
         <div>
           <label htmlFor="flyer-link" className={label}>
@@ -165,11 +166,12 @@ export function FlyerTool({ baseUrl }: { baseUrl: string }) {
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row">
+        {/* Side by side when there's room, otherwise one per row (never cut off). */}
+        <div className="flex flex-wrap gap-3">
           <button
             type="button"
             disabled={!logo}
-            className={button({ size: "lg", full: true })}
+            className={button({ size: "lg", className: "min-w-0 flex-1 basis-56" })}
             onClick={() => canvasRef.current?.toBlob((b) => b && download(b, `${filename}.png`), "image/png")}
           >
             <Download aria-hidden="true" />
@@ -178,7 +180,7 @@ export function FlyerTool({ baseUrl }: { baseUrl: string }) {
           <button
             type="button"
             disabled={!logo}
-            className={button({ variant: "secondary", size: "lg", full: true })}
+            className={button({ variant: "secondary", size: "lg", className: "min-w-0 flex-1 basis-56" })}
             onClick={() => logo && download(new Blob([qrSvg(url, logo.dataUrl)], { type: "image/svg+xml" }), `${filename}.svg`)}
           >
             <FileCode2 aria-hidden="true" />

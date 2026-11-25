@@ -118,13 +118,14 @@ export function ManageEventView({
             <EmptyState title="Nobody has checked in yet">Open check-in and put the QR on screen with Present.</EmptyState>
           </div>
         ) : (
-          <div className={`${card} overflow-x-auto`}>
+          <div className={`${card} relative overflow-x-auto`}>
             <table className="w-full text-left text-sm">
               <thead className="border-b border-line/60 bg-bg-2/60">
                 <tr>
                   <th scope="col" className={th}>Name</th>
                   <th scope="col" className={th}>Uniqname</th>
-                  <th scope="col" className={`${th} hidden sm:table-cell`}>Roblox</th>
+                  {/* Only when there's room, so the Remove button is never cut off. */}
+                  <th scope="col" className={`${th} hidden xl:table-cell`}>Roblox</th>
                   <th scope="col" className={th}>Time</th>
                   <th scope="col" className={th}><span className="sr-only">Actions</span></th>
                 </tr>
@@ -139,7 +140,7 @@ export function ManageEventView({
                       </span>
                     </td>
                     <td className="px-4 py-3 text-fg-2">{a.profiles?.uniqname}</td>
-                    <td className="hidden px-4 py-3 text-fg-2 sm:table-cell">{a.profiles?.roblox_username ?? ""}</td>
+                    <td className="hidden px-4 py-3 text-fg-2 xl:table-cell">{a.profiles?.roblox_username ?? ""}</td>
                     <td className="px-4 py-3 whitespace-nowrap text-fg-2">{formatTime(a.checked_in_at)}</td>
                     <td className="px-4 py-2 text-right">
                       <ActionButton
@@ -175,7 +176,7 @@ export function ManageEventView({
             <EmptyState title="No RSVPs yet">Members can tap “I’m going” on the event page until it ends.</EmptyState>
           </div>
         ) : (
-          <div className={`${card} overflow-x-auto`}>
+          <div className={`${card} relative overflow-x-auto`}>
             <table className="w-full text-left text-sm">
               <thead className="border-b border-line/60 bg-bg-2/60">
                 <tr>

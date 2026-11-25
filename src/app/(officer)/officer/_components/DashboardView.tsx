@@ -51,7 +51,7 @@ export function DashboardView({
         <SummaryCard icon={ScanLine} value={totals.checkins} label="Total check-ins" />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
         <Panel
           title="Upcoming Events"
           action={
