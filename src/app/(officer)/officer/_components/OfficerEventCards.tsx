@@ -31,10 +31,10 @@ export function RsvpCount({ count, capacity, className = "" }: { count: number; 
 }
 
 /** "78 / 132 checked in" with a bar when a capacity is set; otherwise just the count. */
-export function CapacityMeter({ count, capacity }: { count: number; capacity: number | null }) {
+export function CapacityMeter({ count, capacity, className = "" }: { count: number; capacity: number | null; className?: string }) {
   if (!capacity) {
     return (
-      <p className="inline-flex items-center gap-1.5 text-sm text-fg-2">
+      <p className={`inline-flex items-center gap-1.5 text-sm text-fg-2 ${className}`}>
         <Users aria-hidden="true" className="size-4 text-fg-3" />
         <span className="font-semibold text-fg tabular-nums">{count}</span> checked in
       </p>
@@ -42,7 +42,7 @@ export function CapacityMeter({ count, capacity }: { count: number; capacity: nu
   }
   const pct = Math.round((count / capacity) * 100);
   return (
-    <div className="space-y-1.5">
+    <div className={`space-y-1.5 ${className}`}>
       <div className="flex items-center justify-between gap-3 text-sm text-fg-2">
         <span className="inline-flex items-center gap-1.5">
           <Users aria-hidden="true" className="size-4 text-fg-3" />
@@ -85,9 +85,10 @@ export function OfficerEventCard({ event, highlight = false }: { event: OfficerE
           </p>
         </div>
       </div>
-      <div className="mt-4 border-t border-line/50 pt-4">
-        <CapacityMeter count={attendanceCount(event)} capacity={event.capacity} />
-        <RsvpCount count={rsvpCount(event)} capacity={event.capacity} className="mt-2" />
+      {/* Checked in + RSVPs: side by side with a gap, wrapping on narrow cards; the capacity bar takes its own row. */}
+      <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-line/50 pt-4">
+        <CapacityMeter count={attendanceCount(event)} capacity={event.capacity} className={event.capacity ? "w-full" : ""} />
+        <RsvpCount count={rsvpCount(event)} capacity={event.capacity} />
       </div>
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <CheckinToggle
