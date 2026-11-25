@@ -47,6 +47,24 @@ describe("ranges", () => {
     assert.equal(semesterOf(new Date("2027-01-01T04:00:00Z")).name, "Fall 2026");
   });
 
+  it("rolls from Fall to Winter at midnight Jan 1 (club time), from the date passed in", () => {
+    // 11:59:59 pm Dec 31, 2026 in Detroit (EST, UTC-5)
+    const lastSecond = new Date("2027-01-01T04:59:59Z");
+    assert.equal(semesterOf(lastSecond).name, "Fall 2026");
+    assert.equal(rangeBounds("semester", lastSecond).from.toISOString(), "2026-08-15T04:00:00.000Z");
+    assert.match(rangeBounds("semester", lastSecond).description, /^Fall 2026 \(since Aug 15\)$/);
+    // 12:00:00 am Jan 1, 2027 in Detroit
+    const firstSecond = new Date("2027-01-01T05:00:00Z");
+    assert.equal(semesterOf(firstSecond).name, "Winter 2027");
+    const b = rangeBounds("semester", firstSecond);
+    assert.equal(b.from.toISOString(), "2027-01-01T05:00:00.000Z");
+    assert.equal(b.to, firstSecond);
+    assert.match(b.description, /^Winter 2027 \(since Jan 1\)$/);
+    // Nothing is pinned to 2026: a later year rolls the same way.
+    assert.equal(semesterOf(new Date("2031-01-01T05:00:00Z")).name, "Winter 2031");
+    assert.equal(semesterOf(new Date("2030-12-31T12:00:00Z")).name, "Fall 2030");
+  });
+
   it("builds bounds", () => {
     const now = new Date("2026-11-24T15:00:00Z");
     const r = rangeBounds("30d", now);

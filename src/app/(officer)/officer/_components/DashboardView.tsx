@@ -2,7 +2,7 @@ import { ArrowRight, CalendarDays, History, Plus, ScanLine, Users, type LucideIc
 import Link from "next/link";
 import { CornerCubes } from "@/components/art/Cubes";
 import { EmptyState, Panel } from "@/components/ui/Blocks";
-import { SectionLabel } from "@/components/ui/Primitives";
+import { PageHeader } from "@/components/ui/Primitives";
 import { button, card } from "@/components/ui/styles";
 import type { OfficerEventWithCount } from "../data";
 import { OfficerEventCard, PastEventRow } from "./OfficerEventCards";
@@ -33,17 +33,18 @@ export function DashboardView({
 }) {
   return (
     <div className="space-y-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <SectionLabel>Officer portal</SectionLabel>
-          <h1 className="mt-3 text-4xl text-fg uppercase sm:text-5xl">Dashboard</h1>
-          <p className="mt-2 text-fg-2">Manage events, check-in and members.</p>
-        </div>
-        <Link href="/officer/events/new" className={button({ size: "lg" })}>
-          <Plus aria-hidden="true" />
-          New Event
-        </Link>
-      </div>
+      {/* Same header as the other officer pages (title case, same size). */}
+      <PageHeader
+        label="Officer portal"
+        title="Dashboard"
+        description="Manage events, check-in and members."
+        actions={
+          <Link href="/officer/events/new" className={button({ size: "lg" })}>
+            <Plus aria-hidden="true" />
+            New Event
+          </Link>
+        }
+      />
 
       <div className="grid gap-4 sm:grid-cols-3">
         <SummaryCard icon={CalendarDays} value={upcoming.length} label="Upcoming events" />
