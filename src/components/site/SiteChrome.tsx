@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { InstallBar } from "@/components/install/InstallBar";
 import { getActiveAnnouncement } from "@/lib/announcements";
 import { getMemberNav } from "@/lib/member-nav";
 import { AnnouncementBanner } from "./AnnouncementBanner";
@@ -14,6 +15,9 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
       <Suspense fallback={null}>
         <Announcement />
       </Suspense>
+      <Suspense fallback={null}>
+        <MemberInstallBar />
+      </Suspense>
       <main id="main" className="flex-1">{children}</main>
       <SiteFooter />
       {/* Signed-out tabs until the session is known, so signed-out visitors see no shift. */}
@@ -27,6 +31,12 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
 /** Phone tab bar for this visitor (Join vs Links, Check In vs Play). */
 async function MemberTabBar() {
   return <MobileTabBar nav={await getMemberNav()} />;
+}
+
+/** "Get the app" for members on a phone browser (the bar decides on the phone). */
+async function MemberInstallBar() {
+  const { member } = await getMemberNav();
+  return member ? <InstallBar /> : null;
 }
 
 /** Officer-set announcement under the header (cached; see lib/announcements). */

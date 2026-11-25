@@ -2,6 +2,7 @@
 
 import { refresh, revalidatePath, updateTag } from "next/cache";
 import { headers } from "next/headers";
+import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/auth";
 import { CATEGORY_KEYS } from "@/lib/categories";
@@ -9,6 +10,7 @@ import { isUuid } from "@/lib/events";
 import { normalizeLink, normalizeMessage } from "@/lib/announcement";
 import { normalizeGameLabel, normalizeGameLink } from "@/lib/game-links";
 import { COVER_MIN_HEIGHT, COVER_MIN_WIDTH, COVER_PATH, FLYER_BUCKET, FLYER_MAX_DIMENSION, FLYER_PATH } from "@/lib/flyers";
+import { notifyGameLinkLive } from "@/lib/push/send";
 import { createClient } from "@/lib/supabase/server";
 import { fromClubInputValue } from "@/lib/time";
 
@@ -235,10 +237,16 @@ export async function setGameLink(eventId: string, rawUrl: string, rawLabel: str
   if ("error" in label) return { error: label.error };
 
   const supabase = await createClient();
+  const { data: before } = await supabase.from("event_game_links").select("url").eq("event_id", eventId).maybeSingle();
   const { error } = await supabase
     .from("event_game_links")
     .upsert({ event_id: eventId, url: link.url, label: label.label, updated_at: new Date().toISOString(), updated_by: officer.id });
   if (error) return { error: "Couldn't post the link. Please try again." };
+  // A new link (not just a new label): push "the game link is live" to
+  // checked-in members who want it, after the officer's response is sent.
+  if (before?.url !== link.url) {
+    after(() => notifyGameLinkLive(eventId, label.label, Boolean(before), officer.id).catch((e) => console.error("Game link push failed", e)));
+  }
   refresh();
   return {};
 }

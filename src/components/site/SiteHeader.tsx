@@ -12,7 +12,8 @@ import { DesktopNav, HeaderCheckIn } from "./NavLinks";
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-40 border-b border-line/60 bg-bg/85 backdrop-blur-md">
+    // Pads for the status bar in the installed iPhone app (black-translucent), and the notch sideways.
+    <header className="sticky top-0 z-40 border-b border-line/60 bg-bg/85 pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)] backdrop-blur-md">
       {/* Tighter between md and lg so the full nav fits at 768px, signed in or out. */}
       <div className={`${container} flex h-16 items-center gap-3 lg:gap-6`}>
         <Link href="/" className="flex min-h-11 shrink-0 items-center rounded-md" aria-label="Roblox at UM home">
