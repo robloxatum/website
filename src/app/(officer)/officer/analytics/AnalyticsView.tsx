@@ -37,7 +37,7 @@ import { withCovers } from "@/lib/event-covers";
 import { formatDate } from "@/lib/time";
 
 /** Where page views and flyer scans live (Vercel Web Analytics). */
-const VERCEL_ANALYTICS_URL = "https://vercel.com/dashboard";
+const VERCEL_ANALYTICS_URL = "https://vercel.com/personal-3600/robloxatum/analytics";
 
 /** One distinct color per category; every chart also labels them in text. */
 const CATEGORY_COLORS: Record<string, string> = {

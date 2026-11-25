@@ -1,7 +1,8 @@
 "use client";
 
-import { ArrowLeft, BarChart3, CalendarDays, LayoutDashboard, Megaphone, QrCode, Users } from "lucide-react";
+import { ArrowLeft, BarChart3, CalendarDays, Ellipsis, LayoutDashboard, Megaphone, QrCode, Users } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 import { withPathname } from "@/components/site/NavLinks";
 
 const ITEMS = [
@@ -50,37 +51,96 @@ export const OfficerSidebar = withPathname(function OfficerSidebarInner({ pathna
   );
 });
 
+/** On the phone tab bar, these sit under "More" so the bar keeps 5 roomy tabs. */
+const MORE = new Set<string>(["/officer/flyer", "/officer/announcement"]);
+const TABS = ITEMS.filter((i) => !MORE.has(i.href));
+const MORE_ITEMS = ITEMS.filter((i) => MORE.has(i.href));
+
+const tabClass = (on: boolean) =>
+  `relative flex min-h-16 w-full flex-col items-center justify-center gap-1 text-[11px] font-semibold transition-colors duration-150 ${
+    on ? "text-maize" : "text-fg-2 hover:text-fg"
+  }`;
+
+function TabMark({ on }: { on: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`absolute top-0 h-[3px] w-8 rounded-full bg-maize transition-transform duration-200 ${on ? "scale-x-100" : "scale-x-0"}`}
+    />
+  );
+}
+
 /** Phone bottom nav for the officer portal. */
 export const OfficerBottomNav = withPathname(function OfficerBottomNavInner({ pathname }) {
+  const [open, setOpen] = useState(false);
+  const moreOn = MORE_ITEMS.some((i) => active(pathname, i.href));
+  const close = () => setOpen(false);
   return (
-    <nav
-      aria-label="Officer"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-line/70 bg-bg-2/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
-    >
-      <ul className="mx-auto grid max-w-lg grid-cols-6">
-        {ITEMS.map((item) => {
-          const on = active(pathname, item.href, "exact" in item);
-          const Icon = item.icon;
-          return (
-            <li key={item.href}>
-              <Link
-                href={item.href}
-                aria-current={on ? "page" : undefined}
-                className={`relative flex min-h-16 flex-col items-center justify-center gap-1 text-[11px] font-semibold transition-colors duration-150 ${
-                  on ? "text-maize" : "text-fg-2 hover:text-fg"
-                }`}
+    <>
+      {open && (
+        // Tap anywhere else to close.
+        <button type="button" aria-label="Close menu" tabIndex={-1} onClick={close} className="fixed inset-0 z-40 cursor-default lg:hidden" />
+      )}
+      <nav
+        aria-label="Officer"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-line/70 bg-bg-2/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
+        onKeyDown={(e) => e.key === "Escape" && close()}
+      >
+        <ul className="mx-auto grid max-w-lg grid-cols-5">
+          {TABS.map((item) => {
+            const on = active(pathname, item.href, "exact" in item);
+            const Icon = item.icon;
+            return (
+              <li key={item.href}>
+                <Link href={item.href} aria-current={on ? "page" : undefined} onClick={close} className={tabClass(on)}>
+                  <Icon aria-hidden="true" className="size-[22px]" />
+                  {item.label}
+                  <TabMark on={on} />
+                </Link>
+              </li>
+            );
+          })}
+          <li className="relative">
+            <button
+              type="button"
+              aria-expanded={open}
+              aria-controls="officer-more"
+              onClick={() => setOpen((o) => !o)}
+              className={tabClass(moreOn || open)}
+            >
+              <Ellipsis aria-hidden="true" className="size-[22px]" />
+              More
+              <TabMark on={moreOn} />
+            </button>
+            {open && (
+              <ul
+                id="officer-more"
+                className="absolute right-2 bottom-full mb-2 w-48 overflow-hidden rounded-xl border border-line/70 bg-surface p-1 shadow-lift"
               >
-                <Icon aria-hidden="true" className="size-[22px]" />
-                {item.label}
-                <span
-                  aria-hidden="true"
-                  className={`absolute top-0 h-[3px] w-8 rounded-full bg-maize transition-transform duration-200 ${on ? "scale-x-100" : "scale-x-0"}`}
-                />
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-    </nav>
+                {MORE_ITEMS.map((item) => {
+                  const on = active(pathname, item.href);
+                  const Icon = item.icon;
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        aria-current={on ? "page" : undefined}
+                        onClick={close}
+                        className={`flex min-h-12 items-center gap-3 rounded-lg px-3 font-semibold ${
+                          on ? "bg-maize/12 text-maize" : "text-fg hover:bg-white/[0.06]"
+                        }`}
+                      >
+                        <Icon aria-hidden="true" className="size-5" />
+                        {item.label}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </li>
+        </ul>
+      </nav>
+    </>
   );
 });
