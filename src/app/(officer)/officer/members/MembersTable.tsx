@@ -129,8 +129,8 @@ export function MembersTable({
         {query && ` · ${rows.length} shown`}
       </p>
 
-      {/* Table from md up */}
-      <div className={`${card} hidden overflow-x-auto md:block`}>
+      {/* Table from xl up (below that, next to the officer sidebar, it doesn't fit) */}
+      <div className={`${card} relative hidden overflow-x-auto xl:block`}>
         <table className="w-full text-left text-sm">
           <thead className="border-b border-line/60 bg-bg-2/60">
             <tr>
@@ -180,8 +180,8 @@ export function MembersTable({
         </table>
       </div>
 
-      {/* Cards on phones */}
-      <ul className="space-y-3 md:hidden">
+      {/* Cards on phones and narrower windows */}
+      <ul className="space-y-3 xl:hidden">
         {rows.map((m) => {
           const isMe = m.id === currentUserId;
           return (

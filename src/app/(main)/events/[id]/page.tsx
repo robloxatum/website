@@ -126,7 +126,8 @@ async function EventDetails({ params }: { params: PageProps<"/events/[id]">["par
 
           {status !== "completed" && <RsvpToggle event={event} className="mt-8" />}
 
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+          {/* Wraps to a second row when the buttons don't fit side by side (e.g. tablets). */}
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             {status !== "completed" && (
               <Link href="/checkin" className={button({ size: "lg" })}>
                 <QrCode aria-hidden="true" />
