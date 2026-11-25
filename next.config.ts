@@ -13,6 +13,35 @@ const securityHeaders = [
 
 // Event flyers are served from the public Supabase Storage bucket; allow only that path.
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
+const supabaseOrigin = supabaseUrl ? new URL(supabaseUrl).origin : "";
+
+/**
+ * Content Security Policy. 'unsafe-inline' scripts are needed because pages
+ * are prerendered (Partial Prerendering) with Next's inline bootstrap scripts;
+ * nonces would force every page to render per request. The rest is strict:
+ * no embedding (frame-ancestors), no plugins, no <base> or off-site form
+ * targets, and the browser only talks to this site and our Supabase project.
+ */
+const isDev = process.env.NODE_ENV === "development";
+const isPreview = process.env.VERCEL_ENV === "preview"; // Vercel's preview toolbar
+const csp = [
+  "default-src 'self'",
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}${isPreview ? " https://vercel.live" : ""}`,
+  `style-src 'self' 'unsafe-inline'${isPreview ? " https://vercel.live" : ""}`,
+  `img-src 'self' data: blob: https://*.rbxcdn.com ${supabaseOrigin}${isPreview ? " https://vercel.live https://vercel.com" : ""}`,
+  `font-src 'self'${isPreview ? " https://vercel.live https://assets.vercel.com" : ""}`,
+  `connect-src 'self' ${supabaseOrigin} ${supabaseOrigin.replace(/^http/, "ws")}${isDev ? " ws://localhost:* ws://127.0.0.1:*" : ""}${isPreview ? " https://vercel.live wss://ws-us3.pusher.com" : ""}`,
+  `frame-src ${isPreview ? "https://vercel.live" : "'none'"}`,
+  "frame-ancestors 'none'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "worker-src 'self' blob:",
+  "manifest-src 'self'",
+  ...(isDev ? [] : ["upgrade-insecure-requests"]),
+]
+  .map((d) => d.replace(/\s+/g, " ").trim())
+  .join("; ");
 const flyerImages = supabaseUrl ? [new URL(`${supabaseUrl}/storage/v1/object/public/event-flyers/**`)] : [];
 // Members' Roblox avatar headshots (URLs come from Roblox's thumbnails API).
 const robloxImages = [{ protocol: "https" as const, hostname: "**.rbxcdn.com", pathname: "/**" }];
@@ -38,7 +67,7 @@ const nextConfig: NextConfig = {
     },
   },
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [{ source: "/:path*", headers: [...securityHeaders, { key: "Content-Security-Policy", value: csp }] }];
   },
 };
 

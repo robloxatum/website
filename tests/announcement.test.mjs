@@ -50,6 +50,10 @@ describe("normalizeLink", () => {
       "ftp://umich.edu/",
       "/has space",
       `/${"a".repeat(600)}`,
+      // Dot segments that resolve to "//host" (another site).
+      "/..//evil.example",
+      "/%2e%2e//evil.example",
+      "https://robloxatum.vercel.app/..//evil.example",
     ]) {
       assert.ok("error" in normalizeLink(input, SITE), input);
     }
