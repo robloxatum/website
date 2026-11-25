@@ -35,12 +35,23 @@ export function detectInAppBrowser(userAgent: string | null | undefined): InAppB
 }
 
 /**
- * A link that opens `url` in the real browser, where the OS allows it:
+ * Instagram on iPhone ignores x-safari-https:// links (even a real tap on an
+ * <a href>): the button would do nothing. There, the app's own menu is the way.
+ */
+export function blocksDirectOpen(browser: InAppBrowser): boolean {
+  return browser.os === "ios" && browser.app === "Instagram";
+}
+
+/**
+ * A link that opens `url` in the real browser, where the app and OS allow it:
  *  - Android: an intent: URL for Chrome (falls back to the page itself).
- *  - iOS 17+: x-safari-https:// opens Safari (older iOS ignores it).
+ *  - iOS 17+: x-safari-https:// opens Safari (older iOS ignores it), except in
+ *    Instagram, which blocks it.
  * Null when there's no such trick; people use the app's "Open in browser" menu.
  */
-export function openInBrowserHref(url: string, os: InAppBrowser["os"]): string | null {
+export function openInBrowserHref(url: string, browser: InAppBrowser): string | null {
+  if (blocksDirectOpen(browser)) return null;
+  const { os } = browser;
   let u: URL;
   try {
     u = new URL(url);
