@@ -2,16 +2,21 @@
 //    Safari/Chrome" instead of Google sign-in, and never go near Google.
 import type { Browser } from "@playwright/test";
 import { createEvent } from "./support/db";
-import { expect, test } from "./support/fixtures";
+import { expect, expectAccessible, expectLayoutOk, test } from "./support/fixtures";
 
 const IOS = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148";
 const ANDROID_WV = "Mozilla/5.0 (Linux; Android 14; Pixel 8 Build/AP1A; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/124.0.6367.82 Mobile Safari/537.36";
 
+// menu: Instagram on iPhone ignores x-safari-https:// links, so it gets the
+//       "Tap ••• → Open in external browser" steps and an arrow, no Open button.
+// button: Android gets an "Open in Chrome" intent:// link. (iPhone apps other than
+//       Instagram get "Open in Safari" too, but only on https sites: unit-tested.)
 const AGENTS = [
-  { name: "Instagram (iPhone)", ua: `${IOS} Instagram 330.0.0.40.92 (iPhone15,2; iOS 17_5; en_US; en; scale=3.00; 1179x2556; 598234529)`, real: "Safari" },
-  { name: "GroupMe (iPhone)", ua: `${IOS} GroupMe/5.84.0`, real: "Safari" },
-  { name: "Facebook (Android)", ua: `${ANDROID_WV} [FB_IAB/FB4A;FBAV/467.0.0.48.110;]`, real: "Chrome" },
-  { name: "Android WebView", ua: ANDROID_WV, real: "Chrome" },
+  { name: "Instagram (iPhone)", ua: `${IOS} Instagram 330.0.0.40.92 (iPhone15,2; iOS 17_5; en_US; en; scale=3.00; 1179x2556; 598234529)`, real: "Safari", menu: true, button: false },
+  { name: "GroupMe (iPhone)", ua: `${IOS} GroupMe/5.84.0`, real: "Safari", menu: false, button: false },
+  { name: "Instagram (Android)", ua: `${ANDROID_WV} Instagram 330.0.0.40.92 Android (34/14; 420dpi; 1080x2400; Google; Pixel 8)`, real: "Chrome", menu: false, button: true },
+  { name: "Facebook (Android)", ua: `${ANDROID_WV} [FB_IAB/FB4A;FBAV/467.0.0.48.110;]`, real: "Chrome", menu: false, button: true },
+  { name: "Android WebView", ua: ANDROID_WV, real: "Chrome", menu: false, button: true },
 ];
 
 async function inApp(browser: Browser, ua: string) {
@@ -34,14 +39,38 @@ for (const agent of AGENTS) {
       await expect(page.getByRole("button", { name: /Sign (in|up) with/ })).toHaveCount(0);
       expect(await page.locator("a[href*='google'], form[action*='google']").count(), path).toBe(0);
 
-      // Android: a button that hands the page to Chrome. (iPhone: only for https sites.)
       const open = page.getByRole("link", { name: `Open in ${agent.real}` });
-      if (agent.real === "Chrome") {
+      if (agent.button) {
         await expect(open).toHaveAttribute("href", new RegExp(`^intent://localhost:3200${path}#Intent;scheme=http;package=com\\.android\\.chrome;`));
+      } else {
+        await expect(open).toHaveCount(0);
+        expect(await page.locator("a[href^='x-safari']").count()).toBe(0);
       }
 
+      const steps = page.getByRole("list", { name: "How to open in Safari" });
+      const arrow = page.getByTestId("menu-arrow");
+      if (agent.menu) {
+        await expect(steps).toContainText("Tap ••• at the top right → Open in external browser");
+        // The arrow sits in the top-right corner, where Instagram's ••• is.
+        await expect(arrow).toBeVisible();
+        const box = (await arrow.boundingBox())!;
+        const vw = page.viewportSize()!.width;
+        expect(box.y).toBeLessThan(100);
+        expect(box.x + box.width).toBeGreaterThan(vw - 40);
+        // ...without covering anything in the header (e.g. "Sign in").
+        const header = (await page.locator("header").first().boundingBox())!;
+        expect(box.y, "arrow is below the header").toBeGreaterThanOrEqual(header.y + header.height);
+        await expect(page.getByText(/Or tap ••• \(or the share icon\)/)).toHaveCount(0);
+      } else {
+        await expect(steps).toHaveCount(0);
+        await expect(arrow).toHaveCount(0);
+        await expect(page.getByText(agent.real === "Chrome" ? /Or tap ⋮/ : /Or tap •••/)).toBeVisible();
+      }
+
+      // Copy link: the backup everywhere, with a visible confirmation.
       await page.getByRole("button", { name: "Copy link" }).click();
-      await expect(page.getByRole("button", { name: "Link copied" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Copied!" })).toBeVisible();
+      await expect(page.getByText(`Copied! Now open ${agent.real} and paste it`)).toBeVisible();
       expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(page.url());
     }
     expect(google).toEqual([]);
@@ -65,4 +94,14 @@ test("a normal phone browser still gets Google sign-in", async ({ page }) => {
   await page.goto("/login");
   await expect(page.getByRole("button", { name: "Sign in with Google" })).toBeVisible();
   await expect(page.getByText(/to sign in$/)).toHaveCount(0);
+});
+
+test("Instagram (iPhone) screen: layout and accessibility", async ({ browser }) => {
+  const { context, page } = await inApp(browser, AGENTS[0].ua);
+  await page.goto("/join");
+  await expect(page.getByTestId("menu-arrow")).toBeVisible();
+  await page.screenshot({ path: test.info().outputPath("instagram-ios.png") });
+  await expectLayoutOk(page, "/join in Instagram");
+  await expectAccessible(page, "/join in Instagram");
+  await context.close();
 });

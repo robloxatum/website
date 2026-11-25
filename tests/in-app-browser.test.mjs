@@ -1,7 +1,7 @@
 // In-app browser detection (Google blocks sign-in there). Run: npm test
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { detectInAppBrowser, openInBrowserHref } from "../src/lib/in-app-browser.ts";
+import { blocksDirectOpen, detectInAppBrowser, openInBrowserHref } from "../src/lib/in-app-browser.ts";
 
 const IOS = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148";
 const ANDROID_WV = "Mozilla/5.0 (Linux; Android 14; Pixel 8 Build/AP1A; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/124.0.6367.82 Mobile Safari/537.36";
@@ -63,19 +63,36 @@ describe("openInBrowserHref", () => {
 
   it("uses an intent URL for Chrome on Android, keeping the path and query", () => {
     assert.equal(
-      openInBrowserHref(url, "android"),
+      openInBrowserHref(url, { app: null, os: "android" }),
       `intent://robloxatum.vercel.app/login?next=%2Fcheckin%3Fcode%3DABCDE#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(url)};end`,
     );
   });
 
   it("uses x-safari-https on iOS", () => {
-    assert.equal(openInBrowserHref(url, "ios"), "x-safari-https://robloxatum.vercel.app/login?next=%2Fcheckin%3Fcode%3DABCDE");
-    assert.equal(openInBrowserHref("http://localhost:3000/join", "ios"), null);
+    assert.equal(openInBrowserHref(url, { app: "GroupMe", os: "ios" }), "x-safari-https://robloxatum.vercel.app/login?next=%2Fcheckin%3Fcode%3DABCDE");
+    assert.equal(openInBrowserHref("http://localhost:3000/join", { app: "GroupMe", os: "ios" }), null);
   });
 
   it("has nothing to offer elsewhere, or for odd URLs", () => {
-    assert.equal(openInBrowserHref(url, "other"), null);
-    assert.equal(openInBrowserHref("javascript:alert(1)", "android"), null);
-    assert.equal(openInBrowserHref("not a url", "ios"), null);
+    assert.equal(openInBrowserHref(url, { app: "Discord", os: "other" }), null);
+    assert.equal(openInBrowserHref("javascript:alert(1)", { app: null, os: "android" }), null);
+    assert.equal(openInBrowserHref("not a url", { app: "GroupMe", os: "ios" }), null);
+  });
+});
+
+describe("Instagram on iPhone: no Open in Safari link (Instagram ignores it)", () => {
+  const url = "https://robloxatum.vercel.app/join";
+  const ig = detectInAppBrowser(
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 330.0.0.40.92 (iPhone15,2; iOS 17_5; en_US)",
+  );
+  it("is detected and blocked", () => {
+    assert.deepEqual(ig, { app: "Instagram", os: "ios" });
+    assert.equal(blocksDirectOpen(ig), true);
+    assert.equal(openInBrowserHref(url, ig), null);
+  });
+  it("other iPhone apps and Instagram on Android still get a link", () => {
+    assert.match(openInBrowserHref(url, { app: "GroupMe", os: "ios" }), /^x-safari-https:/);
+    assert.equal(blocksDirectOpen({ app: "Instagram", os: "android" }), false);
+    assert.match(openInBrowserHref(url, { app: "Instagram", os: "android" }), /^intent:/);
   });
 });
