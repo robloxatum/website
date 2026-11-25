@@ -1,5 +1,6 @@
 "use client";
 
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import type { GameLink } from "./game-links";
 import { createClient } from "./supabase/client";
@@ -9,6 +10,50 @@ export type GameLinkState =
   | { status: "waiting" } // nothing posted (or not readable yet, e.g. before the event starts)
   | { status: "live"; link: GameLink }
   | { status: "ended" };
+
+/**
+ * One shared Realtime subscription per event. The Supabase client hands back
+ * the SAME channel for a repeated topic, so separate subscribers (the nav's
+ * Play button and the Join panel on /play, say) must share it: subscribing
+ * twice fails, and one unsubscribing would cut the other off.
+ */
+type Shared = { listeners: Set<() => void>; channel: RealtimeChannel; removeTimer?: ReturnType<typeof setTimeout> };
+const shared = new Map<string, Shared>();
+
+/** Calls onChange when the event's link changes and after each (re)connect. Returns an unsubscribe. */
+function listenForChanges(eventId: string, onChange: () => void): () => void {
+  let entry = shared.get(eventId);
+  if (!entry) {
+    const supabase = createClient();
+    const channel = supabase.channel(`game:${eventId}`, { config: { private: true } });
+    const created: Shared = { listeners: new Set(), channel };
+    shared.set(eventId, created);
+    const notify = () => created.listeners.forEach((fn) => fn());
+    void (async () => {
+      await supabase.realtime.setAuth(); // private channels authorize with the user's JWT
+      if (shared.get(eventId) !== created) return; // removed meanwhile
+      channel
+        .on("broadcast", { event: "changed" }, notify)
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") notify(); // catch up after (re)connecting
+        });
+    })();
+    entry = created;
+  }
+  const current = entry;
+  clearTimeout(current.removeTimer);
+  current.listeners.add(onChange);
+  return () => {
+    current.listeners.delete(onChange);
+    if (current.listeners.size > 0) return;
+    // Short grace period so a quick unmount/remount (navigation, Strict Mode) reuses it.
+    current.removeTimer = setTimeout(() => {
+      if (current.listeners.size > 0 || shared.get(eventId) !== current) return;
+      shared.delete(eventId);
+      void createClient().removeChannel(current.channel);
+    }, 1000);
+  };
+}
 
 /** Longest single setTimeout browsers allow (~24.8 days); anything later is just "not now". */
 const MAX_TIMEOUT = 2 ** 31 - 1;
@@ -52,16 +97,7 @@ export function useGameLink(
       setState(data ? { status: "live", link: { url: data.url ?? "", label: data.label ?? null } } : { status: "waiting" });
     }
 
-    const channel = supabase.channel(`game:${eventId}`, { config: { private: true } });
-    void (async () => {
-      await supabase.realtime.setAuth(); // private channels authorize with the user's JWT
-      if (cancelled) return;
-      channel
-        .on("broadcast", { event: "changed" }, () => void refetch())
-        .subscribe((status) => {
-          if (status === "SUBSCRIBED") void refetch(); // catch up after (re)connecting
-        });
-    })();
+    const unlisten = listenForChanges(eventId, () => void refetch());
     void refetch();
 
     const timers: ReturnType<typeof setTimeout>[] = [];
@@ -81,7 +117,7 @@ export function useGameLink(
       timers.forEach(clearTimeout);
       clearInterval(poll);
       document.removeEventListener("visibilitychange", onFocus);
-      void supabase.removeChannel(channel);
+      unlisten();
     };
   }, [eventId, startsAt, endsAt, withUrl]);
 

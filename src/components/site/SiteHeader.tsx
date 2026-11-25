@@ -1,13 +1,14 @@
-import { QrCode, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Wordmark } from "@/components/Logo";
 import { button, container } from "@/components/ui/styles";
 import { Avatar } from "@/components/ui/Avatar";
 import { getProfile } from "@/lib/auth";
+import { getMemberNav } from "@/lib/member-nav";
 import { callName } from "@/lib/names";
 import { headshotFor } from "@/lib/roblox";
-import { DesktopNav } from "./NavLinks";
+import { DesktopNav, HeaderCheckIn } from "./NavLinks";
 
 export function SiteHeader() {
   return (
@@ -17,22 +18,35 @@ export function SiteHeader() {
         <Link href="/" className="flex min-h-11 shrink-0 items-center rounded-md" aria-label="Roblox at UM home">
           <Wordmark tone="white" className="h-6 w-auto sm:h-7" />
         </Link>
-        <DesktopNav />
+        <Suspense fallback={<DesktopNav member={null} />}>
+          <MemberDesktopNav />
+        </Suspense>
         <div className="ml-auto flex items-center gap-2">
           <Suspense fallback={<div className="size-11" />}>
             <AccountActions />
           </Suspense>
-          {/* Phones get Check In in the bottom tab bar instead. */}
+          {/* Phones get Check In / Play in the bottom tab bar instead. */}
           <div className="hidden md:block">
-            <Link href="/checkin" className={button({ size: "sm" })}>
-              <QrCode aria-hidden="true" />
-              Check In
-            </Link>
+            <Suspense fallback={<HeaderCheckIn events={[]} />}>
+              <MemberCheckIn />
+            </Suspense>
           </div>
         </div>
       </div>
     </header>
   );
+}
+
+/** Members don't get "Join" in the nav. */
+async function MemberDesktopNav() {
+  const { member } = await getMemberNav();
+  return <DesktopNav member={member} />;
+}
+
+/** Check In, or Play while checked in to a live event. */
+async function MemberCheckIn() {
+  const { checkedIn } = await getMemberNav();
+  return <HeaderCheckIn events={checkedIn} />;
 }
 
 async function AccountActions() {

@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { getActiveAnnouncement } from "@/lib/announcements";
+import { getMemberNav } from "@/lib/member-nav";
 import { AnnouncementBanner } from "./AnnouncementBanner";
 import { MobileTabBar } from "./NavLinks";
 import { SiteFooter } from "./SiteFooter";
@@ -15,9 +16,16 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
       </Suspense>
       <main id="main" className="flex-1">{children}</main>
       <SiteFooter />
-      <MobileTabBar />
+      <Suspense fallback={<MobileTabBar nav={null} />}>
+        <MemberTabBar />
+      </Suspense>
     </div>
   );
+}
+
+/** Phone tab bar for this visitor (Join vs Links, Check In vs Play). */
+async function MemberTabBar() {
+  return <MobileTabBar nav={await getMemberNav()} />;
 }
 
 /** Officer-set announcement under the header (cached; see lib/announcements). */
