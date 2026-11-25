@@ -65,3 +65,14 @@ describe("dismissKey", () => {
     assert.notEqual(dismissKey("a"), dismissKey("b"));
   });
 });
+
+describe("normalizeMessage: no HTML", () => {
+  it("refuses tags (shown as text, they'd appear literally in the banner)", () => {
+    for (const m of ["<b>Big news</b>", "Party <script>alert(1)</script>", "Hi </p>", "<!-- x -->"]) {
+      assert.ok("error" in normalizeMessage(m), m);
+    }
+  });
+  it("still allows a plain < or > in text", () => {
+    assert.deepEqual(normalizeMessage("Snacks < 5 min away, 3 > 2"), { message: "Snacks < 5 min away, 3 > 2" });
+  });
+});

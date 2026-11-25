@@ -1,5 +1,6 @@
 import "server-only";
 import { cacheLife } from "next/cache";
+import { e2eEnabled } from "./e2e";
 
 /**
  * Roblox's public, unauthenticated APIs: username → user ID, and user ID →
@@ -22,6 +23,15 @@ export type RobloxLookup =
   | { status: "unavailable" };
 
 class RobloxUnavailable extends Error {}
+
+/**
+ * Roblox's API origins. End-to-end tests point these at a local mock
+ * (E2E_ROBLOX_API), so they never call the real Roblox; only in E2E mode.
+ */
+function api(sub: "users" | "thumbnails") {
+  const mock = e2eEnabled() ? process.env["E2E_ROBLOX_API"] : undefined;
+  return mock ? `${mock}/${sub}` : `https://${sub}.roblox.com`;
+}
 
 async function robloxFetch(url: string, init?: RequestInit) {
   let res: Response;
@@ -46,7 +56,7 @@ function cacheFailure() {
 
 /** username (lowercase) → user, for up to 100 usernames. Unknown names are left out. */
 async function lookupBatch(usernames: string[]): Promise<Map<string, RobloxUser>> {
-  const json = await robloxFetch("https://users.roblox.com/v1/usernames/users", {
+  const json = await robloxFetch(`${api("users")}/v1/usernames/users`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify({ usernames, excludeBannedUsers: true }),
@@ -82,7 +92,7 @@ async function headshotBatch(ids: number[]): Promise<Record<number, string>> {
   "use cache";
   try {
     const json = await robloxFetch(
-      `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${ids.join(",")}&size=150x150&format=Webp&isCircular=false`,
+      `${api("thumbnails")}/v1/users/avatar-headshot?userIds=${ids.join(",")}&size=150x150&format=Webp&isCircular=false`,
     );
     const out: Record<number, string> = {};
     let pending = false;

@@ -7,6 +7,7 @@ import { CategoryBadge, Skeleton } from "@/components/ui/Primitives";
 import { button, card, container } from "@/components/ui/styles";
 import { Avatar } from "@/components/ui/Avatar";
 import { requireMember } from "@/lib/auth";
+import { callName } from "@/lib/names";
 import { headshotFor } from "@/lib/roblox";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/time";
@@ -50,7 +51,8 @@ async function ProfileContent() {
         <Avatar name={name} src={avatar} size="lg" tone="maize" />
         <div className="min-w-0">
           <p className="text-sm font-semibold tracking-[0.18em] text-fg-2 uppercase">Your profile</p>
-          <h1 className="truncate text-3xl text-fg">{name}</h1>
+          {/* Greets by nickname (or first name); the full name is in the form below. */}
+          <h1 className="truncate text-3xl text-fg">Hey {callName(profile)}!</h1>
         </div>
       </div>
 

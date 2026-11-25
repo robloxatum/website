@@ -16,6 +16,10 @@ export function AnnouncementForm({ current }: { current: Current }) {
   const [style, setStyle] = useState<"info" | "urgent">(current?.style ?? "info");
   const [now] = useState(() => Date.now());
   const expired = !!current?.hide_after && new Date(current.hide_after).getTime() <= now;
+  // Controlled, like the message: React resets a form after its action runs, and
+  // a refused link or date must still be there to fix.
+  const [link, setLink] = useState(current?.link ?? "");
+  const [hideAfter, setHideAfter] = useState(current?.hide_after && !expired ? toClubInputValue(current.hide_after) : "");
   const left = ANNOUNCEMENT_MAX - message.trim().replace(/\s+/g, " ").length;
 
   return (
@@ -54,7 +58,8 @@ export function AnnouncementForm({ current }: { current: Current }) {
             id="link"
             name="link"
             inputMode="url"
-            defaultValue={current?.link ?? ""}
+            value={link}
+            onChange={(e) => setLink(e.target.value)}
             className={field}
             placeholder="/events, or a roblox.com / umich.edu link"
             aria-describedby="link-help"
@@ -105,7 +110,8 @@ export function AnnouncementForm({ current }: { current: Current }) {
             id="hide_after"
             name="hide_after"
             type="datetime-local"
-            defaultValue={current?.hide_after && !expired ? toClubInputValue(current.hide_after) : ""}
+            value={hideAfter}
+            onChange={(e) => setHideAfter(e.target.value)}
             className={field}
           />
         </div>

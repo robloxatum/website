@@ -1,6 +1,14 @@
 import { join } from "node:path";
 import type { NextConfig } from "next";
 import { readCoverManifest } from "./src/lib/cover-manifest";
+import { e2eEnabled } from "./src/lib/e2e";
+
+// End-to-end test builds (scripts/e2e.mjs) only. Refuse to make one that could
+// reach the real database: the test sign-in route must never exist there.
+const e2e = e2eEnabled();
+if (process.env.E2E_TEST_AUTH === "1" && !e2e) {
+  throw new Error("E2E_TEST_AUTH=1 needs a local NEXT_PUBLIC_SUPABASE_URL (and not Vercel). Refusing to build.");
+}
 
 const securityHeaders = [
   { key: "X-Frame-Options", value: "DENY" },
@@ -38,7 +46,8 @@ const csp = [
   "form-action 'self'",
   "worker-src 'self' blob:",
   "manifest-src 'self'",
-  ...(isDev ? [] : ["upgrade-insecure-requests"]),
+  // Not in E2E builds: they're served over http://localhost with a local database.
+  ...(isDev || e2e ? [] : ["upgrade-insecure-requests"]),
 ]
   .map((d) => d.replace(/\s+/g, " ").trim())
   .join("; ");
@@ -66,6 +75,9 @@ const htmlLimitedBots = new RegExp(
 );
 
 const nextConfig: NextConfig = {
+  // E2E builds also compile *.e2e.ts route files (the test sign-in) and go to
+  // their own folder, so they never mix with a normal build.
+  ...(e2e ? { pageExtensions: ["e2e.ts", "tsx", "ts", "jsx", "js"], distDir: ".next-e2e" } : {}),
   htmlLimitedBots,
   env: { DEFAULT_COVERS: JSON.stringify(defaultCovers) },
   cacheComponents: true,
