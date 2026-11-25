@@ -4,6 +4,7 @@ import { OfficersOnly } from "@/components/OfficersOnly";
 import { Alert } from "@/components/ui/Alert";
 import { PageHeader, Skeleton } from "@/components/ui/Primitives";
 import { getOfficer } from "@/lib/auth";
+import { AboutSection } from "./AboutSection";
 import { getContentForOfficer } from "./data";
 import { FeaturedSection } from "./FeaturedSection";
 import { JoinSection } from "./JoinSection";
@@ -17,7 +18,7 @@ export default function ContentPage() {
       <PageHeader
         label="Officer portal"
         title="Site content"
-        description="Community links, the Join page FAQ and the home page Featured panel. Saving updates the site right away."
+        description="Community links, the Join page FAQ, the home page Featured panel and the About page. Saving updates the site right away."
       />
       <Suspense fallback={<Skeleton className="h-[40rem]" />}>
         <Content />
@@ -41,6 +42,7 @@ async function Content() {
       <LinksSection links={content.links} edit={content.edits.links} />
       <JoinSection content={{ faq: content.faq, whatWeDo: content.whatWeDo }} edit={content.edits.join} />
       <FeaturedSection featured={content.featured} edit={content.edits.featured} />
+      <AboutSection content={content.about} edit={content.edits.about} />
     </div>
   );
 }

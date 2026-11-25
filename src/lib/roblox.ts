@@ -87,13 +87,18 @@ export async function lookupRobloxUser(username: string): Promise<RobloxLookup> 
   }
 }
 
-/** user ID → headshot URL for a sorted batch of up to 100 IDs. Cached about an hour. */
-async function headshotBatch(ids: number[]): Promise<Record<number, string>> {
+/** Headshot (head and shoulders) or the full-body avatar. */
+type AvatarKind = "headshot" | "full";
+const THUMBNAILS: Record<AvatarKind, string> = {
+  headshot: "/v1/users/avatar-headshot?size=150x150",
+  full: "/v1/users/avatar?size=420x420",
+};
+
+/** user ID → avatar URL for a sorted batch of up to 100 IDs. Cached about an hour. */
+async function avatarBatch(ids: number[], kind: AvatarKind = "headshot"): Promise<Record<number, string>> {
   "use cache";
   try {
-    const json = await robloxFetch(
-      `${api("thumbnails")}/v1/users/avatar-headshot?userIds=${ids.join(",")}&size=150x150&format=Webp&isCircular=false`,
-    );
+    const json = await robloxFetch(`${api("thumbnails")}${THUMBNAILS[kind]}&userIds=${ids.join(",")}&format=Webp&isCircular=false`);
     const out: Record<number, string> = {};
     let pending = false;
     for (const row of (json.data ?? []) as { targetId?: number; state?: string; imageUrl?: string }[]) {
@@ -150,6 +155,15 @@ type AvatarSource = { roblox_user_id?: number | null; roblox_username?: string |
  * up from the username (not stored: only the member can update their profile).
  */
 export async function headshotsFor(people: AvatarSource[]): Promise<(string | null)[]> {
+  return avatarsFor(people, "headshot");
+}
+
+/** Full-body avatars (the About page's founders), same rules and caching as headshots. */
+export async function fullAvatarsFor(people: AvatarSource[]): Promise<(string | null)[]> {
+  return avatarsFor(people, "full");
+}
+
+async function avatarsFor(people: AvatarSource[], kind: AvatarKind): Promise<(string | null)[]> {
   try {
     const missing = [
       ...new Set(
@@ -167,7 +181,7 @@ export async function headshotsFor(people: AvatarSource[]): Promise<(string | nu
     // Sorted, so the same people always make the same cached batches.
     const ids = [...new Set(people.map(idOf).filter((id): id is number => !!id))].sort((a, b) => a - b);
     const urls: Record<number, string> = {};
-    for (const batch of await Promise.all(chunks(ids).map(headshotBatch))) Object.assign(urls, batch);
+    for (const batch of await Promise.all(chunks(ids).map((c) => avatarBatch(c, kind)))) Object.assign(urls, batch);
 
     return people.map((p) => {
       const id = idOf(p);

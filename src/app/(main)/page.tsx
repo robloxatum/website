@@ -99,6 +99,14 @@ export default function HomePage() {
           <h2 id="what-we-do" className="sr-only">What we do</h2>
           <WhatWeDo />
         </section>
+
+        {/* Our story teaser */}
+        <p className="text-center text-sm text-fg-2">
+          Founded Oct 2025 <span aria-hidden="true" className="text-maize">·</span>{" "}
+          <Link href="/about#team" className="inline-flex min-h-11 items-center gap-1 font-semibold text-maize hover:underline">
+            Meet the team <ArrowRight aria-hidden="true" className="size-4" />
+          </Link>
+        </p>
       </div>
     </>
   );
