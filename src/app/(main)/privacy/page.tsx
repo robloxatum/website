@@ -46,6 +46,11 @@ export default function PrivacyPage() {
             <li>Which club events you checked in to, and when</li>
             <li>Which events you tapped &ldquo;I&rsquo;m going&rdquo; for (RSVPs)</li>
             <li>The times of wrong check-in codes, to stop code guessing. These are deleted after a day.</li>
+            <li>
+              If you turn on notifications: for each device, the address your browser&apos;s push service gives us
+              (Apple, Google, Mozilla or Microsoft) and which notifications you chose. Turning them off or signing out
+              on that device deletes it.
+            </li>
           </ul>
           <p>For officers, we also record which officer created an event or last edited site content.</p>
         </Section>
@@ -100,7 +105,9 @@ export default function PrivacyPage() {
         <Section icon={Database} title="Where it's kept">
           <p>
             With our hosting providers: Supabase (database and sign-in) and Vercel (website and page-visit counts).
-            Google handles sign-in, and Roblox provides avatar pictures.
+            Google handles sign-in, and Roblox provides avatar pictures. Notifications are delivered by your
+            browser&apos;s push service; they say what&apos;s happening (like an event&apos;s name and time) but never
+            contain game links.
           </p>
         </Section>
 

@@ -9,12 +9,16 @@
 //   4. Runs Playwright against `next start` on http://localhost:3200.
 //   5. Builds a NORMAL production build and proves it has no test sign-in route.
 //
+// Push notifications use throwaway VAPID keys made for the build (kept next to
+// it, since the public key is built in) and a local mock push service.
+//
 // Flags: --no-reset (keep the data), --no-build (reuse .next-e2e),
 //        --no-prod-check (skip step 5). Anything else goes to Playwright.
 
 import { spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { generateVAPIDKeys } from "web-push";
 import { isLocalUrl } from "../src/lib/e2e.ts";
 
 const args = process.argv.slice(2);
@@ -73,6 +77,11 @@ if (!noReset) {
   run("npx", ["supabase", "db", "reset", "--local", "--no-seed"]);
 }
 
+// The VAPID public key is compiled into the build, so a reused build keeps its keys.
+const VAPID_FILE = ".next-e2e/e2e-vapid.json";
+const rebuild = !noBuild || !existsSync(".next-e2e/BUILD_ID") || !existsSync(VAPID_FILE);
+const vapid = rebuild ? generateVAPIDKeys() : JSON.parse(readFileSync(VAPID_FILE, "utf8"));
+
 const env = {
   ...process.env,
   NEXT_PUBLIC_SUPABASE_URL: apiUrl,
@@ -85,13 +94,20 @@ const env = {
   // For the tests only (seeding); the app never reads it.
   E2E_SERVICE_ROLE_KEY: status.SERVICE_ROLE_KEY,
   E2E_DB_URL: dbUrl,
+  // Push notifications: the app reads these (the secret key only in lib/push/send.ts).
+  SUPABASE_SECRET_KEY: status.SECRET_KEY ?? status.SERVICE_ROLE_KEY,
+  NEXT_PUBLIC_VAPID_PUBLIC_KEY: vapid.publicKey,
+  VAPID_PRIVATE_KEY: vapid.privateKey,
+  VAPID_SUBJECT: "mailto:push-e2e@example.invalid",
+  CRON_SECRET: randomBytes(18).toString("base64url"),
   NEXT_TELEMETRY_DISABLED: "1",
 };
 delete env.VERCEL;
 
-if (!noBuild || !existsSync(".next-e2e/BUILD_ID")) {
+if (rebuild) {
   console.log("Building the E2E production build (.next-e2e)…");
   run("npx", ["next", "build"], { env });
+  writeFileSync(VAPID_FILE, JSON.stringify(vapid));
 }
 
 const pw = spawnSync("npx", ["playwright", "test", ...args], { stdio: "inherit", env });

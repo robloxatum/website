@@ -1,12 +1,15 @@
-import { CalendarCheck, LogOut } from "lucide-react";
+import { CalendarCheck } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { NotificationSettings } from "@/components/push/NotificationSettings";
+import { SignOutButton } from "@/components/push/SignOutButton";
 import { EmptyState } from "@/components/ui/Blocks";
 import { CategoryBadge, Skeleton } from "@/components/ui/Primitives";
-import { button, card, container } from "@/components/ui/styles";
+import { card, container } from "@/components/ui/styles";
 import { Avatar } from "@/components/ui/Avatar";
 import { requireMember } from "@/lib/auth";
+import { pushConfigured } from "@/lib/push/send";
 import { callName } from "@/lib/names";
 import { headshotFor } from "@/lib/roblox";
 import { createClient } from "@/lib/supabase/server";
@@ -97,12 +100,10 @@ async function ProfileContent() {
         )}
       </section>
 
-      <form action="/auth/signout" method="post">
-        <button type="submit" className={button({ variant: "secondary", full: true })}>
-          <LogOut aria-hidden="true" />
-          Sign out
-        </button>
-      </form>
+      {/* Opt-in push notifications (hidden until the server has its keys). */}
+      {pushConfigured() && <NotificationSettings vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!} />}
+
+      <SignOutButton />
     </div>
   );
 }

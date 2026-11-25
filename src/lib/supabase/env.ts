@@ -1,5 +1,6 @@
 // Only public values here: the project URL and the publishable (or anon) key.
-// This app never uses the secret / service_role key.
+// The secret key (SUPABASE_SECRET_KEY) is used in exactly one place, server
+// side, for push notifications: see admin.ts.
 export const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 export const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
 

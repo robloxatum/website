@@ -36,7 +36,7 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Skip static files, images and /go short links (plain redirects; no session needed).
-    "/((?!_next/static|_next/image|go/|go$|favicon.ico|icon.svg|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    // Skip static files, images, the service worker and /go short links (plain redirects; no session needed).
+    "/((?!_next/static|_next/image|go/|go$|favicon.ico|icon.svg|sw.js|offline.html|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

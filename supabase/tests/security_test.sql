@@ -1668,6 +1668,88 @@ do $$ begin
 end $$;
 reset role;
 
+-------------------------------------------------------------------------------
+-- Push notifications: each member's own devices only
+-------------------------------------------------------------------------------
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000b","email":"member@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare v_key text := 'B' || repeat('A', 86); v_auth text := repeat('C', 22);
+begin
+  perform public.save_push_subscription('https://fcm.googleapis.com/fcm/send/member-1', v_key, v_auth, true, false);
+  assert (select count(*) from public.push_subscriptions) = 1, 'member saves their device';
+  assert (select user_id from public.push_subscriptions) = auth.uid(), 'the device is theirs';
+  assert (select not game_links and event_reminders from public.push_subscriptions), 'settings saved';
+
+  -- Rotated by the browser: the old one goes, its settings carry over.
+  perform public.save_push_subscription('https://fcm.googleapis.com/fcm/send/member-2', v_key, v_auth, null, null,
+                                        'https://fcm.googleapis.com/fcm/send/member-1');
+  assert (select array_agg(endpoint) from public.push_subscriptions) = array['https://fcm.googleapis.com/fcm/send/member-2'],
+    'rotated subscription replaces the old one';
+  assert (select not game_links and event_reminders from public.push_subscriptions), 'settings carried over';
+
+  update public.push_subscriptions set game_links = true;
+  assert (select game_links from public.push_subscriptions), 'member changes their settings';
+
+  begin
+    insert into public.push_subscriptions (user_id, endpoint, p256dh, auth)
+    values (auth.uid(), 'https://fcm.googleapis.com/fcm/send/direct', v_key, v_auth);
+    raise exception 'FAIL: direct insert into push_subscriptions';
+  exception when insufficient_privilege then null; end;
+  begin
+    update public.push_subscriptions set user_id = '00000000-0000-0000-0000-00000000000c';
+    raise exception 'FAIL: member moved a device to someone else';
+  exception when insufficient_privilege then null; end;
+  begin
+    update public.push_subscriptions set endpoint = 'https://evil.example/x';
+    raise exception 'FAIL: member rewrote a device endpoint';
+  exception when insufficient_privilege then null; end;
+  foreach v_auth in array array['http://evil.example/x', 'ftp://x/y', 'https://', 'javascript:alert(1)'] loop
+    begin
+      perform public.save_push_subscription(v_auth, v_key, repeat('C', 22));
+      raise exception 'FAIL: push endpoint accepted: %', v_auth;
+    exception when check_violation then null; end;
+  end loop;
+  begin
+    perform public.save_push_subscription('https://fcm.googleapis.com/fcm/send/bad-key', 'short', repeat('C', 22));
+    raise exception 'FAIL: bad push key accepted';
+  exception when check_violation then null; end;
+  begin
+    perform * from public.event_reminders_sent;
+    raise exception 'FAIL: member read the reminder log';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+
+-- Another member: can't see, change or remove it, and can't take it over
+-- except by turning notifications on with that very device.
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000c","email":"newbie@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$ begin
+  assert (select count(*) from public.push_subscriptions) = 0, 'members cannot see others'' devices';
+  update public.push_subscriptions set game_links = false;
+  delete from public.push_subscriptions;
+end $$;
+reset role;
+do $$ begin
+  assert (select count(*) from public.push_subscriptions where game_links) = 1, 'others cannot change or delete a device';
+end $$;
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
+set local role anon;
+do $$ begin
+  begin
+    perform * from public.push_subscriptions;
+    raise exception 'FAIL: anon read push_subscriptions';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform public.save_push_subscription('https://fcm.googleapis.com/fcm/send/anon', 'B' || repeat('A', 86), repeat('C', 22));
+    raise exception 'FAIL: anon saved a device';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+
 select 'ALL SECURITY TESTS PASSED' as result;
 
 rollback;
