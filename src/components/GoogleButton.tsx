@@ -16,7 +16,7 @@ function useInAppBrowser() {
 
 /**
  * "Sign in with Google" (login, /join sign-up; check-in goes through /login).
- * In an in-app browser it shows how to open the page in Safari/Chrome instead,
+ * In an in-app browser it shows how to open the page in their real browser instead,
  * and never starts the Google flow there (Google answers disallowed_useragent).
  */
 export function GoogleButton({
