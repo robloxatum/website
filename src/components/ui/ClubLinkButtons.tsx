@@ -1,20 +1,26 @@
-import { ArrowUpRight, CalendarPlus, Gamepad2, GraduationCap, Mail, MailPlus } from "lucide-react";
+import { ArrowUpRight, CalendarPlus, Gamepad2, GraduationCap, Link2, Mail, MailPlus } from "lucide-react";
 import type { ComponentType } from "react";
 import { DiscordIcon, GroupMeIcon, InstagramIcon, LinkedInIcon } from "@/components/BrandIcons";
-import { CALENDAR_URL, clubLink, MAILING_LIST_URL, type ClubLinkKey } from "@/lib/links";
+import { CALENDAR_URL, EMAIL_LINK, MAILING_LIST_URL } from "@/lib/links";
+import { type CommunityLink, type LinkPlatform, linkPlatform } from "@/lib/site-content";
 import { button } from "./styles";
 
 type Icon = ComponentType<{ className?: string }>;
 
-export const LINK_META: Record<ClubLinkKey, { action: string; icon: Icon }> = {
+/** Known sites get their own icon and button wording; anything else uses the label and a link icon. */
+const PLATFORM_META: Record<LinkPlatform, { action: string; icon: Icon }> = {
   instagram: { action: "Follow our Instagram", icon: InstagramIcon },
   groupme: { action: "Join our GroupMe", icon: GroupMeIcon },
   discord: { action: "Join our Discord", icon: DiscordIcon },
   roblox: { action: "Join our Roblox Group", icon: Gamepad2 },
   linkedin: { action: "Follow us on LinkedIn", icon: LinkedInIcon },
   maizepages: { action: "Maize Pages", icon: GraduationCap },
-  email: { action: "Email the officers", icon: Mail },
 };
+
+export function linkMeta(link: { label: string; url: string }): { action: string; icon: Icon } {
+  const platform = linkPlatform(link.url);
+  return platform ? PLATFORM_META[platform] : { action: link.label, icon: Link2 };
+}
 
 function ExternalButton({ href, icon: Icon, children, variant = "secondary", size = "lg" }: {
   href: string; icon: Icon; children: React.ReactNode; variant?: "primary" | "secondary"; size?: "md" | "lg";
@@ -24,9 +30,9 @@ function ExternalButton({ href, icon: Icon, children, variant = "secondary", siz
     <a
       href={href}
       {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-      className={button({ variant, size, full: true, className: "justify-between! text-left" })}
+      className={button({ variant, size, full: true, className: "justify-between! text-left whitespace-normal!" })}
     >
-      <span className="inline-flex items-center gap-3">
+      <span className="inline-flex min-w-0 items-center gap-3">
         <Icon className={`size-5 shrink-0 ${variant === "primary" ? "" : "text-maize"}`} />
         {children}
       </span>
@@ -36,41 +42,65 @@ function ExternalButton({ href, icon: Icon, children, variant = "secondary", siz
   );
 }
 
-/** Community link buttons, in the order given. Links without a URL are hidden. */
-export function ClubLinkButtons({ keys, size = "lg", withBlurb = false }: { keys: ClubLinkKey[]; size?: "md" | "lg"; withBlurb?: boolean }) {
-  const links = keys.map((k) => clubLink(k)).filter((l) => l !== null);
-  if (links.length === 0) return null;
+function Blurb({ label, blurb }: { label: string; blurb: string }) {
+  return (
+    <span className="flex flex-col items-start py-2 text-left leading-tight">
+      <span>{label}</span>
+      {blurb && <span className="mt-0.5 text-sm font-normal whitespace-normal text-fg-2">{blurb}</span>}
+    </span>
+  );
+}
+
+/**
+ * Community link buttons, in the order given. With `withBlurb` (the /links
+ * page): label and description; otherwise the action ("Join our Discord").
+ * `withEmail` adds the officers' email last.
+ */
+export function ClubLinkButtons({
+  links,
+  size = "lg",
+  withBlurb = false,
+  withEmail = false,
+}: {
+  links: CommunityLink[];
+  size?: "md" | "lg";
+  withBlurb?: boolean;
+  withEmail?: boolean;
+}) {
+  if (links.length === 0 && !withEmail) return null;
   return (
     <ul className="space-y-3">
-      {links.map((link) => (
-        <li key={link.key}>
-          <ExternalButton href={link.href} icon={LINK_META[link.key].icon} size={size}>
-            {withBlurb ? (
-              <span className="flex flex-col items-start py-2 text-left leading-tight">
-                <span>{link.label}</span>
-                <span className="mt-0.5 text-sm font-normal whitespace-normal text-fg-2">{link.blurb}</span>
-              </span>
-            ) : (
-              LINK_META[link.key].action
-            )}
+      {links.map((link, i) => {
+        const meta = linkMeta(link);
+        return (
+          <li key={`${i}-${link.url}`}>
+            <ExternalButton href={link.url} icon={meta.icon} size={size}>
+              {withBlurb ? <Blurb label={link.label} blurb={link.blurb} /> : meta.action}
+            </ExternalButton>
+          </li>
+        );
+      })}
+      {withEmail && (
+        <li>
+          <ExternalButton href={EMAIL_LINK.href} icon={Mail} size={size}>
+            {withBlurb ? <Blurb label={EMAIL_LINK.label} blurb={EMAIL_LINK.blurb} /> : "Email the officers"}
           </ExternalButton>
         </li>
-      ))}
+      )}
     </ul>
   );
 }
 
 /** Small round icon links (footer). */
-export function ClubLinkIcons({ keys }: { keys: ClubLinkKey[] }) {
-  const links = keys.map((k) => clubLink(k)).filter((l) => l !== null);
+export function ClubLinkIcons({ links }: { links: CommunityLink[] }) {
   return (
     <ul className="flex flex-wrap gap-2">
-      {links.map((link) => {
-        const Icon = LINK_META[link.key].icon;
+      {links.map((link, i) => {
+        const Icon = linkMeta(link).icon;
         return (
-          <li key={link.key}>
+          <li key={`${i}-${link.url}`}>
             <a
-              href={link.href}
+              href={link.url}
               target="_blank"
               rel="noopener noreferrer"
               aria-label={`${link.label} (opens in a new tab)`}

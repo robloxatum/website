@@ -12,9 +12,4 @@ export const highlights = {
   ],
 } as const;
 
-/** The featured story on the home page. */
-export const featured = {
-  kicker: "Featured",
-  title: "72-hour Game Jam with Roblox",
-  body: "Teams spent three days building games together, start to finish. Jams are the best way to learn fast and make something real.",
-} as const;
+// The home page Featured panel is in the database: officers edit it on /officer/content.

@@ -1,8 +1,9 @@
-import { ArrowRight, CalendarDays, Code2, Gamepad2, Sparkles, Trophy, Users } from "lucide-react";
+import { ArrowRight, CalendarDays, Users } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
-import { FeaturedArt, HeroScene, Mascot } from "@/components/art/Art";
+import { HeroScene, Mascot } from "@/components/art/Art";
 import { CubeCluster } from "@/components/art/Cubes";
+import { FeaturedPanel, HomeWhatWeDo } from "@/components/content/SiteContent";
 import { TaglineWordmark } from "@/components/Logo";
 import { EmptyState, Panel } from "@/components/ui/Blocks";
 import { MailingListButton } from "@/components/ui/ClubLinkButtons";
@@ -10,11 +11,9 @@ import { EventCard } from "@/components/ui/EventCards";
 import { SectionLabel, Skeleton } from "@/components/ui/Primitives";
 import { button, card, container } from "@/components/ui/styles";
 import { art } from "@/content/art";
-import { featured } from "@/content/highlights";
-import { pitch, whatWeDo } from "@/content/join";
+import { pitch } from "@/content/join";
 import { getEventLists } from "@/lib/events";
-
-const whatWeDoIcons = { game_night: Gamepad2, social: Users, game_jam: Trophy, workshop: Code2 } as const;
+import { getFeaturedPanel, getJoinContent } from "@/lib/site-content-data";
 
 export default function HomePage() {
   return (
@@ -50,7 +49,7 @@ export default function HomePage() {
 
       <div className={`${container} space-y-8 sm:space-y-10`}>
         {/* Upcoming events + featured */}
-        <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+        <UpcomingAndFeatured>
           <Panel
             title="Upcoming Events"
             icon={CalendarDays}
@@ -64,8 +63,7 @@ export default function HomePage() {
               <UpcomingEvents />
             </Suspense>
           </Panel>
-          <FeaturedPanel />
-        </div>
+        </UpcomingAndFeatured>
 
         {/* Join banner */}
         <section className={`relative overflow-hidden ${card} bg-linear-to-r from-[#11365a] via-surface to-[#0d2741]`}>
@@ -99,20 +97,7 @@ export default function HomePage() {
         {/* What we do */}
         <section aria-labelledby="what-we-do">
           <h2 id="what-we-do" className="sr-only">What we do</h2>
-          <ul className={`grid gap-px overflow-hidden rounded-2xl border border-line/70 bg-line/60 sm:grid-cols-2 lg:grid-cols-4`}>
-            {whatWeDo.map((item) => {
-              const Icon = whatWeDoIcons[item.key];
-              return (
-                <li key={item.key} className="flex gap-4 bg-surface p-5 sm:p-6">
-                  <Icon aria-hidden="true" className="size-9 shrink-0 text-maize" strokeWidth={1.75} />
-                  <div>
-                    <h3 className="text-lg text-fg">{item.title}</h3>
-                    <p className="mt-1 text-sm text-fg-2">{item.body}</p>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+          <WhatWeDo />
         </section>
       </div>
     </>
@@ -142,40 +127,19 @@ async function UpcomingEvents() {
   );
 }
 
-function FeaturedPanel() {
+/** Upcoming events, with the officer-set Featured panel beside them when it's on (cached; see lib/site-content-data). */
+async function UpcomingAndFeatured({ children }: { children: React.ReactNode }) {
+  const featured = await getFeaturedPanel();
+  if (!featured) return <div>{children}</div>;
   return (
-    <section className={`relative flex flex-col overflow-hidden ${card} p-6`}>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_90%_0%,rgb(240_196_19/0.16),transparent_55%)]" />
-      {!art.featured && (
-        <CubeCluster
-          className="absolute -right-4 -bottom-4 h-36 opacity-70"
-          viewBox="0 0 160 140"
-          cubes={[
-            { x: 110, y: 30, s: 34, tone: "maize" },
-            { x: 66, y: 62, s: 28, tone: "blue" },
-            { x: 130, y: 82, s: 22, tone: "navy" },
-          ]}
-        />
-      )}
-      <div className="relative flex flex-1 flex-col">
-        <p className="inline-flex items-center gap-2 text-sm font-semibold text-maize">
-          <Sparkles aria-hidden="true" className="size-4" />
-          {featured.kicker}
-        </p>
-        {art.featured ? (
-          <FeaturedArt className="mt-4" />
-        ) : (
-          <Trophy aria-hidden="true" className="mt-5 size-12 text-maize" strokeWidth={1.5} />
-        )}
-        <h2 className="mt-3 text-2xl leading-tight text-fg">{featured.title}</h2>
-        <p className="mt-3 text-fg-2">{featured.body}</p>
-        <Link
-          href="/join"
-          className="mt-auto inline-flex min-h-11 items-center gap-1 self-start pt-6 text-sm font-semibold text-maize hover:underline"
-        >
-          Be part of the next one <ArrowRight aria-hidden="true" className="size-4" />
-        </Link>
-      </div>
-    </section>
+    <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+      {children}
+      <FeaturedPanel featured={featured} />
+    </div>
   );
+}
+
+async function WhatWeDo() {
+  const { whatWeDo } = await getJoinContent();
+  return whatWeDo.length ? <HomeWhatWeDo items={whatWeDo} /> : null;
 }

@@ -4,8 +4,8 @@ import { ClubLinkButtons, MailingListButton } from "@/components/ui/ClubLinkButt
 import { NextEventRow } from "@/components/ui/EventCards";
 import { button, card } from "@/components/ui/styles";
 import { getEventLists } from "@/lib/events";
-import { COMMUNITY_KEYS } from "@/lib/links";
 import { callName } from "@/lib/names";
+import { getCommunityLinks } from "@/lib/site-content-data";
 import type { Profile } from "@/lib/types";
 
 /**
@@ -13,7 +13,7 @@ import type { Profile } from "@/lib/types";
  * after signing up (/join/done) and to members who open /join again.
  */
 export async function YoureIn({ profile }: { profile: Profile }) {
-  const { upcoming } = await getEventLists();
+  const [{ upcoming }, links] = await Promise.all([getEventLists(), getCommunityLinks()]);
 
   return (
     <div className="text-center">
@@ -38,7 +38,7 @@ export async function YoureIn({ profile }: { profile: Profile }) {
 
       <h2 className="mt-8 text-left text-xl text-fg">Join the community</h2>
       <div className="mt-3 text-left">
-        <ClubLinkButtons keys={COMMUNITY_KEYS} />
+        <ClubLinkButtons links={links} />
       </div>
 
       <div className={`mt-6 ${card} flex flex-col gap-3 p-4 sm:flex-row`}>

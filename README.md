@@ -11,7 +11,7 @@ Next.js 16 (App Router, Cache Components) + Supabase (Postgres, Google auth, Rea
 | `src/app/(present)/officer/events/[id]/present` | Full-screen QR / code / live count |
 | `src/app/auth/callback` | Google OAuth callback (re-checks umich.edu) |
 | `src/lib/` | Supabase clients, auth helpers, time formatting, links config |
-| `src/lib/links.ts` | **Edit this** to fill in Discord, Instagram, etc. |
+| `/officer/content` | Officers edit the community links, Join page FAQ / “What we do” and the home Featured panel (stored in the database). Fixed links (email, calendar, mailing list) are in `src/lib/links.ts` |
 | `supabase/migrations/` | Database schema, RLS policies and functions |
 | `supabase/tests/` | Security tests |
 
@@ -22,6 +22,7 @@ Next.js 16 (App Router, Cache Components) + Supabase (Postgres, Google auth, Rea
 - **Check-in** happens only through `public.check_in(code)`, a `security definer` function. It checks the code, that check-in is open (auto-closes at the end time unless an officer reopened it), and that the user hasn't checked in yet. It also rate-limits wrong codes (10 per 10 minutes). Members have no `INSERT` on `attendance`.
 - **Officers**: `profiles.is_officer` can't be changed through the API. Only `public.set_officer()` changes it, only officers can call it, and it refuses to remove the last officer.
 - **umich.edu only**, enforced in three places: the Supabase "Before User Created" hook (`public.hook_umich_only`), the OAuth callback, and the database functions/policies (JWT email check).
+- **Site content** (links, FAQ, Featured panel): anyone can read it, only officers change it, through `public.save_*` functions that replace a section in one transaction and refuse to overwrite a newer save. Who edited last is recorded by triggers and only officers can read it.
 - **No secret key anywhere.** The app uses only the publishable key; everything runs as the signed-in user under RLS.
 
 ## Local development

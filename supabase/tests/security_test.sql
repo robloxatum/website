@@ -1436,6 +1436,238 @@ do $$ begin
 end $$;
 reset role;
 
+-------------------------------------------------------------------------------
+-- Site content (links, FAQ, what we do, featured panel)
+-------------------------------------------------------------------------------
+-- Officer a, member c (set here so earlier sections can't change it).
+update public.profiles set is_officer = true where id = '00000000-0000-0000-0000-00000000000a';
+
+-- Seeded with the site's content; nobody has edited it yet.
+do $$ begin
+  assert (select count(*) from public.community_links where visible) >= 1, 'site content: links are seeded';
+  assert (select count(*) from public.join_what_we_do) = 4, 'site content: four what-we-do cards';
+  assert (select count(*) from public.featured_panel) = 1, 'site content: one featured panel row';
+end $$;
+
+-- Signed-out visitors: read shown content; can't write, save or see who edited.
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
+set local role anon;
+do $$ begin
+  perform label, url, blurb, visible from public.community_links;
+  perform question, answer from public.join_faq;
+  perform key, title, body from public.join_what_we_do;
+  perform enabled, title, body, link_text, link_href from public.featured_panel;
+  begin
+    perform 1 from public.site_content_edits;
+    raise exception 'FAIL: anon read site_content_edits';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into public.community_links (position, label, url) values (99, 'Hacked', 'https://evil.example');
+    raise exception 'FAIL: anon added a link';
+  exception when insufficient_privilege then null; end;
+  begin
+    update public.featured_panel set title = 'Hacked';
+    raise exception 'FAIL: anon edited the featured panel';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform public.save_community_links(null, '[]');
+    raise exception 'FAIL: anon saved links';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform public.save_join_content(null, '[]', '[]');
+    raise exception 'FAIL: anon saved the FAQ';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform public.save_featured_panel(null, false, 'Hacked', 'Hacked', null, null);
+    raise exception 'FAIL: anon saved the featured panel';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+
+-- A member: reads shown content; can't write, save or see who edited.
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000c","email":"newbie@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare v_rows int; v_links int := (select count(*) from public.community_links);
+begin
+  assert not (select is_officer from public.profiles where id = auth.uid()), 'site content: c is a member';
+  assert (select count(*) from public.site_content_edits) = 0, 'members cannot read who edited site content';
+  begin
+    insert into public.community_links (position, label, url) values (99, 'Hacked', 'https://evil.example');
+    raise exception 'FAIL: member added a link';
+  exception when insufficient_privilege then null; end;
+  delete from public.community_links;
+  get diagnostics v_rows = row_count;
+  assert v_rows = 0, 'members cannot remove links';
+  delete from public.join_faq;
+  get diagnostics v_rows = row_count;
+  assert v_rows = 0, 'members cannot remove FAQ questions';
+  update public.join_what_we_do set title = 'Hacked';
+  get diagnostics v_rows = row_count;
+  assert v_rows = 0, 'members cannot edit what we do';
+  update public.featured_panel set title = 'Hacked';
+  get diagnostics v_rows = row_count;
+  assert v_rows = 0, 'members cannot edit the featured panel';
+  begin
+    update public.community_links set url = 'https://evil.example';
+    raise exception 'FAIL: member updated a link';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform public.save_community_links(null, '[]');
+    raise exception 'FAIL: member saved links';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform public.save_join_content(null, '[]', '[]');
+    raise exception 'FAIL: member saved the FAQ';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform public.save_featured_panel(null, false, 'Hacked', 'Hacked', null, null);
+    raise exception 'FAIL: member saved the featured panel';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into public.site_content_edits (section, updated_by) values ('links', auth.uid());
+    raise exception 'FAIL: member wrote an edit record';
+  exception when insufficient_privilege then null; end;
+  assert (select count(*) from public.community_links) = v_links, 'members changed no links';
+end $$;
+reset role;
+
+-- Officer: saves each section; who and when is recorded by the database.
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000a","email":"officer@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare v_at timestamptz; v_bad text;
+begin
+  assert (select private.is_officer()), 'site content: a is an officer';
+  assert (select count(*) from public.site_content_edits) = 0, 'site content: no edits yet';
+
+  v_at := public.save_community_links(null, '[
+    {"label":"Discord","url":"https://discord.gg/abc","blurb":"Chat","visible":true},
+    {"label":"Secret","url":"https://example.com/s","blurb":"","visible":false},
+    {"label":"Instagram","url":"https://www.instagram.com/x","blurb":"Photos","visible":true}
+  ]');
+  assert v_at is not null, 'saving links returns the edit time';
+  assert (select array_agg(label order by position) from public.community_links) = array['Discord', 'Secret', 'Instagram'],
+    'links saved in order';
+  assert (select updated_by from public.site_content_edits where section = 'links') = auth.uid(),
+    'the edit records the officer';
+  assert (select updated_at from public.site_content_edits where section = 'links') = v_at, 'the edit records the time';
+
+  -- Saving from a stale page is refused instead of overwriting.
+  begin
+    perform public.save_community_links(null, '[]');
+    raise exception 'FAIL: stale links save overwrote newer changes';
+  exception when serialization_failure then null; end;
+  begin
+    perform public.save_community_links(v_at - interval '1 second', '[]');
+    raise exception 'FAIL: stale links save overwrote newer changes';
+  exception when serialization_failure then null; end;
+  assert (select count(*) from public.community_links) = 3, 'a refused save changes nothing';
+
+  -- Links: https only.
+  foreach v_bad in array array[
+    'http://example.com', 'javascript:alert(1)', 'mailto:a@b.com', 'https://', 'https://localhost',
+    '//example.com', 'https://EXAMPLE.com', 'https://example.com/a b', 'https://example.com/"><script>',
+    'https://user:pw@example.com', 'https://example.com:8443'
+  ] loop
+    begin
+      perform public.save_community_links(v_at, jsonb_build_array(jsonb_build_object('label', 'X', 'url', v_bad)));
+      raise exception 'FAIL: link URL accepted: %', v_bad;
+    exception when check_violation then null; end;
+  end loop;
+  begin
+    perform public.save_community_links(v_at, '[{"label":"<b>Hi</b>","url":"https://example.com"}]');
+    raise exception 'FAIL: HTML label accepted';
+  exception when check_violation then null; end;
+  begin
+    perform public.save_community_links(v_at, '[{"label":"","url":"https://example.com"}]');
+    raise exception 'FAIL: empty label accepted';
+  exception when check_violation then null; end;
+  begin
+    perform public.save_community_links(v_at, (select jsonb_agg(jsonb_build_object('label', 'L' || i, 'url', 'https://example.com'))
+                                                  from generate_series(1, 13) i));
+    raise exception 'FAIL: 13 links accepted';
+  exception when invalid_parameter_value then null; end;
+
+  -- FAQ and what we do.
+  v_at := public.save_join_content(null,
+    '[{"question":"Cost?","answer":"Free."},{"question":"Who?","answer":"Any U-M student."}]',
+    '[{"key":"game_night","title":"Nights","body":"Play."},{"key":"social","title":"Hang","body":"Meet."},
+      {"key":"game_jam","title":"Jams","body":"Build."},{"key":"workshop","title":"Learn","body":"Script."}]');
+  assert (select array_agg(question order by position) from public.join_faq) = array['Cost?', 'Who?'], 'FAQ saved in order';
+  assert (select title from public.join_what_we_do where key = 'workshop') = 'Learn', 'what we do saved';
+  assert (select updated_by from public.site_content_edits where section = 'join') = auth.uid(), 'join edit records the officer';
+  begin
+    perform public.save_join_content(v_at, '[{"question":"<script>x</script>","answer":"a"}]',
+      (select jsonb_agg(jsonb_build_object('key', key, 'title', title, 'body', body)) from public.join_what_we_do));
+    raise exception 'FAIL: HTML question accepted';
+  exception when check_violation then null; end;
+  begin
+    perform public.save_join_content(v_at, '[]', '[{"key":"game_night","title":"a","body":"b"}]');
+    raise exception 'FAIL: save without all four cards accepted';
+  exception when invalid_parameter_value then null; end;
+  begin
+    perform public.save_join_content(v_at, '[]',
+      '[{"key":"game_night","title":"a","body":"b"},{"key":"game_night","title":"a","body":"b"},
+        {"key":"rave","title":"a","body":"b"},{"key":"workshop","title":"a","body":"b"}]');
+    raise exception 'FAIL: duplicate/unknown card keys accepted';
+  exception when invalid_parameter_value then null; end;
+  begin
+    insert into public.join_what_we_do (key, position, title, body) values ('rave', 9, 'x', 'y');
+    raise exception 'FAIL: officer added a what-we-do card';
+  exception when insufficient_privilege then null; end;
+
+  -- Featured panel: site path or https link, both link fields or neither.
+  v_at := public.save_featured_panel(null, false, 'Jam', 'Teams built games.', 'Join', '/join');
+  assert (select not enabled and link_href = '/join' from public.featured_panel), 'featured panel saved';
+  assert (select updated_by from public.site_content_edits where section = 'featured') = auth.uid(), 'featured edit records the officer';
+  v_at := public.save_featured_panel(v_at, true, 'Jam', 'Teams built games.', null, null);
+  v_at := public.save_featured_panel(v_at, true, 'Jam', 'Teams built games.', 'Play', 'https://www.roblox.com/games/1');
+  foreach v_bad in array array[
+    '//evil.com', '/\evil.com', '/..//evil.com', '/%2e%2e//evil.com', '/a/./b', 'javascript:alert(1)',
+    'http://example.com', 'join', '/a b'
+  ] loop
+    begin
+      perform public.save_featured_panel(v_at, true, 'Jam', 'Body', 'Go', v_bad);
+      raise exception 'FAIL: featured link accepted: %', v_bad;
+    exception when check_violation then null; end;
+  end loop;
+  begin
+    perform public.save_featured_panel(v_at, true, 'Jam', 'Body', 'Go', null);
+    raise exception 'FAIL: link text without a link accepted';
+  exception when check_violation then null; end;
+  begin
+    perform public.save_featured_panel(v_at, true, '', 'Body', null, null);
+    raise exception 'FAIL: empty featured title accepted';
+  exception when check_violation then null; end;
+
+  -- Edit records can't be forged, even by officers.
+  begin
+    update public.site_content_edits set updated_by = null;
+    raise exception 'FAIL: officer rewrote an edit record';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+
+-- Hidden links are for officers only.
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
+set local role anon;
+do $$ begin
+  assert (select array_agg(label order by position) from public.community_links) = array['Discord', 'Instagram'],
+    'anon sees only shown links';
+end $$;
+reset role;
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000c","email":"newbie@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$ begin
+  assert (select count(*) from public.community_links where label = 'Secret') = 0, 'members cannot see hidden links';
+  assert (select title from public.join_what_we_do where key = 'workshop') = 'Learn', 'members read what we do';
+end $$;
+reset role;
+
 select 'ALL SECURITY TESTS PASSED' as result;
 
 rollback;
