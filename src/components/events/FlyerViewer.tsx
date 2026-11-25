@@ -3,10 +3,13 @@
 import { Maximize2, X } from "lucide-react";
 import Image from "next/image";
 import { useRef, useState } from "react";
+import { button } from "@/components/ui/styles";
 
 /**
- * An event flyer at its natural aspect ratio (never cropped). Tapping it opens
- * a full-screen view in a native <dialog> (Escape, the X or tapping outside closes it).
+ * An event flyer at its natural aspect ratio (never cropped), under a heading
+ * row with a "Full screen" button. Tapping the flyer or that button opens a
+ * full-screen view in a native <dialog> (Escape, the X or tapping outside
+ * closes it). Nothing sits on top of the flyer image itself.
  */
 export function FlyerViewer({
   src,
@@ -15,6 +18,8 @@ export function FlyerViewer({
   alt,
   sizes = "(min-width: 640px) 576px, calc(100vw - 40px)",
   eager = false,
+  heading,
+  headingId,
 }: {
   src: string;
   width: number;
@@ -23,40 +28,55 @@ export function FlyerViewer({
   sizes?: string;
   /** Load right away (the flyer is above the fold next to the event details on desktop). */
   eager?: boolean;
+  /** Heading shown left of the Full screen button (an h2). */
+  heading: string;
+  headingId?: string;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState(false);
 
+  const openFull = () => {
+    setOpen(true);
+    dialogRef.current?.showModal();
+  };
+
   return (
     <>
-      <button
-        type="button"
-        onClick={() => {
-          setOpen(true);
-          dialogRef.current?.showModal();
-        }}
-        className="group relative mx-auto block w-full max-w-xl cursor-zoom-in overflow-hidden rounded-xl border border-line/60 bg-bg-2"
-        aria-label={`${alt}. Open full screen`}
-        title="Open full screen"
-      >
-        <Image
-          src={src}
-          alt={alt}
-          width={width}
-          height={height}
-          sizes={sizes}
-          loading={eager ? "eager" : undefined}
-          className="h-auto w-full"
-        />
-        {/* Small icon in the top-right corner, so it never covers the bottom of a flyer
-            (where the QR code and location usually are). The button's label says what it does. */}
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute top-2 right-2 grid size-8 place-items-center rounded-full border border-line/60 bg-bg/80 text-fg shadow-card backdrop-blur transition-colors duration-150 group-hover:bg-maize group-hover:text-navy group-focus-visible:bg-maize group-focus-visible:text-navy"
+      {/* Heading and button line up with the flyer, which is centered at up to max-w-xl. */}
+      <div className="mx-auto max-w-xl">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h2 id={headingId} className="text-xl text-fg">
+            {heading}
+          </h2>
+          <button
+            type="button"
+            onClick={openFull}
+            title="Open full screen"
+            aria-label={`Open ${alt} full screen`}
+            className={button({ variant: "ghost", size: "sm", className: "-mr-2" })}
+          >
+            <Maximize2 aria-hidden="true" />
+            Full screen
+          </button>
+        </div>
+        <button
+          type="button"
+          onClick={openFull}
+          className="group relative block w-full cursor-zoom-in overflow-hidden rounded-xl border border-line/60 bg-bg-2"
+          aria-label={`${alt}. Open full screen`}
+          title="Open full screen"
         >
-          <Maximize2 className="size-4" />
-        </span>
-      </button>
+          <Image
+            src={src}
+            alt={alt}
+            width={width}
+            height={height}
+            sizes={sizes}
+            loading={eager ? "eager" : undefined}
+            className="h-auto w-full"
+          />
+        </button>
+      </div>
 
       <dialog
         ref={dialogRef}
