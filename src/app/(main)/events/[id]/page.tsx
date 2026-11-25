@@ -107,8 +107,9 @@ async function EventDetails({ params }: { params: PageProps<"/events/[id]">["par
 
         {flyer && (
           <section aria-labelledby="flyer-heading" className="mt-8 lg:col-start-2 lg:row-span-4 lg:row-start-1 lg:mt-8">
-            <h2 id="flyer-heading" className="mb-3 text-xl text-fg">Flyer</h2>
             <FlyerViewer
+              heading="Flyer"
+              headingId="flyer-heading"
               src={flyerUrl(flyer.path)}
               width={flyer.width}
               height={flyer.height}

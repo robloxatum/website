@@ -69,7 +69,7 @@ export function RsvpToggle({ event, className = "" }: { event: CalendarEvent; cl
       <div className={className}>
         <Link
           href={`/login?next=${encodeURIComponent(`/events/${event.id}`)}`}
-          className={button({ variant: "secondary", size: "lg" })}
+          className={button({ variant: "secondary", size: "lg", className: "w-full sm:w-auto" })}
         >
           <LogIn aria-hidden="true" />
           Sign in to RSVP
@@ -89,7 +89,8 @@ export function RsvpToggle({ event, className = "" }: { event: CalendarEvent; cl
         className={button({
           variant: going ? "primary" : "secondary",
           size: "lg",
-          className: state.kind === "loading" ? "opacity-60" : "",
+          // Full width on phones, like the other event-page buttons.
+          className: `w-full sm:w-auto ${state.kind === "loading" ? "opacity-60" : ""}`,
         })}
       >
         {going ? <CircleCheck aria-hidden="true" /> : <Hand aria-hidden="true" />}
