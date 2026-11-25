@@ -15,11 +15,39 @@ import { button, card, container } from "@/components/ui/styles";
 import { coverFor } from "@/lib/event-covers";
 import { eventStatus, getEventLists, getPublicEvent } from "@/lib/events";
 import { flyerOf, flyerUrl } from "@/lib/flyers";
+import type { PublicEvent } from "@/lib/types";
+import { coverPreviewImage, pageMetadata } from "@/lib/metadata";
 import { formatLongDate, formatTimeRange } from "@/lib/time";
 
+/** Link previews: the event's cover, title, and date · time · place. */
 export async function generateMetadata({ params }: PageProps<"/events/[id]">): Promise<Metadata> {
   const event = await getPublicEvent((await params).id);
-  return event ? { title: event.title, description: `${formatLongDate(event.starts_at)} · ${event.location || "Location TBA"}` } : {};
+  if (!event) return { title: "Event not found" };
+  // Same cover as the event's card and page (cached lists).
+  const lists = await getEventLists();
+  const listed = [...lists.upcoming, ...lists.past].find((e) => e.id === event.id);
+  const cover = listed ? listed.cover : coverFor(event);
+  const when = `${formatLongDate(event.starts_at)} · ${formatTimeRange(event.starts_at, event.ends_at)}`;
+  return pageMetadata({
+    title: event.title,
+    description: `${when} · ${event.location || "Location TBA"}`,
+    path: `/events/${event.id}`,
+    image: coverPreviewImage(cover, event.title),
+  });
+}
+
+/**
+ * Prerender every listed event, so its cover, title, details and flyer are in
+ * the first HTML (fast first paint, link previews without waiting). Only what
+ * depends on the current time or the visitor streams in: status, attendance,
+ * RSVP and the check-in / calendar buttons. Events created later render on
+ * first visit and are cached the same way (officer edits refresh "events").
+ */
+export async function generateStaticParams() {
+  const { upcoming, past } = await getEventLists();
+  const ids = [...upcoming, ...past].map((e) => ({ id: e.id }));
+  // At least one entry is required; "none" isn't a UUID, so it's a 404.
+  return ids.length ? ids : [{ id: "none" }];
 }
 
 export default function EventPage({ params }: PageProps<"/events/[id]">) {
@@ -29,11 +57,18 @@ export default function EventPage({ params }: PageProps<"/events/[id]">) {
         <ArrowLeft aria-hidden="true" className="size-4" />
         All events
       </Link>
-      <Suspense fallback={<Skeleton className="mt-3 h-96" />}>
+      {/* Only for events not prerendered yet. Tall, so the footer doesn't jump when the event arrives. */}
+      <Suspense fallback={<Skeleton className="mt-3 h-[150dvh]" />}>
         <EventDetails params={params} />
       </Suspense>
     </div>
   );
+}
+
+/** Upcoming / live / ended depends on the current time: worked out per request. */
+async function currentStatus(event: PublicEvent) {
+  await connection();
+  return eventStatus(event);
 }
 
 async function EventDetails({ params }: { params: PageProps<"/events/[id]">["params"] }) {
@@ -45,21 +80,13 @@ async function EventDetails({ params }: { params: PageProps<"/events/[id]">["par
   // Same cover as the event's card: lists pick covers so neighbours differ, so
   // look the event up in its list (cached) and fall back to its own pick.
   const lists = await getEventLists();
-  // Upcoming / live / ended depends on the current time, so work it out per
-  // request (this part already streams inside <Suspense>; the cached data above
-  // stays cached).
-  await connection();
-  const status = eventStatus(event);
   const listed = [...lists.upcoming, ...lists.past].find((e) => e.id === event.id);
   const cover = listed ? listed.cover : coverFor(event);
-  // Aggregate count for ended events only (same rules as the list).
-  const attendance = status === "completed" ? (listed?.attendance ?? null) : null;
 
   const facts = [
     { icon: CalendarDays, label: "Date", value: formatLongDate(event.starts_at) },
     { icon: Clock3, label: "Time", value: formatTimeRange(event.starts_at, event.ends_at) },
     { icon: MapPin, label: "Location", value: event.location || "Location TBA" },
-    ...(attendance !== null ? [{ icon: Users, label: "Attendance", value: `${attendance} attended` }] : []),
   ];
 
   return (
@@ -81,29 +108,24 @@ async function EventDetails({ params }: { params: PageProps<"/events/[id]">["par
         <div className="lg:col-start-1">
           <div className="-mt-3 flex flex-wrap items-center gap-2">
             <CategoryBadge category={event.category} className="relative" />
-            <StatusPill status={status} />
+            <Suspense fallback={null}>
+              <LiveStatus event={event} />
+            </Suspense>
           </div>
           <h1 className="mt-3 text-3xl leading-tight text-fg sm:text-4xl">{event.title}</h1>
         </div>
 
         <dl className="mt-6 grid gap-3 sm:grid-cols-2 lg:col-start-1">
-          {facts.map(({ icon: Icon, label, value }) => (
-            <div key={label} className="flex items-center gap-3 rounded-xl border border-line/60 bg-bg-2/60 p-3">
-              <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-elevated">
-                <Icon aria-hidden="true" className="size-5 text-maize" />
-              </span>
-              <div className="min-w-0">
-                <dt className="text-xs font-semibold tracking-wider text-fg-3 uppercase">{label}</dt>
-                <dd className="font-semibold text-fg">{value}</dd>
-              </div>
-            </div>
+          {facts.map((f) => (
+            <Fact key={f.label} {...f} />
           ))}
+          <Suspense fallback={null}>
+            <AttendanceFact event={event} attendance={listed?.attendance ?? null} />
+          </Suspense>
         </dl>
 
-        {/* Checked-in members only (worked out in the browser), while the event isn't over. */}
-        {status !== "completed" && (
-          <JoinGameIfCheckedIn eventId={event.id} startsAt={event.starts_at} endsAt={event.ends_at} className="mt-6 lg:col-start-1" />
-        )}
+        {/* Checked-in members only (worked out in the browser); it shows nothing once the event is over. */}
+        <JoinGameIfCheckedIn eventId={event.id} startsAt={event.starts_at} endsAt={event.ends_at} className="mt-6 lg:col-start-1" />
 
         {flyer && (
           <section aria-labelledby="flyer-heading" className="mt-8 lg:col-start-2 lg:row-span-4 lg:row-start-1 lg:mt-8">
@@ -124,23 +146,58 @@ async function EventDetails({ params }: { params: PageProps<"/events/[id]">["par
           {event.description && (
             <p className="mt-6 max-w-prose text-lg leading-relaxed whitespace-pre-line text-fg-2">{event.description}</p>
           )}
-
-          {status !== "completed" && <RsvpToggle event={event} className="mt-8" />}
-
-          {/* Wraps to a second row when the buttons don't fit side by side (e.g. tablets). */}
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-            {status !== "completed" && (
-              <Link href="/checkin" className={button({ size: "lg" })}>
-                <QrCode aria-hidden="true" />
-                {status === "live" ? "I'm here: check in" : "Check in at the event"}
-              </Link>
-            )}
-            {/* Past events: no "Add to calendar" (or RSVP). */}
-            {status !== "completed" && <AddToCalendar event={event} full="phone" />}
-            <CalendarButton />
-          </div>
+          <Suspense fallback={null}>
+            <EventActions event={event} />
+          </Suspense>
         </div>
       </div>
     </article>
+  );
+}
+
+/** One fact (date, time, ...): valid dl markup, with the icon inside the dt. */
+function Fact({ icon: Icon, label, value }: { icon: typeof CalendarDays; label: string; value: string }) {
+  return (
+    <div className="relative flex min-h-16 flex-col justify-center rounded-xl border border-line/60 bg-bg-2/60 py-3 pr-3 pl-16">
+      <dt className="text-xs font-semibold tracking-wider text-fg-3 uppercase">
+        <span aria-hidden="true" className="absolute top-1/2 left-3 grid size-10 -translate-y-1/2 place-items-center rounded-lg bg-elevated">
+          <Icon className="size-5 text-maize" />
+        </span>
+        {label}
+      </dt>
+      <dd className="min-w-0 font-semibold text-fg">{value}</dd>
+    </div>
+  );
+}
+
+async function LiveStatus({ event }: { event: PublicEvent }) {
+  return <StatusPill status={await currentStatus(event)} />;
+}
+
+/** Aggregate count, for ended events only (same rules as the list). */
+async function AttendanceFact({ event, attendance }: { event: PublicEvent; attendance: number | null }) {
+  if ((await currentStatus(event)) !== "completed" || attendance === null) return null;
+  return <Fact icon={Users} label="Attendance" value={`${attendance} attended`} />;
+}
+
+/** RSVP, check in and calendar buttons. Past events: subscribe only. */
+async function EventActions({ event }: { event: PublicEvent }) {
+  const status = await currentStatus(event);
+  return (
+    <>
+      {status !== "completed" && <RsvpToggle event={event} className="mt-8" />}
+
+      {/* Wraps to a second row when the buttons don't fit side by side (e.g. tablets). */}
+      <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+        {status !== "completed" && (
+          <Link href="/checkin" className={button({ size: "lg" })}>
+            <QrCode aria-hidden="true" />
+            {status === "live" ? "I'm here: check in" : "Check in at the event"}
+          </Link>
+        )}
+        {status !== "completed" && <AddToCalendar event={event} full="phone" />}
+        <CalendarButton />
+      </div>
+    </>
   );
 }

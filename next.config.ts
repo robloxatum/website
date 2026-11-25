@@ -50,7 +50,23 @@ const robloxImages = [{ protocol: "https" as const, hostname: "**.rbxcdn.com", p
 // (restart `next dev` after adding one). Inlined as process.env.DEFAULT_COVERS.
 const defaultCovers = readCoverManifest(join(process.cwd(), "public", "art", "covers"));
 
+// Link-preview crawlers get the page's metadata (og:title, og:image) in the
+// <head> up front instead of streamed (they don't run JavaScript). Next's own
+// list (copied from next/dist/shared/lib/router/utils/html-bots.js, covers
+// iMessage/Instagram via facebookexternalhit + Twitterbot, Discord, WhatsApp,
+// Slack, ...) plus GroupMe, Snapchat, Telegram and generic preview bots.
+const htmlLimitedBots = new RegExp(
+  [
+    "[\\w-]+-Google|Google-[\\w-]+|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare",
+    "quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot",
+    "LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight",
+    "GroupMe|Snapchat|TelegramBot|Pinterest|Iframely|Embedly|bot\\b|crawler|spider|preview",
+  ].join("|"),
+  "i",
+);
+
 const nextConfig: NextConfig = {
+  htmlLimitedBots,
   env: { DEFAULT_COVERS: JSON.stringify(defaultCovers) },
   cacheComponents: true,
   partialPrefetching: true,

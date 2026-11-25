@@ -1,6 +1,10 @@
+import type { Metadata } from "next";
 import { OfficerBottomNav, OfficerSidebar } from "@/components/officer/OfficerNav";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { container } from "@/components/ui/styles";
+
+/** Officers only: keep the portal out of search results. */
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 /** Officer portal: sidebar on desktop, bottom nav on phones. Each page checks officer status. */
 export default function OfficerLayout({ children }: { children: React.ReactNode }) {

@@ -3,7 +3,7 @@
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import type { GameLink } from "./game-links";
-import { createClient } from "./supabase/client";
+import { loadClient } from "./supabase/client-lazy";
 
 export type GameLinkState =
   | { status: "loading" }
@@ -17,21 +17,23 @@ export type GameLinkState =
  * Play button and the Join panel on /play, say) must share it: subscribing
  * twice fails, and one unsubscribing would cut the other off.
  */
-type Shared = { listeners: Set<() => void>; channel: RealtimeChannel; removeTimer?: ReturnType<typeof setTimeout> };
+type Shared = { listeners: Set<() => void>; channel?: RealtimeChannel; removeTimer?: ReturnType<typeof setTimeout> };
 const shared = new Map<string, Shared>();
 
 /** Calls onChange when the event's link changes and after each (re)connect. Returns an unsubscribe. */
 function listenForChanges(eventId: string, onChange: () => void): () => void {
   let entry = shared.get(eventId);
   if (!entry) {
-    const supabase = createClient();
-    const channel = supabase.channel(`game:${eventId}`, { config: { private: true } });
-    const created: Shared = { listeners: new Set(), channel };
+    const created: Shared = { listeners: new Set() };
     shared.set(eventId, created);
     const notify = () => created.listeners.forEach((fn) => fn());
     void (async () => {
-      await supabase.realtime.setAuth(); // private channels authorize with the user's JWT
+      const supabase = await loadClient();
       if (shared.get(eventId) !== created) return; // removed meanwhile
+      const channel = supabase.channel(`game:${eventId}`, { config: { private: true } });
+      created.channel = channel;
+      await supabase.realtime.setAuth(); // private channels authorize with the user's JWT
+      if (shared.get(eventId) !== created) return void supabase.removeChannel(channel);
       channel
         .on("broadcast", { event: "changed" }, notify)
         .subscribe((status) => {
@@ -50,7 +52,8 @@ function listenForChanges(eventId: string, onChange: () => void): () => void {
     current.removeTimer = setTimeout(() => {
       if (current.listeners.size > 0 || shared.get(eventId) !== current) return;
       shared.delete(eventId);
-      void createClient().removeChannel(current.channel);
+      const channel = current.channel;
+      if (channel) void loadClient().then((supabase) => supabase.removeChannel(channel));
     }, 1000);
   };
 }
@@ -81,12 +84,14 @@ export function useGameLink(
   useEffect(() => {
     const endMs = new Date(endsAt).getTime();
     if (Date.now() >= endMs) return; // already "ended" (initial state)
-    const supabase = createClient();
+    const client = loadClient();
     let cancelled = false;
 
     async function refetch() {
       if (cancelled) return;
       if (Date.now() >= endMs) return setState({ status: "ended" });
+      const supabase = await client;
+      if (cancelled) return;
       const { data, error } = await supabase
         .from("event_game_links")
         .select(withUrl ? "url, label" : "event_id")

@@ -10,7 +10,7 @@ import { BrandIcon } from "@/components/Logo";
 import { ClubLinkButtons } from "@/components/ui/ClubLinkButtons";
 import { NextEventRow } from "@/components/ui/EventCards";
 import { YoureIn } from "@/components/join/YoureIn";
-import { SectionLabel, Skeleton } from "@/components/ui/Primitives";
+import { SectionLabel } from "@/components/ui/Primitives";
 import { button, card, container } from "@/components/ui/styles";
 import { art } from "@/content/art";
 import { pitch, typicalMeeting } from "@/content/join";
@@ -21,20 +21,18 @@ import { getCommunityLinks, getJoinContent } from "@/lib/site-content-data";
 export const metadata: Metadata = {
   title: "Join",
   description: `${pitch} Free, and no experience needed.`,
-  openGraph: { title: "Join Roblox at UM", description: `${pitch} Free, and no experience needed.` },
-  twitter: { title: "Join Roblox at UM", description: `${pitch} Free, and no experience needed.` },
+  alternates: { canonical: "/join" },
+  openGraph: { type: "website", siteName: "Roblox at UM", url: "/join", title: "Join Roblox at UM", description: `${pitch} Free, and no experience needed.` },
+  twitter: { card: "summary_large_image", title: "Join Roblox at UM", description: `${pitch} Free, and no experience needed.` },
 };
 
 // ?src=<label> (from flyer QR codes) is only read by analytics; the page ignores it.
 export default function JoinPage() {
+  // Most visitors are signed out (they just scanned a flyer), so the landing
+  // itself is the loading state: it's in the first HTML, and nothing moves when
+  // the session check finishes. Members then get "You're in" instead.
   return (
-    <Suspense
-      fallback={
-        <div className={`${container} max-w-2xl! pt-6 sm:pt-10`}>
-          <Skeleton className="h-96" />
-        </div>
-      }
-    >
+    <Suspense fallback={<JoinLanding />}>
       <JoinOrWelcome />
     </Suspense>
   );
