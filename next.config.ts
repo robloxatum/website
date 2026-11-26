@@ -2,6 +2,7 @@ import { join } from "node:path";
 import type { NextConfig } from "next";
 import { readCoverManifest } from "./src/lib/cover-manifest";
 import { e2eEnabled } from "./src/lib/e2e";
+import { secureAuthCookies } from "./src/lib/supabase/cookie-options";
 
 // End-to-end test builds (scripts/e2e.mjs) only. Refuse to make one that could
 // reach the real database: the test sign-in route must never exist there.
@@ -79,7 +80,8 @@ const nextConfig: NextConfig = {
   // their own folder, so they never mix with a normal build.
   ...(e2e ? { pageExtensions: ["e2e.ts", "tsx", "ts", "jsx", "js"], distDir: ".next-e2e" } : {}),
   htmlLimitedBots,
-  env: { DEFAULT_COVERS: JSON.stringify(defaultCovers) },
+  // AUTH_COOKIE_SECURE: auth cookies are Secure in production builds only (see cookie-options.ts).
+  env: { DEFAULT_COVERS: JSON.stringify(defaultCovers), AUTH_COOKIE_SECURE: secureAuthCookies(process.env.VERCEL_ENV) ? "1" : "" },
   cacheComponents: true,
   partialPrefetching: true,
   // AVIF first (smallest), WebP for browsers without AVIF. 75 is the default

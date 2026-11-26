@@ -19,7 +19,25 @@ function cleanUsername(raw: unknown) {
 
 export type RobloxPreview =
   | { status: "found"; name: string; displayName: string; headshot: string | null }
-  | { status: "not_found" | "unavailable" | "invalid"; message: string };
+  | { status: "not_found" | "unavailable" | "invalid" | "rate_limited"; message: string };
+
+const TOO_MANY_LOOKUPS = "You've checked a lot of Roblox usernames in the last minute. Wait a minute and try again.";
+
+/**
+ * About 20 Roblox lookups a minute per member (counted in the database, so it
+ * holds across server instances). False once they're over; true if the check
+ * itself fails.
+ */
+async function takeRobloxLookup() {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("take_roblox_lookup");
+  if (error) {
+    // The check itself failed (database hiccup): don't blame the member.
+    console.error("Couldn't check the Roblox lookup limit", error.message);
+    return true;
+  }
+  return data === true;
+}
 
 /**
  * "Is this you?" check before saving: the Roblox account a username belongs
@@ -30,6 +48,7 @@ export async function previewRobloxUser(rawUsername: string): Promise<RobloxPrev
   if (!(await getUser())) return { status: "unavailable", message: "Please sign in again." };
   const username = cleanUsername(rawUsername);
   if (!ROBLOX_USERNAME.test(username)) return { status: "invalid", message: USERNAME_RULES };
+  if (!(await takeRobloxLookup())) return { status: "rate_limited", message: TOO_MANY_LOOKUPS };
 
   const result = await lookupRobloxUser(username);
   if (result.status === "not_found") {
@@ -73,6 +92,7 @@ export async function saveProfile(
     if (current?.roblox_user_id && current.roblox_username?.toLowerCase() === roblox.toLowerCase()) {
       robloxUserId = current.roblox_user_id;
     } else {
+      if (!(await takeRobloxLookup())) return { error: TOO_MANY_LOOKUPS };
       const result = await lookupRobloxUser(roblox);
       if (result.status === "not_found") {
         return { error: `We couldn't find a Roblox user called “${roblox}”. Check the spelling.` };

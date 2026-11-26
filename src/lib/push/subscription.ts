@@ -21,12 +21,14 @@ const PUSH_HOSTS = [
   /^web\.push\.apple\.com$/, // Safari, iPhone home-screen apps
   /^[a-z0-9-]+\.notify\.windows\.com$/, // Edge (Windows)
 ];
-const LOCAL_TEST = /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?\//;
 
-/** `allowLocal`: end-to-end test builds also accept a local mock push service. */
-export function isPushEndpoint(endpoint: unknown, allowLocal = false): endpoint is string {
+/**
+ * A push-service URL (the database's push_subscriptions_endpoint_check is the
+ * same rule). No exception for local addresses, not even in tests: E2E builds
+ * deliver to a local mock by path instead (lib/push/send.ts).
+ */
+export function isPushEndpoint(endpoint: unknown): endpoint is string {
   if (typeof endpoint !== "string" || endpoint.length > 1000) return false;
-  if (allowLocal && LOCAL_TEST.test(endpoint)) return true;
   let u: URL;
   try {
     u = new URL(endpoint);
@@ -40,10 +42,10 @@ const P256DH = /^[A-Za-z0-9_-]{86,88}$/;
 const AUTH = /^[A-Za-z0-9_-]{22,24}$/;
 
 /** A browser's PushSubscription.toJSON(), checked; null if anything's off. */
-export function parseSubscription(input: unknown, allowLocal = false): SavedSubscription | null {
+export function parseSubscription(input: unknown): SavedSubscription | null {
   if (!input || typeof input !== "object") return null;
   const { endpoint, keys } = input as { endpoint?: unknown; keys?: { p256dh?: unknown; auth?: unknown } };
-  if (!isPushEndpoint(endpoint, allowLocal)) return null;
+  if (!isPushEndpoint(endpoint)) return null;
   const p256dh = typeof keys?.p256dh === "string" ? keys.p256dh.replace(/=+$/, "") : "";
   const auth = typeof keys?.auth === "string" ? keys.auth.replace(/=+$/, "") : "";
   if (!P256DH.test(p256dh) || !AUTH.test(auth)) return null;

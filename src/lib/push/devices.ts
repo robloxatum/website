@@ -1,5 +1,4 @@
 import "server-only";
-import { e2eEnabled } from "@/lib/e2e";
 import { createClient } from "@/lib/supabase/server";
 import { parseSubscription } from "./subscription";
 
@@ -14,7 +13,7 @@ export async function saveDevice(
   settings: Partial<DeviceSettings>,
   replaces: string | null = null,
 ): Promise<{ error?: string }> {
-  const sub = parseSubscription(subscription, e2eEnabled());
+  const sub = parseSubscription(subscription);
   if (!sub) return { error: "This browser's notification details didn't look right." };
   const supabase = await createClient();
   const { error } = await supabase.rpc("save_push_subscription", {

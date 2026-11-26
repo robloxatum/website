@@ -38,6 +38,7 @@ export default defineConfig({
   ],
   webServer: [
     { command: "node e2e/mock-roblox.mjs", url: "http://127.0.0.1:3299/health", reuseExistingServer: false },
+    { command: "node e2e/mock-push.mjs", url: "http://127.0.0.1:3298/health", reuseExistingServer: false },
     { command: "npx next start -p 3200", url: BASE_URL, reuseExistingServer: false, timeout: 120_000, stdout: "pipe" },
   ],
 });

@@ -39,11 +39,11 @@ async function sendToDevices(rows: Row[], message: PushMessage, opts: { ttl: num
   const result: SendResult = { sent: 0, removed: 0, failed: 0 };
   if (!vapidDetails || !db || rows.length === 0) return result;
   const payload = JSON.stringify(message);
-  const allowLocal = e2eEnabled();
+  const mock = e2eEnabled() ? process.env["E2E_PUSH_SERVICE"] : undefined;
   const gone: string[] = [];
 
   const one = async (row: Row) => {
-    if (!isPushEndpoint(row.endpoint, allowLocal)) {
+    if (!isPushEndpoint(row.endpoint)) {
       gone.push(row.id);
       return;
     }
@@ -54,7 +54,9 @@ async function sendToDevices(rows: Row[], message: PushMessage, opts: { ttl: num
         urgency: opts.urgency,
         topic: message.tag.replace(/[^A-Za-z0-9_-]/g, "").slice(0, 32),
       });
-      const res = await fetch(req.endpoint, {
+      // E2E builds only: the local mock push service gets it instead, by path.
+      const target = mock ? `${mock}${new URL(req.endpoint).pathname}` : req.endpoint;
+      const res = await fetch(target, {
         method: req.method,
         headers: req.headers as Record<string, string>,
         body: req.body ? new Uint8Array(req.body) : undefined,

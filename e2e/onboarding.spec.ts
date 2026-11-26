@@ -1,6 +1,6 @@
 // 1. First-time member: sign-up → /welcome → nickname + Roblox preview → profile greets by nickname.
 import { createClient } from "@supabase/supabase-js";
-import { createUser, PASSWORD, profile } from "./support/db";
+import { clientAs, createUser, PASSWORD, profile } from "./support/db";
 import { expect, signIn, test } from "./support/fixtures";
 
 test("sign-up → welcome → nickname + Roblox preview → profile greets by nickname", async ({ page }) => {
@@ -87,4 +87,29 @@ test("profile: changing the Roblox username shows a readable preview", async ({ 
   await page.getByRole("button", { name: "Yes, save" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Saved!" })).toBeVisible();
   expect((await profile(user.id)).roblox_username).toBe("e2e_player");
+});
+
+test("regression: about 20 Roblox username lookups a minute per member", async ({ page, context }) => {
+  const user = await createUser({ fullName: "Rita Ratelimit" });
+  // Use up this minute's 20 lookups straight through the API.
+  const c = await clientAs(user);
+  for (let i = 0; i < 20; i++) expect((await c.rpc("take_roblox_lookup")).data).toBe(true);
+
+  await signIn(page, user, "/profile");
+  // The auth cookies on localhost (plain http) aren't Secure, or sign-in
+  // would silently fail there; production builds mark them Secure.
+  const auth = (await context.cookies()).filter((k) => k.name.startsWith("sb-"));
+  expect(auth.length).toBeGreaterThan(0);
+  for (const k of auth) expect([k.name, k.secure, k.sameSite]).toEqual([k.name, false, "Lax"]);
+
+  // The "Is this you?" check is refused, and nothing reaches Roblox or the profile.
+  await page.getByLabel(/Roblox username/).fill("e2e_player");
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "checked a lot of Roblox usernames in the last minute" })).toBeVisible();
+  await expect(page.getByText("Is this you?")).toHaveCount(0);
+  expect((await profile(user.id)).roblox_username).toBeNull();
+
+  // A minute's lookups are per member: someone else still gets theirs.
+  const other = await createUser();
+  expect((await (await clientAs(other)).rpc("take_roblox_lookup")).data).toBe(true);
 });
