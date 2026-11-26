@@ -1,8 +1,9 @@
-import { ArrowUpRight, CalendarPlus, Gamepad2, GraduationCap, Link2, Mail, MailPlus } from "lucide-react";
+import { ArrowUpRight, CalendarPlus, Gamepad2, GraduationCap, Link2, MailPlus } from "lucide-react";
 import type { ComponentType } from "react";
 import { DiscordIcon, GroupMeIcon, InstagramIcon, LinkedInIcon } from "@/components/BrandIcons";
-import { CALENDAR_URL, EMAIL_LINK, MAILING_LIST_URL } from "@/lib/links";
+import { CALENDAR_URL, CLUB_EMAIL, MAILING_LIST_URL } from "@/lib/links";
 import { type CommunityLink, type LinkPlatform, linkPlatform } from "@/lib/site-content";
+import { CopyEmailButton } from "./CopyEmailButton";
 import { button } from "./styles";
 
 type Icon = ComponentType<{ className?: string }>;
@@ -25,11 +26,11 @@ export function linkMeta(link: { label: string; url: string }): { action: string
 function ExternalButton({ href, icon: Icon, children, variant = "secondary", size = "lg" }: {
   href: string; icon: Icon; children: React.ReactNode; variant?: "primary" | "secondary"; size?: "md" | "lg";
 }) {
-  const external = !href.startsWith("mailto:");
   return (
     <a
       href={href}
-      {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+      target="_blank"
+      rel="noopener noreferrer"
       className={button({ variant, size, full: true, className: "justify-between! text-left whitespace-normal!" })}
     >
       <span className="inline-flex min-w-0 items-center gap-3">
@@ -37,7 +38,7 @@ function ExternalButton({ href, icon: Icon, children, variant = "secondary", siz
         {children}
       </span>
       <ArrowUpRight aria-hidden="true" className={variant === "primary" ? "" : "text-fg-3"} />
-      {external && <span className="sr-only">(opens in a new tab)</span>}
+      <span className="sr-only">(opens in a new tab)</span>
     </a>
   );
 }
@@ -54,7 +55,7 @@ function Blurb({ label, blurb }: { label: string; blurb: string }) {
 /**
  * Community link buttons, in the order given. With `withBlurb` (the /links
  * page): label and description; otherwise the action ("Join our Discord").
- * `withEmail` adds the officers' email last.
+ * `withEmail` adds the officers' email last (tap to copy it).
  */
 export function ClubLinkButtons({
   links,
@@ -82,9 +83,7 @@ export function ClubLinkButtons({
       })}
       {withEmail && (
         <li>
-          <ExternalButton href={EMAIL_LINK.href} icon={Mail} size={size}>
-            {withBlurb ? <Blurb label={EMAIL_LINK.label} blurb={EMAIL_LINK.blurb} /> : "Email the officers"}
-          </ExternalButton>
+          <CopyEmailButton address={CLUB_EMAIL} size={size} />
         </li>
       )}
     </ul>
