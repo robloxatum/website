@@ -2,13 +2,13 @@
 
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
-import type { GameLink } from "./game-links";
+import { sortServers, suggestServer, type GameServer } from "./game-links";
 import { loadClient } from "./supabase/client-lazy";
 
-export type GameLinkState =
+export type GameServersState =
   | { status: "loading" }
   | { status: "waiting" } // nothing posted (or not readable yet, e.g. before the event starts)
-  | { status: "live"; link: GameLink }
+  | { status: "live"; servers: GameServer[]; suggestedId: string | null }
   | { status: "ended" };
 
 /**
@@ -20,7 +20,7 @@ export type GameLinkState =
 type Shared = { listeners: Set<() => void>; channel?: RealtimeChannel; removeTimer?: ReturnType<typeof setTimeout> };
 const shared = new Map<string, Shared>();
 
-/** Calls onChange when the event's link changes and after each (re)connect. Returns an unsubscribe. */
+/** Calls onChange when the event's servers change and after each (re)connect. Returns an unsubscribe. */
 function listenForChanges(eventId: string, onChange: () => void): () => void {
   let entry = shared.get(eventId);
   if (!entry) {
@@ -62,22 +62,19 @@ function listenForChanges(eventId: string, onChange: () => void): () => void {
 const MAX_TIMEOUT = 2 ** 31 - 1;
 
 /**
- * The event's live game link, kept up to date:
+ * The event's live game servers, kept up to date:
  * - a database trigger sends an EMPTY "changed" message on the private
  *   Realtime topic game:<event id> (officers and checked-in members may
- *   listen); we then re-read the link through RLS, which only returns it to
- *   officers or to members checked in while the event is live;
- * - re-check when the event starts and hide it when it ends;
+ *   listen); we then re-read the servers through RLS, which only returns them
+ *   to officers or to members checked in while the event is live;
+ * - re-check when the event starts and hide them when it ends;
  * - a slow poll and a refetch on focus cover a dropped socket.
+ *
+ * `withUrl` false: only find out HOW MANY servers are up (and how many are
+ * full); the projector and the nav dot never load the links themselves.
  */
-export function useGameLink(
-  eventId: string,
-  startsAt: string,
-  endsAt: string,
-  /** false: only find out WHETHER a link is posted (the projector never loads the link itself). */
-  withUrl = true,
-): GameLinkState {
-  const [state, setState] = useState<GameLinkState>(() =>
+export function useGameServers(eventId: string, startsAt: string, endsAt: string, withUrl = true): GameServersState {
+  const [state, setState] = useState<GameServersState>(() =>
     Date.now() >= new Date(endsAt).getTime() ? { status: "ended" } : { status: "loading" },
   );
 
@@ -86,6 +83,8 @@ export function useGameLink(
     if (Date.now() >= endMs) return; // already "ended" (initial state)
     const client = loadClient();
     let cancelled = false;
+    // The member's place in the check-in order never changes: ask once.
+    let order: number | null | undefined;
 
     async function refetch() {
       if (cancelled) return;
@@ -93,13 +92,24 @@ export function useGameLink(
       const supabase = await client;
       if (cancelled) return;
       const { data, error } = await supabase
-        .from("event_game_links")
-        .select(withUrl ? "url, label" : "event_id")
+        .from("event_game_servers")
+        .select(withUrl ? "id, url, label, is_full, position, created_at" : "id, is_full, position, created_at")
         .eq("event_id", eventId)
-        .maybeSingle<Partial<GameLink>>();
+        .returns<(Partial<GameServer> & { id: string; is_full: boolean; position: number; created_at: string })[]>();
       if (cancelled) return;
       if (error) return; // keep what we have; the poll tries again
-      setState(data ? { status: "live", link: { url: data.url ?? "", label: data.label ?? null } } : { status: "waiting" });
+      if (!data.length) return setState({ status: "waiting" });
+      const servers = sortServers(data).map((s) => ({ id: s.id, url: s.url ?? "", label: s.label ?? "", is_full: s.is_full, position: s.position }));
+      let suggestedId: string | null = null;
+      if (withUrl && servers.filter((s) => !s.is_full).length >= 2) {
+        if (order === undefined) {
+          const { data: n, error: orderError } = await supabase.rpc("my_checkin_order", { p_event_id: eventId });
+          if (cancelled) return;
+          if (!orderError) order = typeof n === "number" ? n : null;
+        }
+        suggestedId = suggestServer(servers, order ?? null)?.id ?? null;
+      }
+      setState({ status: "live", servers, suggestedId });
     }
 
     const unlisten = listenForChanges(eventId, () => void refetch());
@@ -110,7 +120,7 @@ export function useGameLink(
       const ms = new Date(iso).getTime() - Date.now();
       if (ms > 0 && ms < MAX_TIMEOUT) timers.push(setTimeout(fn, ms + 500));
     };
-    at(startsAt, () => void refetch()); // links become readable when the event goes live
+    at(startsAt, () => void refetch()); // servers become readable when the event goes live
     at(endsAt, () => setState({ status: "ended" }));
 
     const poll = setInterval(() => void refetch(), 30000);

@@ -961,6 +961,204 @@ end $$;
 reset role;
 
 -------------------------------------------------------------------------------
+-- Game servers (several per event): officers write; checked-in members read
+-- only while live; max 10 per event; reorder; "Full"; legacy links mirrored.
+-------------------------------------------------------------------------------
+
+-- Setup (as the test runner): an event for the 10-server cap; officer b is
+-- checked in to the live event too, after member c (for my_checkin_order).
+do $$
+declare v_cap uuid;
+begin
+  insert into public.events (title, starts_at, ends_at) values ('Servers cap', now() - interval '10 minutes', now() + interval '1 hour') returning id into v_cap;
+  perform set_config('test.g_cap', v_cap::text, true);
+  insert into public.attendance (event_id, user_id, checked_in_at)
+  values (current_setting('test.g_live')::uuid, '00000000-0000-0000-0000-00000000000b', now() + interval '1 second');
+  assert not exists (select 1 from public.event_game_servers where event_id = current_setting('test.g_live')::uuid),
+    'clearing the legacy link also removed its mirrored server';
+  assert (select count(*) from public.event_game_servers where id = event_id
+           and event_id in (current_setting('test.g_future')::uuid, current_setting('test.g_ended')::uuid)) = 2,
+    'legacy game links are mirrored into event_game_servers (id = event id)';
+end $$;
+
+-- Officer: add, edit, mark full, reorder, cap, bad input; broadcasts stay empty.
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000b","email":"member@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare
+  v_live uuid := current_setting('test.g_live')::uuid;
+  v_cap uuid := current_setting('test.g_cap')::uuid;
+  v_red uuid; v_over uuid; v_rows int;
+begin
+  insert into public.event_game_servers (event_id, url, label, position)
+  values (v_live, 'https://www.roblox.com/share?code=red&type=Server', 'Team Red', 0) returning id into v_red;
+  insert into public.event_game_servers (event_id, url, label, position)
+  values (v_live, 'https://roblox.com/games/1/Overflow', 'Overflow', 1) returning id into v_over;
+  assert (select updated_by from public.event_game_servers where id = v_red) = '00000000-0000-0000-0000-00000000000b',
+    'updated_by defaults to the officer';
+
+  update public.event_game_servers set url = 'https://www.roblox.com/share?code=red2&type=Server', label = 'Team Red 2' where id = v_red;
+  update public.event_game_servers set is_full = true where id = v_over;
+  assert (select is_full from public.event_game_servers where id = v_over), 'officers can mark a server full';
+
+  perform public.reorder_game_servers(v_live, array[v_over, v_red]);
+  assert (select position from public.event_game_servers where id = v_over) = 0
+     and (select position from public.event_game_servers where id = v_red) = 1,
+    'officers can reorder servers';
+
+  begin
+    insert into public.event_game_servers (event_id, url) values (v_live, 'https://roblox.com/games/1');
+    raise exception 'FAIL: server without a label accepted';
+  exception when not_null_violation then null; end;
+  begin
+    update public.event_game_servers set url = 'https://evil.example/roblox.com/games/1' where id = v_red;
+    raise exception 'FAIL: non-roblox.com server accepted';
+  exception when check_violation then null; end;
+  begin
+    update public.event_game_servers set url = 'https://roblox.com.evil.example/games/1' where id = v_red;
+    raise exception 'FAIL: look-alike host accepted';
+  exception when check_violation then null; end;
+  begin
+    update public.event_game_servers set url = 'http://www.roblox.com/games/1' where id = v_red;
+    raise exception 'FAIL: http server accepted';
+  exception when check_violation then null; end;
+  begin
+    update public.event_game_servers set url = 'javascript:alert(1)//https://roblox.com/' where id = v_red;
+    raise exception 'FAIL: javascript: server accepted';
+  exception when check_violation then null; end;
+  begin
+    update public.event_game_servers set label = repeat('x', 61) where id = v_red;
+    raise exception 'FAIL: 61-character label accepted';
+  exception when check_violation then null; end;
+  begin
+    update public.event_game_servers set label = E'Team\nRed' where id = v_red;
+    raise exception 'FAIL: label with a line break accepted';
+  exception when check_violation then null; end;
+  begin
+    update public.event_game_servers set label = '' where id = v_red;
+    raise exception 'FAIL: empty label accepted';
+  exception when check_violation then null; end;
+  begin
+    update public.event_game_servers set event_id = v_cap where id = v_red;
+    raise exception 'FAIL: server moved to another event';
+  exception when check_violation then null; end;
+
+  for i in 1..10 loop
+    insert into public.event_game_servers (event_id, url, label, position) values (v_cap, 'https://roblox.com/games/' || i, 'Server ' || i, i);
+  end loop;
+  begin
+    insert into public.event_game_servers (event_id, url, label) values (v_cap, 'https://roblox.com/games/11', 'Server 11');
+    raise exception 'FAIL: 11th server accepted';
+  exception when check_violation then null; end;
+  delete from public.event_game_servers where event_id = v_cap;
+  get diagnostics v_rows = row_count;
+  assert v_rows = 10, 'officers can remove servers';
+
+  -- The old app's single link keeps working and shows up as a server.
+  insert into public.event_game_links (event_id, url, label) values (v_live, 'https://roblox.com/games/legacy', null);
+  assert (select label from public.event_game_servers where id = v_live) = 'Server 1',
+    'a legacy link posted by the old app appears as a server';
+  delete from public.event_game_links where event_id = v_live;
+  assert not exists (select 1 from public.event_game_servers where id = v_live),
+    'clearing a legacy link removes its server';
+
+  perform set_config('realtime.topic', 'game:' || v_live, true);
+  assert (select count(*) from realtime.messages where topic = realtime.topic()) >= 4,
+    'officers receive game server changes';
+  assert not exists (select 1 from realtime.messages where topic like 'game:%' and payload::text ilike '%roblox%'),
+    'game server broadcasts never contain a link';
+  perform set_config('test.s_red', v_red::text, true);
+end $$;
+reset role;
+
+-- Checked-in member: reads the live event's servers only; can't write or reorder.
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000c","email":"newbie@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare v_rows int; v_live uuid := current_setting('test.g_live')::uuid; v_red uuid := current_setting('test.s_red')::uuid;
+begin
+  assert (select count(*) from public.event_game_servers where event_id = v_live) = 2,
+    'checked-in members can read every server while the event is live';
+  assert (select is_full from public.event_game_servers where label = 'Overflow'), 'members see which servers are full';
+  assert not exists (select 1 from public.event_game_servers where event_id = current_setting('test.g_future')::uuid),
+    'members cannot read servers before the event starts';
+  assert not exists (select 1 from public.event_game_servers where event_id = current_setting('test.g_ended')::uuid),
+    'members cannot read servers after the event ends';
+
+  assert public.my_checkin_order(v_live) = 1, 'my_checkin_order: first in is 1';
+  assert public.my_checkin_order(current_setting('test.g_future')::uuid) is null,
+    'my_checkin_order is null before the event is live';
+  assert public.my_checkin_order(current_setting('test.g_ended')::uuid) is null,
+    'my_checkin_order is null after the event ends';
+
+  begin
+    insert into public.event_game_servers (event_id, url, label) values (v_live, 'https://roblox.com/games/9', 'Mine');
+    raise exception 'FAIL: member added a server';
+  exception when insufficient_privilege then null; end;
+  update public.event_game_servers set url = 'https://roblox.com/games/9', is_full = false where event_id = v_live;
+  get diagnostics v_rows = row_count;
+  assert v_rows = 0, 'members cannot edit or un-full a server';
+  delete from public.event_game_servers where event_id = v_live;
+  get diagnostics v_rows = row_count;
+  assert v_rows = 0, 'members cannot remove a server';
+  begin
+    perform public.reorder_game_servers(v_live, array[v_red]);
+    raise exception 'FAIL: member reordered servers';
+  exception when insufficient_privilege then null; end;
+  assert (select position from public.event_game_servers where id = v_red) = 1, 'order unchanged by members';
+end $$;
+reset role;
+
+-- Officer b, checked in second: my_checkin_order counts everyone before them.
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000b","email":"member@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$ begin
+  assert public.my_checkin_order(current_setting('test.g_live')::uuid) = 2, 'my_checkin_order: second in is 2';
+end $$;
+reset role;
+
+-- Member who is NOT checked in: nothing.
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000a","email":"officer@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$ begin
+  assert not exists (select 1 from public.event_game_servers), 'members who are not checked in cannot read servers';
+  assert public.my_checkin_order(current_setting('test.g_live')::uuid) is null,
+    'my_checkin_order is null for members who are not checked in';
+  begin
+    perform public.reorder_game_servers(current_setting('test.g_live')::uuid, array[]::uuid[]);
+    raise exception 'FAIL: outsider reordered servers';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+
+-- Anon: nothing.
+select set_config('request.jwt.claims', '', true);
+set local role anon;
+do $$ begin
+  begin
+    perform 1 from public.event_game_servers;
+    raise exception 'FAIL: anon read servers';
+  exception when insufficient_privilege then null; end;
+  begin
+    insert into public.event_game_servers (event_id, url, label) values (current_setting('test.g_live')::uuid, 'https://roblox.com/games/9', 'x');
+    raise exception 'FAIL: anon added a server';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform public.my_checkin_order(current_setting('test.g_live')::uuid);
+    raise exception 'FAIL: anon called my_checkin_order';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform public.reorder_game_servers(current_setting('test.g_live')::uuid, array[]::uuid[]);
+    raise exception 'FAIL: anon called reorder_game_servers';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+
+-------------------------------------------------------------------------------
 -- Announcements: anyone reads the active one; only officers write.
 -------------------------------------------------------------------------------
 

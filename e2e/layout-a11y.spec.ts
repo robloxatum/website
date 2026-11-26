@@ -1,7 +1,7 @@
 // 10. Layout: at 390, 768, 1024, 1280 and 1440px nothing overflows sideways or
 //     sits under a fixed bar. 11. Accessibility: axe, no serious/critical issues.
 // Every page from the flows above, as the visitor who'd see it, with a live
-// event (checked in, game link posted, RSVP'd) and an announcement showing.
+// event (checked in, two game servers posted, RSVP'd) and an announcement showing.
 import { admin, checkInAs, createEvent, createUser, rsvpAs, SEEDED, type TestEvent, type TestUser } from "./support/db";
 import { expect, expectAccessible, expectLayoutOk, signIn, test } from "./support/fixtures";
 
@@ -13,7 +13,11 @@ test.beforeAll(async () => {
   member = await createUser({ fullName: "Lena Layout", nickname: "Lena" });
   expect(await checkInAs(member, live.code)).toBe("ok");
   await rsvpAs(member, live.id);
-  await admin.from("event_game_links").upsert({ event_id: live.id, url: "https://www.roblox.com/share?code=layout&type=Server", label: "Server 1" });
+  const { error: serversError } = await admin.from("event_game_servers").insert([
+    { event_id: live.id, url: "https://www.roblox.com/share?code=layout&type=Server", label: "Server 1", position: 0, is_full: false },
+    { event_id: live.id, url: "https://www.roblox.com/share?code=layout2&type=Server", label: "Overflow with a longer label", position: 1, is_full: true },
+  ]);
+  expect(serversError).toBeNull();
   await admin.from("announcements").delete().not("id", "is", null);
   await admin.from("announcements").insert({ message: "Game night moved to BBB 1670 tonight, bring a friend!", link: "/events", style: "urgent" });
 });

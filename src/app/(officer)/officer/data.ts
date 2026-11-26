@@ -1,4 +1,5 @@
 import "server-only";
+import { sortServers, type GameServer } from "@/lib/game-links";
 import { createClient } from "@/lib/supabase/server";
 import type { OfficerEvent } from "@/lib/types";
 
@@ -55,16 +56,16 @@ export async function getOfficerTotals() {
   return { members: members ?? 0, checkins: checkins ?? 0 };
 }
 
-/** The event's live game link (officers can always read it; RLS). */
-export async function getGameLink(eventId: string) {
+/** The event's live game servers, in order (officers can always read them; RLS). */
+export async function getGameServers(eventId: string): Promise<GameServer[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from("event_game_links")
-    .select("url, label")
+    .from("event_game_servers")
+    .select("id, url, label, is_full, position, created_at")
     .eq("event_id", eventId)
-    .maybeSingle<{ url: string; label: string | null }>();
-  if (error) console.error("Failed to load game link", error.message);
-  return data ?? null;
+    .returns<(GameServer & { created_at: string })[]>();
+  if (error) console.error("Failed to load game servers", error.message);
+  return sortServers(data ?? []).map(({ id, url, label, is_full, position }) => ({ id, url, label, is_full, position }));
 }
 
 /** The current announcement, even past its hide-after time (officer RLS). */

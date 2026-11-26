@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { button } from "@/components/ui/styles";
 import type { CheckedInEvent, MemberNav } from "@/lib/member-nav";
-import { useGameLink } from "@/lib/use-game-link";
+import { useGameServers } from "@/lib/use-game-servers";
 
 export function isActive(pathname: string | null, href: string) {
   if (pathname === null) return false;
@@ -92,7 +92,7 @@ function LivePlay({
   render: (mode: { play: true; posted: boolean }) => React.ReactNode;
 }) {
   // false: only asks WHETHER a link is posted; the URL is never loaded here.
-  const game = useGameLink(event.id, event.starts_at, event.ends_at, false);
+  const game = useGameServers(event.id, event.starts_at, event.ends_at, false);
   return render({ play: true, posted: game.status === "live" });
 }
 

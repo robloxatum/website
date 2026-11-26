@@ -8,8 +8,8 @@ import { Wordmark } from "@/components/Logo";
 import { ProgressBar } from "@/components/ui/Primitives";
 import { button } from "@/components/ui/styles";
 import { createClient } from "@/lib/supabase/client";
-import { useGameLink } from "@/lib/use-game-link";
-import { GameLinkControl } from "@/app/(officer)/officer/_components/GameLinkControl";
+import { useGameServers } from "@/lib/use-game-servers";
+import { GameServersControl } from "@/app/(officer)/officer/_components/GameServersControl";
 import type { CheckinFlags } from "@/app/(officer)/officer/actions";
 import { statusText, useCheckinFlags } from "@/app/(officer)/officer/_components/CheckinControls";
 
@@ -37,9 +37,9 @@ export function PresentClient({
   const countRef = useRef(initialCount);
   const [bump, setBump] = useState(0);
   const [qr, setQr] = useState<string | null>(null);
-  // Only WHETHER a game link is posted: this screen is projected, so the link
-  // itself is never loaded or shown here.
-  const game = useGameLink(eventId, startsAt, flags.ends_at, false);
+  // Only HOW MANY game servers are up: this screen is projected, so the links
+  // themselves are never loaded or shown here.
+  const game = useGameServers(eventId, startsAt, flags.ends_at, false);
 
   // QR code that opens /checkin?code=XXXXX on the public site.
   useEffect(() => {
@@ -202,16 +202,16 @@ export function PresentClient({
             {error && <p role="alert" className="font-semibold text-bad">{error}</p>}
           </div>
 
-          {/* Game link: an indicator only, never the link. Hidden once the event is over. */}
+          {/* Game servers: a count only, never the links. Hidden once the event is over. */}
           {game.status !== "ended" && (
             <div className="flex w-full max-w-md flex-col items-center gap-3 border-t border-line/60 pt-6">
               <p className="font-display text-xl font-bold text-fg sm:text-2xl">
-                On your laptop: <span className="text-maize">{host}/play</span>
+                On your laptop: <span className="text-maize">{host.replace(/\/checkin$/, "")}/play</span>
               </p>
-              <GameLinkControl
+              <GameServersControl
                 eventId={eventId}
-                current={game.status === "live" ? { url: "", label: null } : null}
                 onProjector
+                summary={game.status === "live" ? { live: game.servers.length, full: game.servers.filter((s) => s.is_full).length } : null}
               />
             </div>
           )}

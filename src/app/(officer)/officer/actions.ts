@@ -8,7 +8,7 @@ import { getProfile } from "@/lib/auth";
 import { CATEGORY_KEYS } from "@/lib/categories";
 import { isUuid } from "@/lib/events";
 import { normalizeLink, normalizeMessage } from "@/lib/announcement";
-import { normalizeGameLabel, normalizeGameLink } from "@/lib/game-links";
+import { GAME_SERVERS_MAX, defaultServerLabel, moveId, normalizeGameLabel, normalizeGameLink, sortServers } from "@/lib/game-links";
 import { COVER_MIN_HEIGHT, COVER_MIN_WIDTH, COVER_PATH, FLYER_BUCKET, FLYER_MAX_DIMENSION, FLYER_PATH } from "@/lib/flyers";
 import { notifyGameLinkLive } from "@/lib/push/send";
 import { createClient } from "@/lib/supabase/server";
@@ -227,37 +227,97 @@ export async function clearNickname(userId: string): Promise<{ error?: string }>
   return {};
 }
 
-/** Post or replace the event's live game link (officers only; RLS enforces it too). */
-export async function setGameLink(eventId: string, rawUrl: string, rawLabel: string): Promise<{ error?: string }> {
-  const officer = await requireOfficerAction();
-  if (!isUuid(eventId)) return { error: "Unknown event." };
+/** Checks an officer's link + label; a blank label becomes the next "Server N". */
+function parseServer(rawUrl: string, rawLabel: string, fallbackLabel: string): { url: string; label: string } | { error: string } {
   const link = normalizeGameLink(rawUrl);
   if ("error" in link) return { error: link.error };
   const label = normalizeGameLabel(rawLabel);
   if ("error" in label) return { error: label.error };
+  return { url: link.url, label: label.label ?? fallbackLabel };
+}
 
+/** Add a live game server to the event (officers only; RLS and a 10-server cap enforce it too). */
+export async function addGameServer(eventId: string, rawUrl: string, rawLabel: string): Promise<{ error?: string }> {
+  const officer = await requireOfficerAction();
+  if (!isUuid(eventId)) return { error: "Unknown event." };
   const supabase = await createClient();
-  const { data: before } = await supabase.from("event_game_links").select("url").eq("event_id", eventId).maybeSingle();
+  const { data: existing, error: readError } = await supabase.from("event_game_servers").select("label, position").eq("event_id", eventId);
+  if (readError) return { error: "Couldn't add the server. Please try again." };
+  if (existing.length >= GAME_SERVERS_MAX) return { error: `An event can have up to ${GAME_SERVERS_MAX} servers. Remove one first.` };
+  const parsed = parseServer(rawUrl, rawLabel, defaultServerLabel(existing));
+  if ("error" in parsed) return { error: parsed.error };
+
+  const position = existing.reduce((max, s) => Math.max(max, s.position + 1), 0);
   const { error } = await supabase
-    .from("event_game_links")
-    .upsert({ event_id: eventId, url: link.url, label: label.label, updated_at: new Date().toISOString(), updated_by: officer.id });
-  if (error) return { error: "Couldn't post the link. Please try again." };
-  // A new link (not just a new label): push "the game link is live" to
-  // checked-in members who want it, after the officer's response is sent.
-  if (before?.url !== link.url) {
-    after(() => notifyGameLinkLive(eventId, label.label, Boolean(before), officer.id).catch((e) => console.error("Game link push failed", e)));
+    .from("event_game_servers")
+    .insert({ event_id: eventId, url: parsed.url, label: parsed.label, position, updated_by: officer.id });
+  if (error) {
+    if (/at most 10/i.test(error.message)) return { error: `An event can have up to ${GAME_SERVERS_MAX} servers. Remove one first.` };
+    return { error: "Couldn't add the server. Please try again." };
+  }
+  // The first server going up: push "the game link is live" to checked-in
+  // members who want it, after the officer's response is sent.
+  if (existing.length === 0) {
+    after(() => notifyGameLinkLive(eventId, parsed.label, false, officer.id).catch((e) => console.error("Game link push failed", e)));
   }
   refresh();
   return {};
 }
 
-/** Take the event's game link down. */
-export async function clearGameLink(eventId: string): Promise<{ error?: string }> {
-  await requireOfficerAction();
-  if (!isUuid(eventId)) return { error: "Unknown event." };
+/** Replace a server's link and/or label. */
+export async function updateGameServer(serverId: string, rawUrl: string, rawLabel: string): Promise<{ error?: string }> {
+  const officer = await requireOfficerAction();
+  if (!isUuid(serverId)) return { error: "Unknown server." };
   const supabase = await createClient();
-  const { error } = await supabase.from("event_game_links").delete().eq("event_id", eventId);
-  if (error) return { error: "Couldn't clear the link. Please try again." };
+  const { data: current } = await supabase.from("event_game_servers").select("label").eq("id", serverId).maybeSingle();
+  if (!current) return { error: "That server was removed. Refresh the page." };
+  const parsed = parseServer(rawUrl, rawLabel, current.label);
+  if ("error" in parsed) return { error: parsed.error };
+  const { error } = await supabase
+    .from("event_game_servers")
+    .update({ url: parsed.url, label: parsed.label, updated_at: new Date().toISOString(), updated_by: officer.id })
+    .eq("id", serverId);
+  if (error) return { error: "Couldn't save the server. Please try again." };
+  refresh();
+  return {};
+}
+
+/** Mark a server full (members see it greyed out) or open again. */
+export async function setGameServerFull(serverId: string, full: boolean): Promise<{ error?: string }> {
+  const officer = await requireOfficerAction();
+  if (!isUuid(serverId)) return { error: "Unknown server." };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("event_game_servers")
+    .update({ is_full: full, updated_at: new Date().toISOString(), updated_by: officer.id })
+    .eq("id", serverId)
+    .select("id");
+  if (error || !data?.length) return { error: "Couldn't update the server. Please try again." };
+  refresh();
+  return {};
+}
+
+/** Move a server one place up or down in the list members see. */
+export async function moveGameServer(eventId: string, serverId: string, direction: -1 | 1): Promise<{ error?: string }> {
+  await requireOfficerAction();
+  if (!isUuid(eventId) || !isUuid(serverId) || (direction !== -1 && direction !== 1)) return { error: "Unknown server." };
+  const supabase = await createClient();
+  const { data, error: readError } = await supabase.from("event_game_servers").select("id, position, created_at").eq("event_id", eventId);
+  if (readError) return { error: "Couldn't reorder the servers. Please try again." };
+  const ids = moveId(sortServers(data).map((s) => s.id), serverId, direction);
+  const { error } = await supabase.rpc("reorder_game_servers", { p_event_id: eventId, p_ids: ids });
+  if (error) return { error: "Couldn't reorder the servers. Please try again." };
+  refresh();
+  return {};
+}
+
+/** Take a server down. */
+export async function removeGameServer(serverId: string): Promise<{ error?: string }> {
+  await requireOfficerAction();
+  if (!isUuid(serverId)) return { error: "Unknown server." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("event_game_servers").delete().eq("id", serverId);
+  if (error) return { error: "Couldn't remove the server. Please try again." };
   refresh();
   return {};
 }
