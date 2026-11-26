@@ -6,7 +6,7 @@ import { expect, signIn, test } from "./support/fixtures";
 test("sign-up → welcome → nickname + Roblox preview → profile greets by nickname", async ({ page }) => {
   // Real sign-up is Google; the test sign-in stands in for it below.
   await page.goto("/join");
-  await expect(page.getByRole("button", { name: "Sign up with your umich account" }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sign up with umich" }).first()).toBeVisible();
 
   const user = await createUser({ onboarded: false, fullName: "Nina Newbie" });
   await signIn(page, user, "/profile");

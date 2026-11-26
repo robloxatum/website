@@ -112,7 +112,7 @@ export function checkInsKey(events: CheckedInEvent[]) {
 }
 
 /** Desktop header button (hidden on phones, which have the tab bar). */
-export function HeaderCheckIn({ events }: { events: CheckedInEvent[] }) {
+export function HeaderCheckIn({ events, outline = false }: { events: CheckedInEvent[]; outline?: boolean }) {
   return (
     <CheckInOrPlay
       key={checkInsKey(events)}
@@ -130,7 +130,7 @@ export function HeaderCheckIn({ events }: { events: CheckedInEvent[] }) {
             )}
           </Link>
         ) : (
-          <Link href="/checkin" className={button({ size: "sm" })}>
+          <Link href="/checkin" className={button({ variant: outline ? "secondary" : "primary", size: "sm" })}>
             <QrCode aria-hidden="true" />
             Check In
           </Link>

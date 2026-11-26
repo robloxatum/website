@@ -72,7 +72,7 @@ async function AboutContent() {
       <div className="mt-14 flex flex-col items-center gap-3 text-center">
         <p className="text-fg-2">Want to be part of the next chapter?</p>
         <Link href="/join" className={button()}>
-          Join Roblox at UM
+          Join the club
           <ArrowRight aria-hidden="true" />
         </Link>
       </div>

@@ -1,4 +1,3 @@
-import { CalendarDays } from "lucide-react";
 import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/metadata";
 import { EmptyState } from "@/components/ui/Blocks";
@@ -31,27 +30,21 @@ export default async function EventsPage() {
         label="What's happening"
         title="Events"
         description="Game nights, hangouts, game jams and workshops. Everyone at U-M is welcome."
-        actions={<CalendarButton variant="primary" />}
+        actions={<CalendarButton />}
       />
-      <Tabs
-        label="Events"
-        tabs={[
-          { id: "upcoming", label: "Upcoming", count: upcoming.length, content: upcoming.length ? <EventGrid events={upcoming} headingLevel="h2" /> : noUpcoming },
-          {
-            id: "past",
-            label: "Past",
-            count: past.length,
-            content: past.length ? (
-              <EventGrid events={past.slice(0, 60)} headingLevel="h2" />
-            ) : (
-              <p className="flex items-center gap-2 text-fg-2">
-                <CalendarDays aria-hidden="true" className="size-5 text-fg-3" /> No past events yet.
-              </p>
-            ),
-          },
-          { id: "all", label: "All", count: all.length, content: all.length ? <EventGrid events={all.slice(0, 80)} headingLevel="h2" /> : noUpcoming },
-        ]}
-      />
+      {/* Past and All only once there are past events; until then, just the upcoming list. */}
+      {past.length === 0 ? (
+        upcoming.length ? <EventGrid events={upcoming} headingLevel="h2" /> : noUpcoming
+      ) : (
+        <Tabs
+          label="Events"
+          tabs={[
+            { id: "upcoming", label: "Upcoming", count: upcoming.length, content: upcoming.length ? <EventGrid events={upcoming} headingLevel="h2" /> : noUpcoming },
+            { id: "past", label: "Past", count: past.length, content: <EventGrid events={past.slice(0, 60)} headingLevel="h2" /> },
+            { id: "all", label: "All", count: all.length, content: <EventGrid events={all.slice(0, 80)} headingLevel="h2" /> },
+          ]}
+        />
+      )}
     </div>
   );
 }

@@ -24,12 +24,12 @@ export function SiteHeader() {
           <MemberDesktopNav />
         </Suspense>
         <div className="ml-auto flex items-center gap-2">
-          <Suspense fallback={<SignInLink />}>
+          <Suspense fallback={<SignUpLink />}>
             <AccountActions />
           </Suspense>
           {/* Phones get Check In / Play in the bottom tab bar instead. */}
           <div className="hidden md:block">
-            <Suspense fallback={<HeaderCheckIn events={[]} />}>
+            <Suspense fallback={<HeaderCheckIn events={[]} outline />}>
               <MemberCheckIn />
             </Suspense>
           </div>
@@ -45,23 +45,24 @@ async function MemberDesktopNav() {
   return <DesktopNav member={member} />;
 }
 
-/** Check In, or Play while checked in to a live event. */
+/** Check In, or Play while checked in to a live event. Signed out: outline, so Sign up is the one yellow button. */
 async function MemberCheckIn() {
-  const { checkedIn } = await getMemberNav();
-  return <HeaderCheckIn events={checkedIn} />;
+  const { member, checkedIn } = await getMemberNav();
+  return <HeaderCheckIn events={checkedIn} outline={!member} />;
 }
 
-function SignInLink() {
+/** Signed out: Sign up (the /join page; existing members can sign in from there or /login). */
+function SignUpLink() {
   return (
-    <Link href="/login" className={button({ variant: "ghost", size: "sm" })}>
-      Sign in
+    <Link href="/join" className={button({ size: "sm" })}>
+      Sign up
     </Link>
   );
 }
 
 async function AccountActions() {
   const profile = await getProfile();
-  if (!profile) return <SignInLink />;
+  if (!profile) return <SignUpLink />;
   const name = callName(profile);
   // Cached about an hour; null (initial-letter icon) if Roblox is unavailable.
   const avatar = await headshotFor(profile);

@@ -13,12 +13,14 @@ type State =
   | { kind: "ready"; userId: string; going: boolean; justJoined: boolean };
 
 /**
- * "I'm going" toggle for an upcoming or live event. Private: only the member's
+ * "I'm going" toggle for an upcoming or live event: the yellow (primary) action
+ * on the event page until event day (`primary`), then outline. Once RSVP'd it
+ * reads "You're going" with a check. Private: only the member's
  * own RSVP is read or written (RLS), and no counts or names are shown. Signed
  * out, it sends people to sign in and back to this event. RSVP never affects
  * check-in. Callers hide it once the event is over.
  */
-export function RsvpToggle({ event, className = "" }: { event: CalendarEvent; className?: string }) {
+export function RsvpToggle({ event, primary = true, className = "" }: { event: CalendarEvent; primary?: boolean; className?: string }) {
   const [state, setState] = useState<State>({ kind: "loading" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -69,7 +71,7 @@ export function RsvpToggle({ event, className = "" }: { event: CalendarEvent; cl
       <div className={className}>
         <Link
           href={`/login?next=${encodeURIComponent(`/events/${event.id}`)}`}
-          className={button({ variant: "secondary", size: "lg", className: "w-full sm:w-auto" })}
+          className={button({ variant: primary ? "primary" : "secondary", size: "lg", className: "w-full sm:w-auto" })}
         >
           <LogIn aria-hidden="true" />
           Sign in to RSVP
@@ -87,14 +89,15 @@ export function RsvpToggle({ event, className = "" }: { event: CalendarEvent; cl
         disabled={state.kind === "loading" || busy}
         onClick={toggle}
         className={button({
-          variant: going ? "primary" : "secondary",
+          // RSVP'd: an outline button with a green check, so it reads as done rather than as a call to action.
+          variant: primary && !going ? "primary" : "secondary",
           size: "lg",
           // Full width on phones, like the other event-page buttons.
-          className: `w-full sm:w-auto ${state.kind === "loading" ? "opacity-60" : ""}`,
+          className: `w-full sm:w-auto ${going ? "border-ok/60!" : ""} ${state.kind === "loading" ? "opacity-60" : ""}`,
         })}
       >
-        {going ? <CircleCheck aria-hidden="true" /> : <Hand aria-hidden="true" />}
-        I&rsquo;m going
+        {going ? <CircleCheck aria-hidden="true" className="text-ok" /> : <Hand aria-hidden="true" />}
+        {going ? <>You&rsquo;re going</> : <>I&rsquo;m going</>}
       </button>
       <div aria-live="polite">
         {error && <p className="text-sm font-semibold text-bad">{error}</p>}

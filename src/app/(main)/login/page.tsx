@@ -59,6 +59,7 @@ async function LoginPanel({ searchParams }: { searchParams: PageProps<"/login">[
           {checkingIn ? "Sign in to finish checking in. We'll bring you right back." : "Use your umich.edu Google account."}
         </p>
         <GoogleButton next={next} />
+        <p className="text-center text-sm font-semibold text-fg-2">First time? Signing in creates your account.</p>
         <p className="text-sm text-fg-2">
           Only @umich.edu accounts can sign in. We store your name, uniqname, optional nickname and Roblox username,
           and the events you check in to or RSVP for.{" "}
