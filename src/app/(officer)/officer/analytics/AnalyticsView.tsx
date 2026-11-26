@@ -673,7 +673,16 @@ function RecentEvents({ events }: { events: AnalyticsEvent[] }) {
     <div>
       {/* Table when there's room (from xl, like Members: below that, with the officer
           sidebar, the columns don't fit and the page scrolled sideways); cards otherwise. */}
-      <table className="hidden w-full text-left text-sm xl:table">
+      {/* Fixed layout: long titles truncate instead of widening the table. */}
+      <table className="hidden w-full table-fixed text-left text-sm xl:table">
+        <colgroup>
+          <col />
+          <col className="w-30" />
+          <col className="w-22" />
+          <col className="w-18" />
+          <col className="w-34" />
+          <col className="w-30" />
+        </colgroup>
         <thead className="text-xs tracking-wider text-fg-3 uppercase">
           <tr className="border-b border-line/60">
             <th scope="col" className="py-2.5 pr-3 font-semibold">Event</th>
@@ -687,7 +696,7 @@ function RecentEvents({ events }: { events: AnalyticsEvent[] }) {
         <tbody className="divide-y divide-line/40">
           {recent.map((e) => (
             <tr key={e.id} className="transition-colors hover:bg-white/[0.025]">
-              <td className="py-3 pr-3"><EventLink e={e} /></td>
+              <td className="min-w-0 py-3 pr-3"><EventLink e={e} /></td>
               <td className="px-2 py-3 whitespace-nowrap text-fg-2">{longDate(e.starts_at)}</td>
               <td className="px-2 py-3 text-right font-display text-base font-bold text-fg tabular-nums">{e.checkins}</td>
               <td className="px-2 py-3 text-right text-fg-2 tabular-nums">{e.rsvps}</td>
