@@ -809,7 +809,7 @@ end $$;
 reset role;
 
 -------------------------------------------------------------------------------
--- Live game links: officers write; checked-in members read only while live.
+-- Game servers: shared setup (a live, a future and an ended event).
 -------------------------------------------------------------------------------
 
 -- Setup (as the test runner, bypassing RLS): a live, a future and an ended
@@ -833,136 +833,9 @@ begin
     'game link tests expect c to be a member here';
 end $$;
 
--- Officer: post, replace, read; bad links rejected; changes are broadcast (empty).
-select set_config('request.jwt.claims',
-  '{"sub":"00000000-0000-0000-0000-00000000000b","email":"member@umich.edu","role":"authenticated"}', true);
-set local role authenticated;
-do $$
-declare v_live uuid := current_setting('test.g_live')::uuid;
-begin
-  insert into public.event_game_links (event_id, url, label)
-  values (v_live, 'https://www.roblox.com/games/123/Obby?privateServerLinkCode=abc', 'Server 1');
-  update public.event_game_links set url = 'https://www.roblox.com/share?code=xyz&type=Server', label = null
-   where event_id = v_live;
-  insert into public.event_game_links (event_id, url)
-  values (current_setting('test.g_future')::uuid, 'https://roblox.com/games/1'),
-         (current_setting('test.g_ended')::uuid, 'https://roblox.com/games/2');
-  assert (select url from public.event_game_links where event_id = v_live) = 'https://www.roblox.com/share?code=xyz&type=Server',
-    'officers can post and replace a game link';
-  assert (select updated_by from public.event_game_links where event_id = v_live) = '00000000-0000-0000-0000-00000000000b',
-    'updated_by defaults to the officer';
-
-  begin
-    update public.event_game_links set url = 'https://evil.example/roblox.com/games/1' where event_id = v_live;
-    raise exception 'FAIL: non-roblox.com link accepted';
-  exception when check_violation then null; end;
-  begin
-    update public.event_game_links set url = 'https://roblox.com.evil.example/games/1' where event_id = v_live;
-    raise exception 'FAIL: look-alike roblox.com host accepted';
-  exception when check_violation then null; end;
-  begin
-    update public.event_game_links set url = 'http://www.roblox.com/games/1' where event_id = v_live;
-    raise exception 'FAIL: http link accepted';
-  exception when check_violation then null; end;
-  begin
-    update public.event_game_links set url = 'javascript:alert(1)//https://roblox.com/' where event_id = v_live;
-    raise exception 'FAIL: javascript: link accepted';
-  exception when check_violation then null; end;
-  begin
-    update public.event_game_links set label = repeat('x', 61) where event_id = v_live;
-    raise exception 'FAIL: 61-character label accepted';
-  exception when check_violation then null; end;
-
-  perform set_config('realtime.topic', 'game:' || v_live, true);
-  assert (select count(*) from realtime.messages where topic = realtime.topic()) >= 2,
-    'officers receive game link changes';
-  assert not exists (select 1 from realtime.messages where topic like 'game:%' and payload::text ilike '%roblox%'),
-    'game link broadcasts never contain the link';
-end $$;
-reset role;
-
--- Checked-in member: reads the live event's link only; can't write; can listen.
-select set_config('request.jwt.claims',
-  '{"sub":"00000000-0000-0000-0000-00000000000c","email":"newbie@umich.edu","role":"authenticated"}', true);
-set local role authenticated;
-do $$
-declare v_rows int; v_live uuid := current_setting('test.g_live')::uuid;
-begin
-  assert (select url from public.event_game_links where event_id = v_live) = 'https://www.roblox.com/share?code=xyz&type=Server',
-    'checked-in members can read the link while the event is live';
-  assert not exists (select 1 from public.event_game_links where event_id = current_setting('test.g_future')::uuid),
-    'members cannot read the link before the event starts';
-  assert not exists (select 1 from public.event_game_links where event_id = current_setting('test.g_ended')::uuid),
-    'members cannot read the link after the event ends';
-
-  begin
-    insert into public.event_game_links (event_id, url) values (current_setting('test.e1')::uuid, 'https://roblox.com/games/9');
-    raise exception 'FAIL: member posted a game link';
-  exception when insufficient_privilege then null; end;
-  update public.event_game_links set url = 'https://roblox.com/games/9' where event_id = v_live;
-  get diagnostics v_rows = row_count;
-  assert v_rows = 0, 'members cannot replace a game link';
-  delete from public.event_game_links where event_id = v_live;
-  get diagnostics v_rows = row_count;
-  assert v_rows = 0, 'members cannot clear a game link';
-
-  perform set_config('realtime.topic', 'game:' || v_live, true);
-  assert (select count(*) from realtime.messages where topic = realtime.topic()) >= 2,
-    'checked-in members receive (empty) game link changes';
-  perform set_config('realtime.topic', 'game:' || current_setting('test.e1'), true);
-  assert (select count(*) from realtime.messages where topic = realtime.topic()) = 0,
-    'members cannot listen to game links for events they are not checked in to';
-  perform set_config('realtime.topic', 'game:not-a-uuid', true);
-  assert (select count(*) from realtime.messages where topic = realtime.topic()) = 0,
-    'malformed game topics are refused, not errors';
-end $$;
-reset role;
-
--- Member who is NOT checked in: reads nothing, even for the live event.
-select set_config('request.jwt.claims',
-  '{"sub":"00000000-0000-0000-0000-00000000000a","email":"officer@umich.edu","role":"authenticated"}', true);
-set local role authenticated;
-do $$ begin
-  assert not (select private.is_officer()), 'game link tests expect a to be a member here';
-  assert not exists (select 1 from public.event_game_links),
-    'members who are not checked in cannot read game links';
-  perform set_config('realtime.topic', 'game:' || current_setting('test.g_live'), true);
-  assert (select count(*) from realtime.messages where topic = realtime.topic()) = 0,
-    'members who are not checked in cannot listen for game link changes';
-end $$;
-reset role;
-
--- Anon: nothing.
-select set_config('request.jwt.claims', '', true);
-set local role anon;
-do $$ begin
-  begin
-    perform 1 from public.event_game_links;
-    raise exception 'FAIL: anon read game links';
-  exception when insufficient_privilege then null; end;
-  begin
-    insert into public.event_game_links (event_id, url) values (current_setting('test.g_live')::uuid, 'https://roblox.com/games/9');
-    raise exception 'FAIL: anon posted a game link';
-  exception when insufficient_privilege then null; end;
-end $$;
-reset role;
-
--- Officer: clear; the member then sees nothing.
-select set_config('request.jwt.claims',
-  '{"sub":"00000000-0000-0000-0000-00000000000b","email":"member@umich.edu","role":"authenticated"}', true);
-set local role authenticated;
-do $$
-declare v_rows int;
-begin
-  delete from public.event_game_links where event_id = current_setting('test.g_live')::uuid;
-  get diagnostics v_rows = row_count;
-  assert v_rows = 1, 'officers can clear a game link';
-end $$;
-reset role;
-
 -------------------------------------------------------------------------------
 -- Game servers (several per event): officers write; checked-in members read
--- only while live; max 10 per event; reorder; "Full"; legacy links mirrored.
+-- only while live; max 10 per event; reorder; "Full".
 -------------------------------------------------------------------------------
 
 -- Setup (as the test runner): an event for the 10-server cap; officer b is
@@ -974,11 +847,11 @@ begin
   perform set_config('test.g_cap', v_cap::text, true);
   insert into public.attendance (event_id, user_id, checked_in_at)
   values (current_setting('test.g_live')::uuid, '00000000-0000-0000-0000-00000000000b', now() + interval '1 second');
-  assert not exists (select 1 from public.event_game_servers where event_id = current_setting('test.g_live')::uuid),
-    'clearing the legacy link also removed its mirrored server';
-  assert (select count(*) from public.event_game_servers where id = event_id
-           and event_id in (current_setting('test.g_future')::uuid, current_setting('test.g_ended')::uuid)) = 2,
-    'legacy game links are mirrored into event_game_servers (id = event id)';
+  -- Servers on the future and ended events, which members must not see.
+  insert into public.event_game_servers (event_id, url, label) values
+    (current_setting('test.g_future')::uuid, 'https://roblox.com/games/1', 'Later'),
+    (current_setting('test.g_ended')::uuid, 'https://roblox.com/games/2', 'Over');
+  assert to_regclass('public.event_game_links') is null, 'the old single-link table is gone';
 end $$;
 
 -- Officer: add, edit, mark full, reorder, cap, bad input; broadcasts stay empty.
@@ -1055,14 +928,6 @@ begin
   get diagnostics v_rows = row_count;
   assert v_rows = 10, 'officers can remove servers';
 
-  -- The old app's single link keeps working and shows up as a server.
-  insert into public.event_game_links (event_id, url, label) values (v_live, 'https://roblox.com/games/legacy', null);
-  assert (select label from public.event_game_servers where id = v_live) = 'Server 1',
-    'a legacy link posted by the old app appears as a server';
-  delete from public.event_game_links where event_id = v_live;
-  assert not exists (select 1 from public.event_game_servers where id = v_live),
-    'clearing a legacy link removes its server';
-
   perform set_config('realtime.topic', 'game:' || v_live, true);
   assert (select count(*) from realtime.messages where topic = realtime.topic()) >= 4,
     'officers receive game server changes';
@@ -1108,6 +973,16 @@ begin
     raise exception 'FAIL: member reordered servers';
   exception when insufficient_privilege then null; end;
   assert (select position from public.event_game_servers where id = v_red) = 1, 'order unchanged by members';
+
+  perform set_config('realtime.topic', 'game:' || v_live, true);
+  assert (select count(*) from realtime.messages where topic = realtime.topic()) >= 4,
+    'checked-in members receive (empty) game server changes';
+  perform set_config('realtime.topic', 'game:' || current_setting('test.e1'), true);
+  assert (select count(*) from realtime.messages where topic = realtime.topic()) = 0,
+    'members cannot listen to game servers for events they are not checked in to';
+  perform set_config('realtime.topic', 'game:not-a-uuid', true);
+  assert (select count(*) from realtime.messages where topic = realtime.topic()) = 0,
+    'malformed game topics are refused, not errors';
 end $$;
 reset role;
 
@@ -1126,6 +1001,9 @@ select set_config('request.jwt.claims',
 set local role authenticated;
 do $$ begin
   assert not exists (select 1 from public.event_game_servers), 'members who are not checked in cannot read servers';
+  perform set_config('realtime.topic', 'game:' || current_setting('test.g_live'), true);
+  assert (select count(*) from realtime.messages where topic = realtime.topic()) = 0,
+    'members who are not checked in cannot listen for game server changes';
   assert public.my_checkin_order(current_setting('test.g_live')::uuid) is null,
     'my_checkin_order is null for members who are not checked in';
   begin

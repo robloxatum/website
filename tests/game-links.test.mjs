@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { normalizeGameLabel, normalizeGameLink } from "../src/lib/game-links.ts";
 
-// Same rule as the database check (event_game_links_url_check).
+// Same rule as the database check (event_game_servers_url_check).
 const DB_RULE = /^https:\/\/(www\.)?roblox\.com\/[^\s"'<>\\]*$/;
 
 describe("normalizeGameLink", () => {
