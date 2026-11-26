@@ -20,10 +20,6 @@ export const LIMITS = {
   dateLabel: 24,
   milestoneTitle: 80,
   milestoneBody: 240,
-  people: 24,
-  personName: 60,
-  personRole: 40,
-  personBlurb: 120,
 } as const;
 
 export type CommunityLink = { label: string; url: string; blurb: string; visible: boolean };
@@ -38,9 +34,8 @@ export type FeaturedPanelContent = {
   link_href: string | null;
 };
 export type Milestone = { date_label: string; title: string; body: string };
-/** A founder/officer on /about. The Roblox user ID is looked up on the server, never taken from the browser. */
-export type AboutPerson = { name: string; role: string; roblox_username: string | null; blurb: string; visible: boolean };
-export type AboutContent = { story: string; timeline: Milestone[]; people: AboutPerson[] };
+/** The editable part of /about (the founders live in code: src/content/founders.ts). */
+export type AboutContent = { story: string; timeline: Milestone[] };
 export type ContentSection = "links" | "join" | "featured" | "about";
 /** Who saved a section last (officers only). `at` is passed back on save to catch overlapping edits. */
 export type LastEdit = { at: string; by: string | null } | null;
@@ -202,9 +197,7 @@ export function normalizeFeatured(raw: unknown, siteHosts: readonly string[]): R
   };
 }
 
-export const ROBLOX_USERNAME = /^[A-Za-z0-9_]{3,20}$/;
-
-/** The whole About page: story, timeline (in order) and people (in order). */
+/** The editable About page: story and timeline (in order). */
 export function normalizeAbout(raw: unknown): Result<AboutContent> {
   const story = text(field(raw, "story"), "Story", LIMITS.story);
   if ("error" in story) return story;
@@ -224,25 +217,7 @@ export function normalizeAbout(raw: unknown): Result<AboutContent> {
     timeline.push({ date_label: date.ok, title: title.ok, body: body.ok });
   }
 
-  const peopleRaw = asArray(field(raw, "people"));
-  if (!peopleRaw) return { error: "Couldn't read the people. Reload and try again." };
-  if (peopleRaw.length > LIMITS.people) return { error: `Up to ${LIMITS.people} people.` };
-  const people: AboutPerson[] = [];
-  for (const [i, item] of peopleRaw.entries()) {
-    const n = `Person ${i + 1}`;
-    const name = text(field(item, "name"), `${n} name`, LIMITS.personName);
-    if ("error" in name) return name;
-    const role = text(field(item, "role"), `${n} (${name.ok}) role`, LIMITS.personRole);
-    if ("error" in role) return role;
-    const username = String(field(item, "roblox_username") ?? "").trim().replace(/^@/, "");
-    if (username && !ROBLOX_USERNAME.test(username)) {
-      return { error: `${n} (${name.ok}) Roblox username: 3–20 letters, numbers and underscores.` };
-    }
-    const blurb = text(field(item, "blurb"), `${n} (${name.ok}) one-liner`, LIMITS.personBlurb, false);
-    if ("error" in blurb) return blurb;
-    people.push({ name: name.ok, role: role.ok, roblox_username: username || null, blurb: blurb.ok, visible: field(item, "visible") !== false });
-  }
-  return { ok: { story: story.ok, timeline, people } };
+  return { ok: { story: story.ok, timeline } };
 }
 
 /** Initials for an avatar fallback: "Ada Lovelace" → "AL", "builderman" → "B". */

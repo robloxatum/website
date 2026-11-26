@@ -2,13 +2,14 @@ import { ArrowRight, Users } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { AboutStory, FoundersGrid, Timeline } from "@/components/content/About";
+import { AboutStory, type FounderCardData, FoundersGrid, Timeline } from "@/components/content/About";
 import { ScrollToHash } from "@/components/content/ScrollToHash";
 import { SectionLabel, Skeleton } from "@/components/ui/Primitives";
 import { button, card, container } from "@/components/ui/styles";
 import { pageMetadata } from "@/lib/metadata";
 import { fullAvatarsFor } from "@/lib/roblox";
 import { getAboutContent } from "@/lib/site-content-data";
+import { FOUNDERS } from "@/content/founders";
 
 export const metadata: Metadata = pageMetadata({
   title: "Our story",
@@ -29,9 +30,7 @@ export default function AboutPage() {
 }
 
 async function AboutContent() {
-  const { story, timeline, people } = await getAboutContent();
-  // Cached about an hour each; initials when Roblox is unavailable.
-  const avatars = await fullAvatarsFor(people);
+  const { story, timeline } = await getAboutContent();
   return (
     <>
       {story && (
@@ -55,8 +54,11 @@ async function AboutContent() {
         <h2 id="founders" className="mt-2 scroll-mt-24 text-2xl text-fg">
           Founders
         </h2>
-        {people.length ? (
-          <FoundersGrid people={people.map((p, i) => ({ name: p.name, role: p.role, blurb: p.blurb, avatar: avatars[i] }))} />
+        {FOUNDERS.length ? (
+          // Names and roles straight away; avatars stream in (never wait on Roblox).
+          <Suspense fallback={<FoundersGrid people={founderCards(null)} />}>
+            <FoundersWithAvatars />
+          </Suspense>
         ) : (
           <div className={`${card} mt-6 flex items-center gap-4 p-5`}>
             <Users aria-hidden="true" className="size-8 shrink-0 text-maize" />
@@ -76,4 +78,18 @@ async function AboutContent() {
       </div>
     </>
   );
+}
+
+/**
+ * What the browser gets for each founder: name, role, one-liner and avatar
+ * URL. Never the Roblox username (it's only used on the server, below).
+ */
+function founderCards(avatars: (string | null)[] | null): FounderCardData[] {
+  return FOUNDERS.map((f, i) => ({ name: f.name, role: f.role, blurb: f.oneLiner ?? "", avatar: avatars?.[i] ?? null }));
+}
+
+/** Full-body avatars looked up from the usernames (cached about an hour; initials if Roblox fails). */
+async function FoundersWithAvatars() {
+  const avatars = await fullAvatarsFor(FOUNDERS.map((f) => ({ roblox_username: f.robloxUsername })));
+  return <FoundersGrid people={founderCards(avatars)} />;
 }
