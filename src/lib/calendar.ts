@@ -55,7 +55,13 @@ function utcStamp(iso: string) {
 
 /** RFC 5545 text escaping. */
 function esc(text: string) {
-  return text.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
+  // Every kind of line break (CR alone too) becomes an escaped newline: a raw
+  // one would let event text start a new calendar property.
+  return text
+    .replace(/\\/g, "\\\\")
+    .replace(/;/g, "\\;")
+    .replace(/,/g, "\\,")
+    .replace(/\r\n|[\r\n\v\f\u0085\u2028\u2029]/g, "\\n");
 }
 
 /** Fold lines longer than 75 octets (continuation lines start with a space), never splitting a character. */
