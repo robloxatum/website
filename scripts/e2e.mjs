@@ -91,6 +91,8 @@ const env = {
   // Fresh each run: the password every seeded test user signs in with.
   E2E_TEST_PASSWORD: process.env.E2E_TEST_PASSWORD ?? randomBytes(18).toString("base64url"),
   E2E_ROBLOX_API: "http://127.0.0.1:3299",
+  // Push messages go to this local mock instead of the real push services (E2E builds only).
+  E2E_PUSH_SERVICE: "http://127.0.0.1:3298",
   // For the tests only (seeding); the app never reads it.
   E2E_SERVICE_ROLE_KEY: status.SERVICE_ROLE_KEY,
   E2E_DB_URL: dbUrl,

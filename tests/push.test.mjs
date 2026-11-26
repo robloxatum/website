@@ -35,10 +35,12 @@ describe("isPushEndpoint: the browsers' push services only", () => {
     ]) assert.equal(isPushEndpoint(url), false, String(url));
   });
 
-  it("allows a local mock push service only in end-to-end test builds", () => {
-    assert.equal(isPushEndpoint("http://127.0.0.1:3298/push/1", true), true);
-    assert.equal(isPushEndpoint("http://localhost:3298/push/1", true), true);
-    assert.equal(isPushEndpoint("http://10.0.0.5:3298/push/1", true), false);
+  it("regression: never a local address, not even in test builds", () => {
+    // No local exception, even when asked (the old test-only allowLocal flag is gone).
+    for (const url of ["http://127.0.0.1:3298/push/1", "http://localhost:3298/push/1", "https://localhost/push/1", "https://127.0.0.1/x"]) {
+      assert.equal(isPushEndpoint(url, true), false, url);
+      assert.equal(parseSubscription({ endpoint: url, keys: { p256dh: P256DH, auth: AUTH } }, true), null, url);
+    }
   });
 });
 

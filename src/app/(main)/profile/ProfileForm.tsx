@@ -159,7 +159,7 @@ export function ProfileForm({
               </div>
             </div>
           )}
-          {(shownPreview?.status === "not_found" || shownPreview?.status === "invalid") && (
+          {(shownPreview?.status === "not_found" || shownPreview?.status === "invalid" || shownPreview?.status === "rate_limited") && (
             <p role="alert" className="mt-2 text-sm font-semibold text-bad">
               {shownPreview.message}
             </p>

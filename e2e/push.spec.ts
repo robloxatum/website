@@ -1,39 +1,24 @@
 // 13. Push notifications (opt-in): the profile settings for this device, "game
 //     link is live" to checked-in members who want it (never the link itself),
 //     the daily event reminders (once per event), expired devices cleaned up,
-//     and who may save a device. A local mock push service stands in for
-//     Apple/Google/Mozilla: the test decrypts what it receives like a phone would.
+//     and who may save a device. A local mock push service (e2e/mock-push.mjs)
+//     stands in for Apple/Google/Mozilla: the test decrypts what it receives like a phone would.
 import type { Page } from "@playwright/test";
 import { createECDH, randomBytes, randomUUID } from "node:crypto";
-import { createServer, type IncomingMessage, type Server } from "node:http";
+import type { IncomingMessage } from "node:http";
 import { decrypt } from "http_ece";
 import { admin, checkInAs, clientAs, createEvent, createUser, SEEDED, userByUniqname, type TestUser } from "./support/db";
 import { expect, signIn, test } from "./support/fixtures";
 
 type Received = { path: string; headers: IncomingMessage["headers"]; body: Buffer };
-let server: Server;
-let base = "";
-const received: Received[] = [];
-
-test.beforeAll(async () => {
-  server = createServer((req, res) => {
-    const chunks: Buffer[] = [];
-    req.on("data", (c) => chunks.push(c));
-    req.on("end", () => {
-      received.push({ path: req.url ?? "", headers: req.headers, body: Buffer.concat(chunks) });
-      // A device that's gone (notifications turned off, app deleted).
-      res.writeHead(req.url?.includes("/gone/") ? 410 : 201).end();
-    });
-  });
-  await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
-  const addr = server.address();
-  base = `http://127.0.0.1:${typeof addr === "object" && addr ? addr.port : 0}`;
-});
+/** The local mock push service (e2e/mock-push.mjs); E2E builds deliver every push there. */
+const MOCK_PUSH = "http://127.0.0.1:3298";
+/** Devices use real push-service URLs (the database only accepts those). */
+const PUSH_BASE = "https://fcm.googleapis.com/fcm/send";
 
 test.afterAll(async () => {
-  // This mock goes away: so do the devices on it (later reminder runs would try them).
-  await admin.from("push_subscriptions").delete().like("endpoint", `${base}/%`);
-  await new Promise((r) => server.close(r));
+  // Later reminder runs would try these devices again.
+  await admin.from("push_subscriptions").delete().like("endpoint", `${PUSH_BASE}/e2e-%`);
 });
 
 /** A phone's push keys, so the test can decrypt what it's sent. */
@@ -41,7 +26,7 @@ function device(kind: "ok" | "gone" = "ok") {
   const ecdh = createECDH("prime256v1");
   ecdh.generateKeys();
   const auth = randomBytes(16).toString("base64url");
-  const endpoint = `${base}/${kind === "gone" ? "gone" : "push"}/${randomUUID()}`;
+  const endpoint = `${PUSH_BASE}/e2e-${kind}-${randomUUID()}`;
   return { endpoint, p256dh: ecdh.getPublicKey().toString("base64url"), auth, ecdh };
 }
 type Device = ReturnType<typeof device>;
@@ -54,7 +39,12 @@ async function register(user: TestUser, d: Device, prefs: { event_reminders?: bo
 }
 
 const pathOf = (d: Device) => new URL(d.endpoint).pathname;
-const to = (d: Device) => received.filter((r) => r.path === pathOf(d));
+/** What the mock push service received for this device. */
+async function to(d: Device): Promise<Received[]> {
+  const res = await fetch(`${MOCK_PUSH}/received?path=${encodeURIComponent(pathOf(d))}`);
+  const list = (await res.json()) as { path: string; headers: IncomingMessage["headers"]; body: string }[];
+  return list.map((r) => ({ ...r, body: Buffer.from(r.body, "base64") }));
+}
 
 function open(d: Device, r: Received) {
   expect(r.headers["content-encoding"]).toBe("aes128gcm");
@@ -94,31 +84,31 @@ test("game link is live: a push to checked-in members who want it, without the l
   await signIn(page, SEEDED.officer, `/officer/events/${event.id}`);
   await postLink(page, LINK, "Server 1");
 
-  await expect.poll(() => to(d.wants).length).toBe(1);
-  const msg = open(d.wants, to(d.wants)[0]);
+  await expect.poll(async () => (await to(d.wants)).length).toBe(1);
+  const msg = open(d.wants, (await to(d.wants))[0]);
   expect(msg).toEqual({
     title: "The game link is live",
     body: "“Server 1” for Push Test Night is up. Tap to join.",
     url: "/play",
     tag: `game-${event.id}`,
   });
-  expect(to(d.wants)[0].headers["urgency"]).toBe("high");
-  expect(to(d.wants)[0].body.includes(Buffer.from("e2epush111"))).toBe(false);
+  expect((await to(d.wants))[0].headers["urgency"]).toBe("high");
+  expect((await to(d.wants))[0].body.includes(Buffer.from("e2epush111"))).toBe(false);
 
   // The expired device was tried, answered 410, and is gone from the database.
-  await expect.poll(() => to(d.gone).length).toBe(1);
+  await expect.poll(async () => (await to(d.gone)).length).toBe(1);
   await expect
     .poll(async () => (await admin.from("push_subscriptions").select("id").eq("endpoint", d.gone.endpoint)).data?.length)
     .toBe(0);
-  expect(to(d.optedOut)).toEqual([]);
-  expect(to(d.notHere)).toEqual([]);
-  expect(to(d.officer)).toEqual([]);
+  expect((await to(d.optedOut))).toEqual([]);
+  expect((await to(d.notHere))).toEqual([]);
+  expect((await to(d.officer))).toEqual([]);
 
   // A second server: no new push (only the first server going live notifies).
   await postLink(page, LINK.replace("111", "222"), "Server 2");
   await expect(page.getByText("2 servers live")).toBeVisible();
   await page.waitForTimeout(1500);
-  expect(to(d.wants).length).toBe(1);
+  expect((await to(d.wants)).length).toBe(1);
 });
 
 test("a link posted before the event starts sends nothing (members can't open it yet)", async ({ page }) => {
@@ -130,7 +120,7 @@ test("a link posted before the event starts sends nothing (members can't open it
   await signIn(page, SEEDED.officer, `/officer/events/${event.id}`);
   await postLink(page, LINK);
   await page.waitForTimeout(1500);
-  expect(to(d)).toEqual([]);
+  expect((await to(d))).toEqual([]);
 });
 
 test("event reminders: the daily cron reminds those who want it, once per event", async ({ request }) => {
@@ -148,21 +138,21 @@ test("event reminders: the daily cron reminds those who want it, once per event"
   const first = await request.get("/api/cron/reminders", { headers: cron });
   expect(first.status()).toBe(200);
   expect(await first.json()).toMatchObject({ ok: true });
-  const titles = () => to(d.wants).map((r) => open(d.wants, r).title);
+  const titles = async () => (await to(d.wants)).map((r) => open(d.wants, r).title);
   // "Today" (or "Tomorrow" when the test runs late in the evening, club time).
-  await expect.poll(() => titles().some((t) => /^(Today|Tomorrow): Reminder Soon Night$/.test(t))).toBe(true);
-  const soonMsg = to(d.wants).map((r) => open(d.wants, r)).find((m) => m.title.endsWith("Reminder Soon Night"))!;
+  await expect.poll(async () => (await titles()).some((t) => /^(Today|Tomorrow): Reminder Soon Night$/.test(t))).toBe(true);
+  const soonMsg = (await to(d.wants)).map((r) => open(d.wants, r)).find((m) => m.title.endsWith("Reminder Soon Night"))!;
   expect(soonMsg.url).toBe(`/events/${soon.id}`);
   expect(soonMsg.body).toMatch(/^\d{1,2}:\d{2} [AP]M · BBB 1670\. Tap for details\.$/);
-  expect(titles().some((t) => t.includes(later.title))).toBe(false); // more than a day away
-  expect(to(d.optedOut)).toEqual([]);
+  expect((await titles()).some((t) => t.includes(later.title))).toBe(false); // more than a day away
+  expect((await to(d.optedOut))).toEqual([]);
 
   // Again (a retried cron): nothing new.
-  const count = to(d.wants).length;
+  const count = (await to(d.wants)).length;
   expect((await request.get("/api/cron/reminders", { headers: cron })).status()).toBe(200);
   await new Promise((r) => setTimeout(r, 500));
-  expect(to(d.wants).length).toBe(count);
-  expect(titles().filter((t) => t.endsWith("Reminder Soon Night"))).toHaveLength(1);
+  expect((await to(d.wants)).length).toBe(count);
+  expect((await titles()).filter((t) => t.endsWith("Reminder Soon Night"))).toHaveLength(1);
 });
 
 /**

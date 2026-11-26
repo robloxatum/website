@@ -58,6 +58,22 @@ test("wrong codes are rate limited after 10 tries", async ({ page }) => {
   expect(await attendanceCount(event.id)).toBe(0);
 });
 
+test("regression: a parallel burst of wrong codes can't get past the 10-try limit", async () => {
+  // Through the real API, all at once. Before the per-member lock, attempts
+  // that ran side by side each counted the failures before any of them were
+  // saved, so more than 10 got a real guess.
+  const member = await createUser();
+  const c = await clientAs(member);
+  const letters = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const results = await Promise.all(Array.from({ length: 150 }, (_, i) => c.rpc("check_in", { p_code: `ZZZ${letters[i % 24]}${letters[Math.floor(i / 24)]}` })));
+  const statuses = results.map((r) => r.data?.status ?? r.error?.message);
+  expect(statuses.filter((s) => s === "invalid_code"), JSON.stringify(statuses)).toHaveLength(10);
+  expect(statuses.filter((s) => s === "rate_limited")).toHaveLength(140);
+  const event = await createEvent({ open: true });
+  expect((await c.rpc("check_in", { p_code: event.code })).data?.status).toBe("rate_limited");
+  expect(await attendanceCount(event.id)).toBe(0);
+});
+
 test("closed and ended events refuse check-in", async ({ page }) => {
   const closed = await createEvent({ open: false });
   const ended = await createEvent({ open: true, startMin: -120, endMin: -5 });

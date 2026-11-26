@@ -1898,6 +1898,155 @@ do $$ begin
   assert (select count(*) from public.about_timeline) = 2, 'members cannot delete milestones';
 end $$;
 
+-------------------------------------------------------------------------------
+-- Security audit 2 hardening (20261211000000_db_hardening). Each block is
+-- self-contained (its own users), so it can also run on its own.
+-------------------------------------------------------------------------------
+insert into auth.users (id, email, raw_user_meta_data) values
+  ('00000000-0000-0000-0000-0000000000e1', 'pusher@umich.edu', '{"full_name":"Pat Pusher"}'),
+  ('00000000-0000-0000-0000-0000000000e2', 'looker@umich.edu', '{"full_name":"Lou Looker"}'),
+  ('00000000-0000-0000-0000-0000000000e3', 'looker2@umich.edu', '{"full_name":"Lee Looker"}'),
+  ('00000000-0000-0000-0000-0000000000e4', 'poster@umich.edu', '{"full_name":"Pia Poster"}');
+update public.profiles set is_officer = true where id = '00000000-0000-0000-0000-0000000000e4';
+
+-- [regression:push-cap] M1: at most 10 devices per member; the oldest go, never the one just saved.
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-0000000000e1","email":"pusher@umich.edu","role":"authenticated"}', true);
+do $$
+declare v_key text := 'B' || repeat('A', 86); v_auth text := repeat('C', 22); i int;
+begin
+  for i in 1..12 loop
+    perform public.save_push_subscription('https://fcm.googleapis.com/fcm/send/cap-' || i, v_key, v_auth, true, true);
+    -- Saved i minutes apart (now() is fixed inside a transaction).
+    update public.push_subscriptions set updated_at = now() - make_interval(mins => 100 - i)
+     where endpoint = 'https://fcm.googleapis.com/fcm/send/cap-' || i;
+  end loop;
+  assert (select count(*) from public.push_subscriptions where user_id = auth.uid()) = 10,
+    'FAIL push-cap: a member keeps at most 10 devices';
+  assert not exists (select 1 from public.push_subscriptions where endpoint in
+    ('https://fcm.googleapis.com/fcm/send/cap-1', 'https://fcm.googleapis.com/fcm/send/cap-2')),
+    'FAIL push-cap: the two oldest devices are the ones dropped';
+  -- Re-saving the oldest kept device makes it the newest; a new one then drops cap-4, not cap-3.
+  perform public.save_push_subscription('https://fcm.googleapis.com/fcm/send/cap-3', v_key, v_auth, true, true);
+  perform public.save_push_subscription('https://fcm.googleapis.com/fcm/send/cap-13', v_key, v_auth, true, true);
+  assert (select count(*) from public.push_subscriptions where user_id = auth.uid()) = 10, 'FAIL push-cap: still 10';
+  assert exists (select 1 from public.push_subscriptions where endpoint = 'https://fcm.googleapis.com/fcm/send/cap-13'),
+    'FAIL push-cap: the device just saved is kept';
+  assert exists (select 1 from public.push_subscriptions where endpoint = 'https://fcm.googleapis.com/fcm/send/cap-3'),
+    'FAIL push-cap: a re-saved device counts as new';
+  assert not exists (select 1 from public.push_subscriptions where endpoint = 'https://fcm.googleapis.com/fcm/send/cap-4'),
+    'FAIL push-cap: the oldest remaining device went';
+end $$;
+-- [/regression]
+
+-- [regression:push-hosts] Low 3: only the push services the sender uses; no localhost, ports or look-alikes.
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-0000000000e1","email":"pusher@umich.edu","role":"authenticated"}', true);
+do $$
+declare v_key text := 'B' || repeat('A', 86); v_auth text := repeat('C', 22); v_ep text;
+begin
+  foreach v_ep in array array[
+    'http://127.0.0.1:3298/push/1', 'http://localhost/push/1', 'https://localhost/push/1', 'https://127.0.0.1/x',
+    'https://169.254.169.254/latest/meta-data/x', 'https://10.0.0.1/x', 'https://evil.example/x',
+    'https://fcm.googleapis.com.evil.com/x', 'https://fcm.googleapis.com:8443/x', 'https://user@fcm.googleapis.com/x',
+    'https://evil.com/fcm.googleapis.com/x', 'https://a.b.notify.windows.com/x', 'https://FCM.GOOGLEAPIS.COM/x'
+  ] loop
+    begin
+      perform public.save_push_subscription(v_ep, v_key, v_auth, true, true);
+      raise exception 'FAIL push-hosts: endpoint accepted: %', v_ep;
+    exception when check_violation then null; end;
+  end loop;
+  foreach v_ep in array array[
+    'https://fcm.googleapis.com/fcm/send/ok', 'https://updates.push.services.mozilla.com/wpush/v2/ok',
+    'https://web.push.apple.com/ok', 'https://wns2-bn3p.notify.windows.com/w/?token=ok'
+  ] loop
+    perform public.save_push_subscription(v_ep, v_key, v_auth, true, true);
+  end loop;
+end $$;
+-- [/regression]
+
+-- [regression:checkin-lock] Low 2: check_in takes a per-member lock before counting wrong guesses.
+-- (The parallel burst itself is tested against the real API in e2e/checkin.spec.ts.)
+do $$
+declare v_def text := pg_get_functiondef('public.check_in(text)'::regprocedure);
+begin
+  assert v_def ~ 'pg_advisory_xact_lock\(hashtextextended\(''check_in:''', 'FAIL checkin-lock: check_in takes a per-member lock';
+  assert position('pg_advisory_xact_lock' in v_def) < position('from private.checkin_failures' in v_def),
+    'FAIL checkin-lock: the lock comes before the failures are counted';
+end $$;
+-- [/regression]
+
+-- [regression:announcement-dots] Low 6: announcement links can't use "." or ".." segments (same rule as the featured panel).
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-0000000000e4","email":"poster@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$
+declare v_link text;
+begin
+  foreach v_link in array array['/..//evil.com', '/%2e%2e//evil.com', '/%2E%2e/%2fevil.com', '/./x', '/a/../b', '/x/.', '/..?x', '/.#y'] loop
+    begin
+      insert into public.announcements (message, link) values ('x', v_link);
+      raise exception 'FAIL announcement-dots: link accepted: %', v_link;
+    exception when check_violation then null; end;
+  end loop;
+  foreach v_link in array array['/events', '/join?src=flyer-1', '/events/x.y', '/a..b', 'https://www.roblox.com/games/1'] loop
+    insert into public.announcements (message, link) values ('ok', v_link);
+    delete from public.announcements where message = 'ok';
+  end loop;
+end $$;
+reset role;
+-- [/regression]
+
+-- [regression:roblox-limit] Low 7: about 20 Roblox lookups a minute per member.
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-0000000000e2","email":"looker@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$ declare i int; begin
+  for i in 1..20 loop
+    assert public.take_roblox_lookup(), 'FAIL roblox-limit: lookup ' || i || ' of 20 allowed';
+  end loop;
+  assert not public.take_roblox_lookup(), 'FAIL roblox-limit: the 21st lookup in a minute is refused';
+  begin
+    perform * from private.roblox_lookups;
+    raise exception 'FAIL roblox-limit: member read the lookup log';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-0000000000e3","email":"looker2@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$ begin
+  assert public.take_roblox_lookup(), 'FAIL roblox-limit: each member has their own limit';
+end $$;
+reset role;
+-- Older than a minute: no longer counted.
+update private.roblox_lookups set looked_up_at = now() - interval '61 seconds'
+ where user_id = '00000000-0000-0000-0000-0000000000e2';
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-0000000000e2","email":"looker@umich.edu","role":"authenticated"}', true);
+set local role authenticated;
+do $$ begin
+  assert public.take_roblox_lookup(), 'FAIL roblox-limit: allowed again after a minute';
+end $$;
+reset role;
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000d","email":"outsider@gmail.com","role":"authenticated"}', true);
+set local role authenticated;
+do $$ begin
+  assert not public.take_roblox_lookup(), 'FAIL roblox-limit: non-umich accounts get none';
+end $$;
+reset role;
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
+set local role anon;
+do $$ begin
+  begin
+    perform public.take_roblox_lookup();
+    raise exception 'FAIL roblox-limit: anon called it';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+-- [/regression]
+
 select 'ALL SECURITY TESTS PASSED' as result;
 
 rollback;
