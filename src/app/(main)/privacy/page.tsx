@@ -1,5 +1,6 @@
 import { BarChart3, Database, Eye, ShieldCheck, Trash2, type LucideIcon } from "lucide-react";
 import type { Metadata } from "next";
+import { CLUB_EMAIL } from "@/lib/links";
 import { pageMetadata } from "@/lib/metadata";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -12,7 +13,7 @@ export const metadata: Metadata = pageMetadata({
   path: "/privacy",
 });
 
-const CONTACT_EMAIL = "robloxatumich@gmail.com";
+const CONTACT_EMAIL = CLUB_EMAIL;
 const linkClass = "font-semibold text-maize underline-offset-2 hover:underline";
 
 function Section({ icon: Icon, title, children }: { icon: LucideIcon; title: string; children: ReactNode }) {

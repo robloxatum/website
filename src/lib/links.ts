@@ -3,8 +3,8 @@
  * database and officers edit them on /officer/content (lib/site-content-data).
  */
 
-/** The officers' email: last on /links. Not in the editable list, which is https only. */
-export const EMAIL_LINK = { label: "Email", href: "mailto:robloxatumich@gmail.com", blurb: "Questions? Reach the officers" } as const;
+/** The officers' email: last on /links, where tapping it copies the address. Not in the editable list, which is https only. */
+export const CLUB_EMAIL = "robloxatumich@gmail.com";
 
 /** Not part of the link list: used where they fit (Events page, empty states, "You're in!"). */
 export const CALENDAR_URL =
