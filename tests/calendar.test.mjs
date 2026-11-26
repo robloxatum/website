@@ -57,6 +57,29 @@ describe("buildIcs", () => {
     assert.ok(unfold(long).includes("Ünïcödé 🎮"));
   });
 
+  it("regression: a lone CR or other line break in event text can't start a new calendar line", () => {
+    // An officer-typed title/description with bare CRs (or Unicode line
+    // separators) used to pass straight through, so calendar apps could read
+    // them as new properties: an injected alarm, URL or attendee.
+    const ics = buildIcs(
+      {
+        ...winter,
+        title: "Game Night\rBEGIN:VALARM\rTRIGGER:-PT1M\rACTION:DISPLAY\rEND:VALARM",
+        description: "Hi\rURL:https://evil.example\u2028ATTACH:x\u0085y\vz",
+        location: "BBB\r\nX-INJECTED:1",
+      },
+      URL_,
+    );
+    assert.equal((ics.match(/\r(?!\n)/g) ?? []).length, 0, "no bare CR");
+    assert.equal(ics.split("\r\n").filter((l) => /[\n\u2028\u2029\u0085\v\f]/.test(l)).length, 0, "no other line breaks inside a line");
+    const lines = ics.split("\r\n").map((l) => l.split(":")[0]);
+    for (const injected of ["BEGIN", "TRIGGER", "ACTION", "ATTACH", "X-INJECTED"]) {
+      assert.ok(!ics.split("\r\n").some((l) => l.startsWith(`${injected}:`) && l !== "BEGIN:VCALENDAR" && l !== "BEGIN:VTIMEZONE" && l !== "BEGIN:DAYLIGHT" && l !== "BEGIN:STANDARD" && l !== "BEGIN:VEVENT"), injected);
+    }
+    assert.equal(lines.filter((l) => l === "URL").length, 1, "only our own URL property");
+    assert.match(ics, /SUMMARY:Game Night\\nBEGIN:VALARM/);
+  });
+
   it("omits LOCATION when there is none", () => {
     assert.ok(!unfold(buildIcs({ ...winter, location: "  " }, URL_)).includes("\r\nLOCATION:"));
   });
