@@ -68,11 +68,12 @@ function open(d: Device, r: Received) {
 }
 
 async function postLink(officer: Page, url: string, label?: string) {
-  await officer.getByRole("button", { name: /Post a link|Replace link/ }).first().click();
+  await officer.getByRole("button", { name: /^(Post a link|Add a server)$/ }).click();
   await officer.getByLabel("Roblox private server link").fill(url);
   if (label) await officer.getByLabel(/^Label/).fill(label);
-  await officer.getByRole("button", { name: /^(Post link|Replace link)$/ }).last().click();
-  await expect(officer.getByText(/Game link is live/)).toBeVisible();
+  await officer.getByRole("button", { name: "Add server" }).click();
+  await expect(officer.getByText(/Game link is live|servers live/)).toBeVisible();
+  await expect(officer.getByRole("button", { name: "Add server" })).toHaveCount(0);
 }
 
 const LINK = "https://www.roblox.com/share?code=e2epush111&type=Server";
@@ -113,10 +114,11 @@ test("game link is live: a push to checked-in members who want it, without the l
   expect(to(d.notHere)).toEqual([]);
   expect(to(d.officer)).toEqual([]);
 
-  // A new link: "New game link" (same tag, so it replaces the old notification).
-  await postLink(page, LINK.replace("111", "222"));
-  await expect.poll(() => to(d.wants).length).toBe(2);
-  expect(open(d.wants, to(d.wants)[1])).toMatchObject({ title: "New game link", tag: `game-${event.id}` });
+  // A second server: no new push (only the first server going live notifies).
+  await postLink(page, LINK.replace("111", "222"), "Server 2");
+  await expect(page.getByText("2 servers live")).toBeVisible();
+  await page.waitForTimeout(1500);
+  expect(to(d.wants).length).toBe(1);
 });
 
 test("a link posted before the event starts sends nothing (members can't open it yet)", async ({ page }) => {
