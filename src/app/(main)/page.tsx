@@ -35,7 +35,7 @@ export default function HomePage() {
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link href="/join" className={button({ size: "lg" })}>
                 <Users aria-hidden="true" />
-                Join the Community
+                Join the club
               </Link>
               {/* Solid backdrop so the scene doesn't show through the outline button. */}
               <Link href="/events" className={button({ variant: "secondary", size: "lg", className: "bg-bg/85! backdrop-blur-sm" })}>
@@ -43,6 +43,7 @@ export default function HomePage() {
                 View Events
               </Link>
             </div>
+            <p className="mt-3 text-sm font-semibold text-fg-2">RSVP and check in with one tap.</p>
           </div>
         </div>
       </section>
@@ -89,7 +90,7 @@ export default function HomePage() {
             </div>
             <Link href="/join" className={button({ size: "lg", className: "shrink-0" })}>
               <Users aria-hidden="true" />
-              Join the Community
+              Join the club
             </Link>
           </div>
         </section>

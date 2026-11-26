@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarDays, Clock3, MapPin, QrCode, Users } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, CalendarDays, Clock3, MapPin, QrCode, Users } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -13,10 +13,12 @@ import { CalendarButton } from "@/components/ui/ClubLinkButtons";
 import { CategoryBadge, Skeleton, StatusPill } from "@/components/ui/Primitives";
 import { button, card, container } from "@/components/ui/styles";
 import { coverFor } from "@/lib/event-covers";
+import { isCheckInTime } from "@/lib/event-day";
 import { eventStatus, getEventLists, getPublicEvent } from "@/lib/events";
 import { flyerOf, flyerUrl } from "@/lib/flyers";
 import type { PublicEvent } from "@/lib/types";
 import { coverPreviewImage, pageMetadata } from "@/lib/metadata";
+import { resolveLocation } from "@/lib/locations";
 import { formatLongDate, formatTimeRange } from "@/lib/time";
 
 /** Link previews: the event's cover, title, and date · time · place. */
@@ -70,6 +72,12 @@ async function currentStatus(event: PublicEvent) {
   return eventStatus(event);
 }
 
+/** From 2 hours before the start until the end: checking in becomes the main action. */
+async function checkInTime(event: PublicEvent) {
+  await connection();
+  return isCheckInTime(event);
+}
+
 async function EventDetails({ params }: { params: PageProps<"/events/[id]">["params"] }) {
   const { id } = await params;
   const event = await getPublicEvent(id);
@@ -82,10 +90,12 @@ async function EventDetails({ params }: { params: PageProps<"/events/[id]">["par
   const listed = [...lists.upcoming, ...lists.past].find((e) => e.id === event.id);
   const cover = listed ? listed.cover : coverFor(event);
 
+  // Building codes spelled out here ("CCCB 1420" -> Central Campus Classroom Building, Room 1420); cards keep the code.
+  const place = resolveLocation(event.location);
   const facts = [
     { icon: CalendarDays, label: "Date", value: formatLongDate(event.starts_at) },
     { icon: Clock3, label: "Time", value: formatTimeRange(event.starts_at, event.ends_at) },
-    { icon: MapPin, label: "Location", value: event.location || "Location TBA" },
+    { icon: MapPin, label: "Location", value: place?.label ?? "Location TBA", mapUrl: place?.mapUrl ?? null },
   ];
 
   return (
@@ -99,10 +109,11 @@ async function EventDetails({ params }: { params: PageProps<"/events/[id]">["par
         className="aspect-[2/1] w-full rounded-t-2xl sm:aspect-[5/2]"
         sizes="(min-width: 1024px) 1024px, 100vw"
       />
-      {/* Reading order: title, details, game link, flyer, then description and buttons. From lg
+      {/* Reading order: title, details, RSVP (or check in on event day), game link, flyer, then description and the
+          other buttons. From lg
           up the flyer moves to a column on the right, beside everything else. */}
       <div
-        className={`relative p-5 sm:p-8 sm:pt-0 ${flyer ? "lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:grid-rows-[auto_auto_auto_1fr] lg:gap-x-10" : ""}`}
+        className={`relative p-5 sm:p-8 sm:pt-0 ${flyer ? "lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:grid-rows-[auto_auto_auto_auto_1fr] lg:gap-x-10" : ""}`}
       >
         <div className="lg:col-start-1">
           <div className="-mt-3 flex flex-wrap items-center gap-2">
@@ -123,11 +134,16 @@ async function EventDetails({ params }: { params: PageProps<"/events/[id]">["par
           </Suspense>
         </dl>
 
+        {/* The main action, right under the details (above the flyer on phones). */}
+        <Suspense fallback={null}>
+          <PrimaryActions event={event} />
+        </Suspense>
+
         {/* Checked-in members only (worked out in the browser); it shows nothing once the event is over. */}
         <JoinGameIfCheckedIn eventId={event.id} startsAt={event.starts_at} endsAt={event.ends_at} className="mt-6 lg:col-start-1" />
 
         {flyer && (
-          <section aria-labelledby="flyer-heading" className="mt-8 lg:col-start-2 lg:row-span-4 lg:row-start-1 lg:mt-8">
+          <section aria-labelledby="flyer-heading" className="mt-8 lg:col-start-2 lg:row-span-5 lg:row-start-1 lg:mt-8">
             <FlyerViewer
               heading="Flyer"
               headingId="flyer-heading"
@@ -154,8 +170,8 @@ async function EventDetails({ params }: { params: PageProps<"/events/[id]">["par
   );
 }
 
-/** One fact (date, time, ...): valid dl markup, with the icon inside the dt. */
-function Fact({ icon: Icon, label, value }: { icon: typeof CalendarDays; label: string; value: string }) {
+/** One fact (date, time, ...): valid dl markup, with the icon inside the dt. Known buildings get a Map link. */
+function Fact({ icon: Icon, label, value, mapUrl = null }: { icon: typeof CalendarDays; label: string; value: string; mapUrl?: string | null }) {
   return (
     <div className="relative flex min-h-16 flex-col justify-center rounded-xl border border-line/60 bg-bg-2/60 py-3 pr-3 pl-16">
       <dt className="text-xs font-semibold tracking-wider text-fg-3 uppercase">
@@ -164,7 +180,24 @@ function Fact({ icon: Icon, label, value }: { icon: typeof CalendarDays; label: 
         </span>
         {label}
       </dt>
-      <dd className="min-w-0 font-semibold text-fg">{value}</dd>
+      <dd className="min-w-0 font-semibold text-fg">
+        {value}
+        {mapUrl && (
+          <>
+            {" "}
+            <a
+              href={mapUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-0.5 text-sm font-semibold whitespace-nowrap text-maize hover:underline"
+            >
+              Map
+              <ArrowUpRight aria-hidden="true" className="size-3.5" />
+              <span className="sr-only">(Google Maps, opens in a new tab)</span>
+            </a>
+          </>
+        )}
+      </dd>
     </div>
   );
 }
@@ -179,24 +212,42 @@ async function AttendanceFact({ event, attendance }: { event: PublicEvent; atten
   return <Fact icon={Users} label="Attendance" value={`${attendance} attended`} />;
 }
 
-/** RSVP, check in and calendar buttons. Past events: subscribe only. */
+function CheckInButton({ status, primary }: { status: string; primary: boolean }) {
+  return (
+    <Link href="/checkin" className={button({ variant: primary ? "primary" : "secondary", size: "lg" })}>
+      <QrCode aria-hidden="true" />
+      {status === "live" ? "I'm here: check in" : "Check in at the event"}
+    </Link>
+  );
+}
+
+/**
+ * Under the details: RSVP is the yellow action until event day; from 2 hours
+ * before the start until the end, "Check in" is, with RSVP next to it in
+ * outline (one yellow button at a time). Nothing once the event is over.
+ */
+async function PrimaryActions({ event }: { event: PublicEvent }) {
+  const status = await currentStatus(event);
+  if (status === "completed") return null;
+  const eventDay = await checkInTime(event);
+  return (
+    <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start lg:col-start-1" data-testid="primary-actions">
+      {eventDay && <CheckInButton status={status} primary />}
+      <RsvpToggle event={event} primary={!eventDay} />
+    </div>
+  );
+}
+
+/** Check in (before event day), calendar buttons. Past events: subscribe only. */
 async function EventActions({ event }: { event: PublicEvent }) {
   const status = await currentStatus(event);
+  const eventDay = status !== "completed" && (await checkInTime(event));
   return (
-    <>
-      {status !== "completed" && <RsvpToggle event={event} className="mt-8" />}
-
-      {/* Wraps to a second row when the buttons don't fit side by side (e.g. tablets). */}
-      <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-        {status !== "completed" && (
-          <Link href="/checkin" className={button({ size: "lg" })}>
-            <QrCode aria-hidden="true" />
-            {status === "live" ? "I'm here: check in" : "Check in at the event"}
-          </Link>
-        )}
-        {status !== "completed" && <AddToCalendar event={event} full="phone" />}
-        <CalendarButton />
-      </div>
-    </>
+    // Wraps to a second row when the buttons don't fit side by side (e.g. tablets).
+    <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+      {status !== "completed" && !eventDay && <CheckInButton status={status} primary={false} />}
+      {status !== "completed" && <AddToCalendar event={event} full="phone" />}
+      <CalendarButton />
+    </div>
   );
 }

@@ -10,7 +10,8 @@ test("a member RSVPs and un-RSVPs; it sticks across reloads", async ({ page }) =
 
   const member = await createUser();
   await signIn(page, member, `/events/${event.id}`);
-  const toggle = page.getByRole("button", { name: /I.m going/ });
+  // "I'm going", then "You're going" once RSVP'd.
+  const toggle = page.getByRole("button", { name: /I.m going|You.re going/ });
   await expect(toggle).toHaveAttribute("aria-pressed", "false");
   await toggle.click();
   await expect(toggle).toHaveAttribute("aria-pressed", "true");

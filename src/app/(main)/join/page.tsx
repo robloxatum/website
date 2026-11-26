@@ -170,9 +170,15 @@ async function NextEvent() {
 function SignUp() {
   return (
     <div>
-      <GoogleButton next="/join/done" label="Sign up with your umich account" />
+      <GoogleButton next="/join/done" label="Sign up with umich" />
       <p className="mt-2 text-center text-xs text-fg-3">
         Uses your umich.edu Google account. Then check-in at events is one tap.
+      </p>
+      <p className="mt-1 text-center text-sm text-fg-2">
+        Already a member?{" "}
+        <Link href="/login" className="inline-flex min-h-11 items-center font-semibold text-maize hover:underline">
+          Sign in
+        </Link>
       </p>
     </div>
   );
