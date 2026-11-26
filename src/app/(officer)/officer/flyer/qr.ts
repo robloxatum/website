@@ -7,14 +7,6 @@ const QUIET = 4; // modules of white border (QR spec minimum)
 const LOGO_TILE = 0.24; // white tile behind the logo, as a fraction of the code width
 const LOGO = 0.19; // the logo itself
 
-export function sanitizeLabel(raw: string) {
-  return raw.toLowerCase().trim().replace(/[^a-z0-9_-]+/g, "-").replace(/-{2,}/g, "-").slice(0, 48).replace(/^-+|-+$/g, "");
-}
-
-export function joinUrl(base: string, label: string) {
-  return `${base.replace(/\/$/, "")}/join${label ? `?src=${label}` : ""}`;
-}
-
 function matrix(text: string) {
   // Highest error correction (H, ~30%) so the center logo never breaks scanning.
   const qr = QRCode.create(text, { errorCorrectionLevel: "H" });
