@@ -65,6 +65,7 @@ describe("privacy page", () => {
       "Tell us when you graduate or leave",
       '"Get event updates" Google Form',
       "only when 10 or more did",
+      "We'll reply to deletion requests within two weeks.",
     ]) {
       assert.ok(page.includes(phrase), phrase);
     }

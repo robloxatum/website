@@ -146,7 +146,8 @@ export default function PrivacyPage() {
             <a href={`mailto:${CONTACT_EMAIL}`} className={linkClass}>
               {CONTACT_EMAIL}
             </a>{" "}
-            from your umich.edu address. You can also email us with any questions about your data.
+            from your umich.edu address. We&apos;ll reply to deletion requests within two weeks. You can also email us with any questions
+            about your data.
           </p>
         </Section>
       </div>
