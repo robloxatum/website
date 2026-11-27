@@ -16,6 +16,7 @@ import {
   type Flyer,
   flyerFileError,
 } from "@/lib/flyers";
+import { stripImageMetadata, sniffImageType } from "@/lib/strip-metadata";
 import { createClient } from "@/lib/supabase/client";
 import type { EventCategory } from "@/lib/types";
 import { saveEvent, type EventFormState } from "../actions";
@@ -37,7 +38,10 @@ type Defaults = {
 
 type Upload = { path: string; width: number; height: number };
 
-/** Reads the image's size, checks it, and uploads it to Storage under a new name. */
+/**
+ * Reads the image's size, checks it, removes its metadata (a phone photo's
+ * EXIF can include where it was taken) and uploads it to Storage under a new name.
+ */
 async function uploadImage(
   file: File,
   kind: "flyer" | "cover",
@@ -59,12 +63,20 @@ async function uploadImage(
     return { error: "That image is too large (20,000 px max per side)." };
   }
 
-  const ext = kind === "cover" ? COVER_TYPES[file.type] : FLYER_TYPES[file.type];
+  // The type from the file's bytes (its name can say otherwise), then the
+  // same file without metadata: GPS, camera, XMP, comments (audit 3, L-1).
+  const original = new Uint8Array(await file.arrayBuffer());
+  const type = sniffImageType(original) ?? "";
+  const ext = kind === "cover" ? COVER_TYPES[type] : FLYER_TYPES[type];
+  const clean = ext ? stripImageMetadata(original, type) : null;
+  if (!ext || !clean) {
+    return { error: `That ${kind} file isn't a ${kind === "cover" ? "JPG, PNG or WebP" : "PNG or JPG"} image we can use. Try saving it again as one.` };
+  }
   const path = `${kind === "cover" ? "covers/" : ""}${crypto.randomUUID()}.${ext}`;
   // Each file gets a new name, so it can be cached for a year.
   const { error } = await createClient()
     .storage.from(FLYER_BUCKET)
-    .upload(path, file, { contentType: file.type, cacheControl: "31536000", upsert: false });
+    .upload(path, new Blob([clean as BlobPart], { type }), { contentType: type, cacheControl: "31536000", upsert: false });
   if (error) return { error: `Couldn't upload the ${kind}. Check your connection and try again.` };
   return { upload: { path, width, height } };
 }

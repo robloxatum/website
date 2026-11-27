@@ -1,0 +1,1916 @@
+{
+  "ranAt": "2026-11-27T09:36:40.705Z",
+  "target": "local Supabase (127.0.0.1)",
+  "total": 212,
+  "failed": 0,
+  "results": [
+    {
+      "id": "B-01",
+      "persona": "non-umich",
+      "operation": "sign up aud3x@gmail.com (hook)",
+      "expected": "403 refused",
+      "actual": "403 Please sign in with your umich.edu Google account.",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "B-02",
+      "persona": "non-umich",
+      "operation": "sign up aud3y@umich.edu.evil.com (hook)",
+      "expected": "403 refused",
+      "actual": "403 Please sign in with your umich.edu Google account.",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "B-03",
+      "persona": "non-umich",
+      "operation": "sign up aud3z@sub.umich.edu (hook)",
+      "expected": "403 refused",
+      "actual": "403 Please sign in with your umich.edu Google account.",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "B-04",
+      "persona": "non-umich",
+      "operation": "sign up aud3w@xumich.edu (hook)",
+      "expected": "403 refused",
+      "actual": "403 Please sign in with your umich.edu Google account.",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "B-05",
+      "persona": "non-umich",
+      "operation": "sign up aud3v@UMICH.EDU.evil.com (hook)",
+      "expected": "403 refused",
+      "actual": "403 Please sign in with your umich.edu Google account.",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "B-06",
+      "persona": "member",
+      "operation": "sign up UPPER@UMich.Edu (hook)",
+      "expected": "allowed",
+      "actual": "200",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "B-07",
+      "persona": "member",
+      "operation": "uniqname from mixed-case email",
+      "expected": "lowercase",
+      "actual": "aud3u<run>",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "B-08",
+      "persona": "service role",
+      "operation": "admin.createUser x@gmail.com",
+      "expected": "(info) admin API skips hooks",
+      "actual": "created; profile rows=0",
+      "status": "pass",
+      "note": "handle_new_user() still makes no profile for non-umich"
+    },
+    {
+      "id": "B-09",
+      "persona": "non-umich",
+      "operation": "JWT email claim after SQL email change",
+      "expected": "@gmail.com",
+      "actual": "aud3nu@gmail.com",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-10",
+      "persona": "member A",
+      "operation": "check_in(live code)",
+      "expected": "ok",
+      "actual": "ok",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "F-11",
+      "persona": "member A",
+      "operation": "check_in replay (same code twice)",
+      "expected": "already_checked_in",
+      "actual": "already_checked_in",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-12",
+      "persona": "member A",
+      "operation": "save_push_subscription(own device)",
+      "expected": "ok",
+      "actual": "null",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-13",
+      "persona": "anon",
+      "operation": "select profiles",
+      "expected": "denied/empty",
+      "actual": "error 42501 permission denied for table profiles",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-14",
+      "persona": "anon",
+      "operation": "select member_attendance",
+      "expected": "denied/empty",
+      "actual": "error 42501 permission denied for view member_attendance",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-15",
+      "persona": "anon",
+      "operation": "count profiles (head)",
+      "expected": "denied/empty",
+      "actual": "error",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-16",
+      "persona": "memberB",
+      "operation": "select profiles → own row only",
+      "expected": "allowed",
+      "actual": "1 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-17",
+      "persona": "memberB",
+      "operation": "select memberA profile by id",
+      "expected": "denied/empty",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-18",
+      "persona": "memberB",
+      "operation": "member_attendance → own row only",
+      "expected": "allowed",
+      "actual": "1 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-19",
+      "persona": "memberB",
+      "operation": "count(profiles) reveals only self",
+      "expected": "allowed",
+      "actual": "1",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-20",
+      "persona": "fresh",
+      "operation": "select profiles → own row only",
+      "expected": "allowed",
+      "actual": "1 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-21",
+      "persona": "fresh",
+      "operation": "select memberA profile by id",
+      "expected": "denied/empty",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-22",
+      "persona": "fresh",
+      "operation": "member_attendance → own row only",
+      "expected": "allowed",
+      "actual": "1 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-23",
+      "persona": "fresh",
+      "operation": "count(profiles) reveals only self",
+      "expected": "allowed",
+      "actual": "1",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-24",
+      "persona": "nonUm",
+      "operation": "select profiles → own row only",
+      "expected": "allowed",
+      "actual": "1 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-25",
+      "persona": "nonUm",
+      "operation": "select memberA profile by id",
+      "expected": "denied/empty",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-26",
+      "persona": "nonUm",
+      "operation": "member_attendance → own row only",
+      "expected": "allowed",
+      "actual": "1 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-27",
+      "persona": "nonUm",
+      "operation": "count(profiles) reveals only self",
+      "expected": "allowed",
+      "actual": "1",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-28",
+      "persona": "memberB",
+      "operation": "update memberA nickname",
+      "expected": "denied/empty",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-29",
+      "persona": "memberB",
+      "operation": "update own profiles.is_officer (mass assignment)",
+      "expected": "denied/empty",
+      "actual": "error 42501 permission denied for table profiles",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-30",
+      "persona": "memberB",
+      "operation": "update own profiles.is_owner (mass assignment)",
+      "expected": "denied/empty",
+      "actual": "error 42501 permission denied for table profiles",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-31",
+      "persona": "memberB",
+      "operation": "update own profiles.uniqname (mass assignment)",
+      "expected": "denied/empty",
+      "actual": "error 42501 permission denied for table profiles",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-32",
+      "persona": "memberB",
+      "operation": "update own profiles.id (mass assignment)",
+      "expected": "denied/empty",
+      "actual": "error 42501 permission denied for table profiles",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-33",
+      "persona": "memberB",
+      "operation": "update own profiles.created_at (mass assignment)",
+      "expected": "denied/empty",
+      "actual": "error 42501 permission denied for table profiles",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-34",
+      "persona": "memberB",
+      "operation": "update own full_name (locked)",
+      "expected": "ignored",
+      "actual": "Synthetic Bob",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-35",
+      "persona": "memberB",
+      "operation": "insert a profile row",
+      "expected": "denied/empty",
+      "actual": "error 42501 permission denied for table profiles",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-36",
+      "persona": "memberB",
+      "operation": "delete own profile",
+      "expected": "denied/empty",
+      "actual": "error 42501 permission denied for table profiles",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-37",
+      "persona": "nonUm",
+      "operation": "update own profile (non-umich)",
+      "expected": "denied/empty",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-38",
+      "persona": "memberB",
+      "operation": "nickname with zero-width space",
+      "expected": "rejected (23514)",
+      "actual": "error 23514 new row for relation \"profiles\" violates check constraint \"profiles_ni",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-39",
+      "persona": "memberB",
+      "operation": "nickname with right-to-left override",
+      "expected": "rejected",
+      "actual": "error 23514 new row for relation \"profiles\" violates check constraint \"profiles_ni",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-40",
+      "persona": "memberB",
+      "operation": "nickname with Cyrillic lookalike",
+      "expected": "rejected",
+      "actual": "error 23514 new row for relation \"profiles\" violates check constraint \"profiles_ni",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-41",
+      "persona": "memberB",
+      "operation": "nickname with HTML",
+      "expected": "rejected",
+      "actual": "error 23514 new row for relation \"profiles\" violates check constraint \"profiles_ni",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-42",
+      "persona": "memberB",
+      "operation": "roblox_username injection",
+      "expected": "rejected",
+      "actual": "error 23514 new row for relation \"profiles\" violates check constraint \"profiles_ro",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-43",
+      "persona": "memberB",
+      "operation": "set memberA roblox_user_id",
+      "expected": "denied",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-44",
+      "persona": "anon",
+      "operation": "select attendance",
+      "expected": "denied/empty",
+      "actual": "error 42501 permission denied for table attendance",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-45",
+      "persona": "memberB",
+      "operation": "select attendance (others)",
+      "expected": "denied/empty",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-46",
+      "persona": "memberB",
+      "operation": "insert attendance for self (bypass check_in)",
+      "expected": "denied/empty",
+      "actual": "error 42501 permission denied for table attendance",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-47",
+      "persona": "memberB",
+      "operation": "insert attendance for memberA",
+      "expected": "denied/empty",
+      "actual": "error 42501 permission denied for table attendance",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-48",
+      "persona": "memberA",
+      "operation": "delete own attendance",
+      "expected": "denied/empty",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-49",
+      "persona": "memberB",
+      "operation": "delete memberA attendance",
+      "expected": "denied/empty",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-50",
+      "persona": "memberB",
+      "operation": "select event_codes",
+      "expected": "denied/empty",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-51",
+      "persona": "fresh",
+      "operation": "select event_codes",
+      "expected": "denied/empty",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-52",
+      "persona": "nonUm",
+      "operation": "select event_codes",
+      "expected": "denied/empty",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-53",
+      "persona": "anon",
+      "operation": "select event_codes",
+      "expected": "denied/empty",
+      "actual": "error 42501 permission denied for table event_codes",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-54",
+      "persona": "officer",
+      "operation": "select event_codes",
+      "expected": "allowed",
+      "actual": "1 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-55",
+      "persona": "memberB",
+      "operation": "select event_rsvps (others)",
+      "expected": "denied/empty",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-56",
+      "persona": "memberB",
+      "operation": "insert RSVP as memberA",
+      "expected": "denied/empty",
+      "actual": "error 42501 new row violates row-level security policy for table \"event_rsvps\"",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-57",
+      "persona": "memberB",
+      "operation": "insert RSVP on ended event",
+      "expected": "denied/empty",
+      "actual": "error 42501 new row violates row-level security policy for table \"event_rsvps\"",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-58",
+      "persona": "memberB",
+      "operation": "delete memberA RSVP",
+      "expected": "denied/empty",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-59",
+      "persona": "nonUm",
+      "operation": "insert RSVP (non-umich)",
+      "expected": "denied/empty",
+      "actual": "error 42501 new row violates row-level security policy for table \"event_rsvps\"",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-60",
+      "persona": "anon",
+      "operation": "insert RSVP",
+      "expected": "denied/empty",
+      "actual": "error 42501 permission denied for table event_rsvps",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-61",
+      "persona": "fresh",
+      "operation": "RSVP before finishing /welcome",
+      "expected": "(design) allowed",
+      "actual": "1 row(s)",
+      "status": "pass",
+      "note": "allowed: onboarding is not enforced by the database"
+    },
+    {
+      "id": "C-62",
+      "persona": "fresh",
+      "operation": "check_in before finishing /welcome",
+      "expected": "(design) allowed",
+      "actual": "ok",
+      "status": "pass",
+      "note": "onboarded_at is not checked by check_in()"
+    },
+    {
+      "id": "C-63",
+      "persona": "nonUm",
+      "operation": "check_in (non-umich)",
+      "expected": "not_umich",
+      "actual": "not_umich",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-64",
+      "persona": "anon",
+      "operation": "check_in",
+      "expected": "denied",
+      "actual": "error 42501 permission denied for function check_in",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "F-65",
+      "persona": "memberB",
+      "operation": "40 parallel wrong codes",
+      "expected": "≤10 recorded failures",
+      "actual": "{\"invalid_code\":10,\"rate_limited\":30}; failures=10",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "F-66",
+      "persona": "memberB",
+      "operation": "correct code while rate-limited",
+      "expected": "rate_limited",
+      "actual": "rate_limited",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "F-67",
+      "persona": "db",
+      "operation": "event codes unique, 5 letters from 24",
+      "expected": "all match ^[A-HJ-NP-Z]{5}$",
+      "actual": "11 codes, 11 distinct",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "F-68",
+      "persona": "memberA",
+      "operation": "check_in with an ENDED event's code",
+      "expected": "closed (event title revealed)",
+      "actual": "closed",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "F-69",
+      "persona": "memberA",
+      "operation": "check_in to an upcoming event (not opened)",
+      "expected": "closed",
+      "actual": "closed",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-70",
+      "persona": "memberB",
+      "operation": "select memberA devices",
+      "expected": "denied/empty",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-71",
+      "persona": "memberB",
+      "operation": "update memberA device settings",
+      "expected": "denied/empty",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-72",
+      "persona": "memberB",
+      "operation": "update own device user_id → memberA",
+      "expected": "denied/empty",
+      "actual": "error 42501 permission denied for table push_subscriptions",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-73",
+      "persona": "memberB",
+      "operation": "insert device directly",
+      "expected": "denied/empty",
+      "actual": "error 42501 permission denied for table push_subscriptions",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-74",
+      "persona": "memberB",
+      "operation": "delete memberA devices",
+      "expected": "denied/empty",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-75",
+      "persona": "nonUm",
+      "operation": "save_push_subscription (non-umich)",
+      "expected": "denied/empty",
+      "actual": "error 42501 Sign in first",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "F-76",
+      "persona": "memberB",
+      "operation": "save device endpoint http://127.0.0.1:9/x",
+      "expected": "denied/empty",
+      "actual": "error 23514 new row for relation \"push_subscriptions\" violates check constraint \"p",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "F-77",
+      "persona": "memberB",
+      "operation": "save device endpoint https://169.254.169.254/latest",
+      "expected": "denied/empty",
+      "actual": "error 23514 new row for relation \"push_subscriptions\" violates check constraint \"p",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "F-78",
+      "persona": "memberB",
+      "operation": "save device endpoint https://fcm.googleapis.com.evil.com/x",
+      "expected": "denied/empty",
+      "actual": "error 23514 new row for relation \"push_subscriptions\" violates check constraint \"p",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "F-79",
+      "persona": "memberB",
+      "operation": "save device endpoint https://evil.com/fcm.googleapis.com/",
+      "expected": "denied/empty",
+      "actual": "error 23514 new row for relation \"push_subscriptions\" violates check constraint \"p",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "F-80",
+      "persona": "memberB",
+      "operation": "p_replaces = memberA endpoint",
+      "expected": "memberA device untouched",
+      "actual": "untouched",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "F-81",
+      "persona": "memberB",
+      "operation": "25 parallel device saves",
+      "expected": "≤10 devices kept",
+      "actual": "errors=0, devices=10",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-82",
+      "persona": "memberA",
+      "operation": "read servers: checked in + live",
+      "expected": "allowed",
+      "actual": "1 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-83",
+      "persona": "memberB",
+      "operation": "read servers: NOT checked in, live",
+      "expected": "denied/empty",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-84",
+      "persona": "memberA",
+      "operation": "read servers: upcoming event",
+      "expected": "denied/empty",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-85",
+      "persona": "anon",
+      "operation": "read servers",
+      "expected": "denied/empty",
+      "actual": "error 42501 permission denied for table event_game_servers",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-86",
+      "persona": "memberA",
+      "operation": "add a server",
+      "expected": "denied/empty",
+      "actual": "error 42501 new row violates row-level security policy for table \"event_game_serve",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-87",
+      "persona": "memberA",
+      "operation": "edit a server URL",
+      "expected": "denied/empty",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-88",
+      "persona": "memberA",
+      "operation": "reorder_game_servers",
+      "expected": "denied/empty",
+      "actual": "error 42501 Only officers can reorder game servers",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-89",
+      "persona": "memberA",
+      "operation": "my_checkin_order (checked in)",
+      "expected": "a number",
+      "actual": "1",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-90",
+      "persona": "memberB",
+      "operation": "my_checkin_order (not checked in)",
+      "expected": "null",
+      "actual": "null",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "F-91",
+      "persona": "officer",
+      "operation": "server url https://roblox.com.evil.com/x",
+      "expected": "rejected",
+      "actual": "error 23514 new row for relation \"event_game_servers\" violates check constraint \"e",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "F-92",
+      "persona": "officer",
+      "operation": "server url https://www.roblox.com@evil.com/",
+      "expected": "rejected",
+      "actual": "error 23514 new row for relation \"event_game_servers\" violates check constraint \"e",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "F-93",
+      "persona": "officer",
+      "operation": "server url javascript:alert(1)",
+      "expected": "rejected",
+      "actual": "error 23514 new row for relation \"event_game_servers\" violates check constraint \"e",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "F-94",
+      "persona": "officer",
+      "operation": "server url https://www.roblox.com/\"><script>",
+      "expected": "rejected",
+      "actual": "error 23514 new row for relation \"event_game_servers\" violates check constraint \"e",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "F-95",
+      "persona": "officer",
+      "operation": "server url http://www.roblox.com/x",
+      "expected": "rejected",
+      "actual": "error 23514 new row for relation \"event_game_servers\" violates check constraint \"e",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-96",
+      "persona": "memberA",
+      "operation": "set_officer(self, true)",
+      "expected": "denied/empty",
+      "actual": "error 42501 Only owners can change officer status",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-97",
+      "persona": "memberA",
+      "operation": "officer_analytics",
+      "expected": "denied/empty",
+      "actual": "error 42501 Officers only",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-98",
+      "persona": "memberA",
+      "operation": "regenerate_event_code",
+      "expected": "denied/empty",
+      "actual": "error 42501 Only officers can change event codes",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-99",
+      "persona": "memberA",
+      "operation": "set_checkin_open",
+      "expected": "denied/empty",
+      "actual": "error 42501 Event not found or you are not an officer",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-100",
+      "persona": "memberA",
+      "operation": "clear_nickname(memberB)",
+      "expected": "denied/empty",
+      "actual": "error 42501 Only officers can clear nicknames",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-101",
+      "persona": "memberA",
+      "operation": "update event title",
+      "expected": "denied/empty",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-102",
+      "persona": "memberA",
+      "operation": "delete event",
+      "expected": "denied/empty",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-103",
+      "persona": "memberA",
+      "operation": "insert event",
+      "expected": "denied/empty",
+      "actual": "error 42501 new row violates row-level security policy for table \"events\"",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-104",
+      "persona": "memberA",
+      "operation": "publish announcement",
+      "expected": "denied/empty",
+      "actual": "error 42501 new row violates row-level security policy for table \"announcements\"",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-105",
+      "persona": "memberA",
+      "operation": "save_community_links",
+      "expected": "denied/empty",
+      "actual": "error 42501 Officers only",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-106",
+      "persona": "memberA",
+      "operation": "save_about_page",
+      "expected": "denied/empty",
+      "actual": "error 42501 Officers only",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-107",
+      "persona": "memberA",
+      "operation": "save_featured_panel",
+      "expected": "denied/empty",
+      "actual": "error 42501 Officers only",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-108",
+      "persona": "memberA",
+      "operation": "save_join_content",
+      "expected": "denied/empty",
+      "actual": "error 42501 Officers only",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-109",
+      "persona": "memberA",
+      "operation": "select site_content_edits",
+      "expected": "denied/empty",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-110",
+      "persona": "fresh",
+      "operation": "set_officer(self, true)",
+      "expected": "denied/empty",
+      "actual": "error 42501 Only owners can change officer status",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-111",
+      "persona": "fresh",
+      "operation": "officer_analytics",
+      "expected": "denied/empty",
+      "actual": "error 42501 Officers only",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-112",
+      "persona": "fresh",
+      "operation": "regenerate_event_code",
+      "expected": "denied/empty",
+      "actual": "error 42501 Only officers can change event codes",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-113",
+      "persona": "fresh",
+      "operation": "set_checkin_open",
+      "expected": "denied/empty",
+      "actual": "error 42501 Event not found or you are not an officer",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-114",
+      "persona": "fresh",
+      "operation": "clear_nickname(memberB)",
+      "expected": "denied/empty",
+      "actual": "error 42501 Only officers can clear nicknames",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-115",
+      "persona": "fresh",
+      "operation": "update event title",
+      "expected": "denied/empty",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-116",
+      "persona": "fresh",
+      "operation": "delete event",
+      "expected": "denied/empty",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-117",
+      "persona": "fresh",
+      "operation": "insert event",
+      "expected": "denied/empty",
+      "actual": "error 42501 new row violates row-level security policy for table \"events\"",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-118",
+      "persona": "fresh",
+      "operation": "publish announcement",
+      "expected": "denied/empty",
+      "actual": "error 42501 new row violates row-level security policy for table \"announcements\"",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-119",
+      "persona": "fresh",
+      "operation": "save_community_links",
+      "expected": "denied/empty",
+      "actual": "error 42501 Officers only",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-120",
+      "persona": "fresh",
+      "operation": "save_about_page",
+      "expected": "denied/empty",
+      "actual": "error 42501 Officers only",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-121",
+      "persona": "fresh",
+      "operation": "save_featured_panel",
+      "expected": "denied/empty",
+      "actual": "error 42501 Officers only",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-122",
+      "persona": "fresh",
+      "operation": "save_join_content",
+      "expected": "denied/empty",
+      "actual": "error 42501 Officers only",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-123",
+      "persona": "fresh",
+      "operation": "select site_content_edits",
+      "expected": "denied/empty",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-124",
+      "persona": "nonUm",
+      "operation": "set_officer(self, true)",
+      "expected": "denied/empty",
+      "actual": "error 42501 Only owners can change officer status",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-125",
+      "persona": "nonUm",
+      "operation": "officer_analytics",
+      "expected": "denied/empty",
+      "actual": "error 42501 Officers only",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-126",
+      "persona": "nonUm",
+      "operation": "regenerate_event_code",
+      "expected": "denied/empty",
+      "actual": "error 42501 Only officers can change event codes",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-127",
+      "persona": "nonUm",
+      "operation": "set_checkin_open",
+      "expected": "denied/empty",
+      "actual": "error 42501 Event not found or you are not an officer",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-128",
+      "persona": "nonUm",
+      "operation": "clear_nickname(memberB)",
+      "expected": "denied/empty",
+      "actual": "error 42501 Only officers can clear nicknames",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-129",
+      "persona": "nonUm",
+      "operation": "update event title",
+      "expected": "denied/empty",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-130",
+      "persona": "nonUm",
+      "operation": "delete event",
+      "expected": "denied/empty",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-131",
+      "persona": "nonUm",
+      "operation": "insert event",
+      "expected": "denied/empty",
+      "actual": "error 42501 new row violates row-level security policy for table \"events\"",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-132",
+      "persona": "nonUm",
+      "operation": "publish announcement",
+      "expected": "denied/empty",
+      "actual": "error 42501 new row violates row-level security policy for table \"announcements\"",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-133",
+      "persona": "nonUm",
+      "operation": "save_community_links",
+      "expected": "denied/empty",
+      "actual": "error 42501 Officers only",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-134",
+      "persona": "nonUm",
+      "operation": "save_about_page",
+      "expected": "denied/empty",
+      "actual": "error 42501 Officers only",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-135",
+      "persona": "nonUm",
+      "operation": "save_featured_panel",
+      "expected": "denied/empty",
+      "actual": "error 42501 Officers only",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-136",
+      "persona": "nonUm",
+      "operation": "save_join_content",
+      "expected": "denied/empty",
+      "actual": "error 42501 Officers only",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-137",
+      "persona": "nonUm",
+      "operation": "select site_content_edits",
+      "expected": "denied/empty",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-138",
+      "persona": "officer",
+      "operation": "set_officer(memberA, true)",
+      "expected": "denied/empty",
+      "actual": "error 42501 Only owners can change officer status",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-139",
+      "persona": "officer",
+      "operation": "set_officer(owner, false) (demote owner)",
+      "expected": "denied/empty",
+      "actual": "error 42501 Only owners can change officer status",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-140",
+      "persona": "officer",
+      "operation": "update own is_owner",
+      "expected": "denied/empty",
+      "actual": "error 42501 permission denied for table profiles",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-141",
+      "persona": "officer",
+      "operation": "update owner is_officer",
+      "expected": "denied/empty",
+      "actual": "error 42501 permission denied for table profiles",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-142",
+      "persona": "officer",
+      "operation": "update another member's nickname",
+      "expected": "denied/empty",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-143",
+      "persona": "owner",
+      "operation": "set_officer(owner self, false)",
+      "expected": "denied/empty",
+      "actual": "error P0001 Owners can't be removed as officers",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-144",
+      "persona": "owner",
+      "operation": "set_officer(memberB, true)",
+      "expected": "allowed",
+      "actual": "null",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-145",
+      "persona": "owner",
+      "operation": "set_officer(memberB, false)",
+      "expected": "allowed",
+      "actual": "null",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-146",
+      "persona": "officer",
+      "operation": "set_officer(random uuid) error",
+      "expected": "42501 before existence check",
+      "actual": "error 42501 Only owners can change officer status",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-147",
+      "persona": "memberB",
+      "operation": "clear_nickname(random uuid) error",
+      "expected": "42501 (no existence oracle)",
+      "actual": "error 42501 Only officers can clear nicknames",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-148",
+      "persona": "officer",
+      "operation": "officer_analytics",
+      "expected": "allowed",
+      "actual": "{\"prev\":null,\"events\":[{\"id\":\"b572a0b6-1045-4d30-bc34-97438400aaab\",\"rsvps\":0,\"title\":\"AUD",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-149",
+      "persona": "officer",
+      "operation": "select all profiles",
+      "expected": "allowed",
+      "actual": "36 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-150",
+      "persona": "officer(pre)",
+      "operation": "join private attendance:<live>",
+      "expected": "SUBSCRIBED",
+      "actual": "SUBSCRIBED",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-151",
+      "persona": "officer(pre)",
+      "operation": "read event code",
+      "expected": "allowed",
+      "actual": "1 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-152",
+      "persona": "owner",
+      "operation": "remove officer (former)",
+      "expected": "ok",
+      "actual": "null",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-153",
+      "persona": "former",
+      "operation": "read event codes with pre-removal JWT",
+      "expected": "denied/empty",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-154",
+      "persona": "former",
+      "operation": "select all profiles with pre-removal JWT",
+      "expected": "denied/empty",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-155",
+      "persona": "former",
+      "operation": "officer_analytics with pre-removal JWT",
+      "expected": "denied/empty",
+      "actual": "error 42501 Officers only",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-156",
+      "persona": "former",
+      "operation": "storage list event-flyers",
+      "expected": "denied/empty",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-157",
+      "persona": "former",
+      "operation": "open attendance channel after removal",
+      "expected": "(expected) still receives counts until rejoin",
+      "actual": "1 count message(s) after removal",
+      "status": "pass",
+      "note": "still receiving: Realtime authorizes at join; payload is a number only"
+    },
+    {
+      "id": "C-158",
+      "persona": "former",
+      "operation": "re-join attendance channel after removal",
+      "expected": "refused",
+      "actual": "CHANNEL_ERROR",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-159",
+      "persona": "anon",
+      "operation": "join private attendance:<live>",
+      "expected": "refused",
+      "actual": "CHANNEL_ERROR",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-160",
+      "persona": "memberB",
+      "operation": "join private attendance:<live>",
+      "expected": "refused",
+      "actual": "CHANNEL_ERROR",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-161",
+      "persona": "nonUm",
+      "operation": "join private attendance:<live>",
+      "expected": "refused",
+      "actual": "CHANNEL_ERROR",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-162",
+      "persona": "memberB",
+      "operation": "join private game:<event not checked in>",
+      "expected": "refused",
+      "actual": "CHANNEL_ERROR",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-163",
+      "persona": "memberA",
+      "operation": "join private game:<checked-in event>",
+      "expected": "allowed",
+      "actual": "SUBSCRIBED",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-164",
+      "persona": "memberA",
+      "operation": "send broadcast on private game:<id>",
+      "expected": "refused, nobody receives",
+      "actual": "ack=error, officer received 0",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-165",
+      "persona": "anon",
+      "operation": "join PUBLIC game:<id> (same name)",
+      "expected": "(info) depends on 'allow public access' setting",
+      "actual": "SUBSCRIBED",
+      "status": "pass",
+      "note": "public channels are open: separate from private ones"
+    },
+    {
+      "id": "D-166",
+      "persona": "officer",
+      "operation": "upload flyer png",
+      "expected": "allowed",
+      "actual": "uploaded",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-167",
+      "persona": "anon",
+      "operation": "list event-flyers",
+      "expected": "denied/empty",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-168",
+      "persona": "memberA",
+      "operation": "list event-flyers",
+      "expected": "denied/empty",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-169",
+      "persona": "memberA",
+      "operation": "list event-flyers/covers",
+      "expected": "denied/empty",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-170",
+      "persona": "memberA",
+      "operation": "upload png",
+      "expected": "denied/empty",
+      "actual": "error AccessDenied new row violates row-level security policy",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-171",
+      "persona": "anon",
+      "operation": "upload png",
+      "expected": "denied/empty",
+      "actual": "error AccessDenied new row violates row-level security policy",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-172",
+      "persona": "memberA",
+      "operation": "overwrite officer flyer (upsert)",
+      "expected": "denied/empty",
+      "actual": "error AccessDenied new row violates row-level security policy",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-173",
+      "persona": "memberA",
+      "operation": "delete officer flyer",
+      "expected": "denied/empty",
+      "actual": "0 row(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-174",
+      "persona": "memberA",
+      "operation": "move officer flyer",
+      "expected": "denied/empty",
+      "actual": "error NoSuchKey Object not found",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-175",
+      "persona": "anon",
+      "operation": "public flyer still there after member attacks",
+      "expected": "200",
+      "actual": "200",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-176",
+      "persona": "anon",
+      "operation": "public object headers",
+      "expected": "image/png + nosniff?",
+      "actual": "ct=image/png nosniff=absent",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-177",
+      "persona": "officer",
+      "operation": "upload svg",
+      "expected": "rejected",
+      "actual": "rejected: mime type image/svg+xml is not supported",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-178",
+      "persona": "officer",
+      "operation": "upload svg type, .png name",
+      "expected": "rejected",
+      "actual": "rejected: mime type image/svg+xml is not supported",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-179",
+      "persona": "officer",
+      "operation": "upload text/html, .png name",
+      "expected": "rejected",
+      "actual": "rejected: mime type text/html is not supported",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-180",
+      "persona": "officer",
+      "operation": "upload path traversal ../",
+      "expected": "rejected",
+      "actual": "rejected: Object path escapes the intended bucket endpoint",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-181",
+      "persona": "officer",
+      "operation": "upload other folder",
+      "expected": "rejected",
+      "actual": "rejected: new row violates row-level security policy",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-182",
+      "persona": "officer",
+      "operation": "upload webp at root (flyers png/jpg only)",
+      "expected": "rejected",
+      "actual": "rejected: new row violates row-level security policy",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-183",
+      "persona": "officer",
+      "operation": "upload covers/../<uuid>.png",
+      "expected": "rejected, or normalized to an allowed name",
+      "actual": "stored in db as <uuid>.png",
+      "status": "pass",
+      "note": "client echoes the requested path; the database row is what counts"
+    },
+    {
+      "id": "D-184",
+      "persona": "officer",
+      "operation": "upload HTML bytes declared image/png",
+      "expected": "(info) Storage checks declared type only",
+      "actual": "accepted; served ct=image/png",
+      "status": "pass",
+      "note": "officer-only; served as image/png, so not rendered as HTML"
+    },
+    {
+      "id": "D-185",
+      "persona": "officer",
+      "operation": "upload 5 MB + 10 bytes",
+      "expected": "rejected (size limit)",
+      "actual": "rejected: The object exceeded the maximum allowed ",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-186",
+      "persona": "memberA",
+      "operation": "call private.is_officer via Content-Profile: private",
+      "expected": "schema not exposed",
+      "actual": "406 PGRST106",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-187",
+      "persona": "memberA",
+      "operation": "read private.checkin_failures via Accept-Profile",
+      "expected": "schema not exposed",
+      "actual": "406 PGRST106",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-188",
+      "persona": "anon",
+      "operation": "call hook_umich_only",
+      "expected": "denied",
+      "actual": "401 42501",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-189",
+      "persona": "memberA",
+      "operation": "call hook_umich_only",
+      "expected": "denied",
+      "actual": "403 42501",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "F-190",
+      "persona": "anon",
+      "operation": "public_past_event_counts",
+      "expected": "(rule: hide < 10)",
+      "actual": "200; rows under 10: 0",
+      "status": "pass",
+      "note": "rule enforced in the app only (lib/events.ts), not the RPC"
+    },
+    {
+      "id": "D-191",
+      "persona": "anon",
+      "operation": "rpc/take_roblox_lookup",
+      "expected": "denied (no anon EXECUTE)",
+      "actual": "401 42501",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-192",
+      "persona": "anon",
+      "operation": "rpc/my_checkin_order",
+      "expected": "denied (no anon EXECUTE)",
+      "actual": "401 42501",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-193",
+      "persona": "anon",
+      "operation": "rpc/officer_analytics",
+      "expected": "denied (no anon EXECUTE)",
+      "actual": "401 42501",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-194",
+      "persona": "anon",
+      "operation": "rpc/save_push_subscription",
+      "expected": "denied (no anon EXECUTE)",
+      "actual": "401 42501",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-195",
+      "persona": "anon",
+      "operation": "rpc/set_officer",
+      "expected": "denied (no anon EXECUTE)",
+      "actual": "401 42501",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-196",
+      "persona": "anon",
+      "operation": "rpc/clear_nickname",
+      "expected": "denied (no anon EXECUTE)",
+      "actual": "401 42501",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-197",
+      "persona": "anon",
+      "operation": "rpc/regenerate_event_code",
+      "expected": "denied (no anon EXECUTE)",
+      "actual": "401 42501",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-198",
+      "persona": "anon",
+      "operation": "rpc/set_checkin_open",
+      "expected": "denied (no anon EXECUTE)",
+      "actual": "401 42501",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-199",
+      "persona": "anon",
+      "operation": "rpc/reorder_game_servers",
+      "expected": "denied (no anon EXECUTE)",
+      "actual": "401 42501",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-200",
+      "persona": "anon",
+      "operation": "rpc/save_about_page",
+      "expected": "denied (no anon EXECUTE)",
+      "actual": "401 42501",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-201",
+      "persona": "anon",
+      "operation": "rpc/save_community_links",
+      "expected": "denied (no anon EXECUTE)",
+      "actual": "401 42501",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-202",
+      "persona": "anon",
+      "operation": "rpc/save_featured_panel",
+      "expected": "denied (no anon EXECUTE)",
+      "actual": "401 42501",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-203",
+      "persona": "anon",
+      "operation": "rpc/save_join_content",
+      "expected": "denied (no anon EXECUTE)",
+      "actual": "401 42501",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-204",
+      "persona": "anon",
+      "operation": "rpc/check_in",
+      "expected": "denied (no anon EXECUTE)",
+      "actual": "401 42501",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "D-205",
+      "persona": "anon",
+      "operation": "GraphQL introspection (local)",
+      "expected": "(info)",
+      "actual": "200 {\"errors\":[{\"message\":\"pg_graphql extension is not enabled.\"}]}",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "B-206",
+      "persona": "tampered",
+      "operation": "JWT with sub changed (original signature)",
+      "expected": "401",
+      "actual": "401",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "B-207",
+      "persona": "tampered",
+      "operation": "JWT alg=none",
+      "expected": "401",
+      "actual": "401",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "B-208",
+      "persona": "tampered",
+      "operation": "JWT HS256 with a guessed secret",
+      "expected": "401",
+      "actual": "401",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "B-209",
+      "persona": "expired",
+      "operation": "validly signed but expired JWT",
+      "expected": "401",
+      "actual": "401",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "B-210",
+      "persona": "signed-out",
+      "operation": "access token after global sign-out",
+      "expected": "(accepted) valid until exp",
+      "actual": "200",
+      "status": "pass",
+      "note": "exp in 60 min"
+    },
+    {
+      "id": "B-211",
+      "persona": "signed-out",
+      "operation": "refresh token after sign-out",
+      "expected": "refused",
+      "actual": "400",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "B-212",
+      "persona": "anon",
+      "operation": "password sign-up as any@umich.edu (LOCAL config)",
+      "expected": "(local only) allowed; production: email provider off",
+      "actual": "200 session issued",
+      "status": "pass",
+      "note": "verified separately: production /auth/v1/settings has email=false"
+    }
+  ]
+}

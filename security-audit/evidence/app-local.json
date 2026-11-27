@@ -1,0 +1,841 @@
+{
+  "ranAt": "2026-11-27T09:28:16.295Z",
+  "target": "local E2E build + local Supabase",
+  "total": 91,
+  "failed": 0,
+  "results": [
+    {
+      "id": "B-01",
+      "persona": "member",
+      "operation": "auth cookie flags (local http build)",
+      "expected": "HttpOnly? SameSite=Lax, Path=/",
+      "actual": "expires,max-age,path,samesite",
+      "status": "pass",
+      "note": "Secure is off on http://localhost by design (cookie-options.ts)"
+    },
+    {
+      "id": "E-02",
+      "persona": "officer",
+      "operation": "GET /officer/members Cache-Control",
+      "expected": "no-store when the body has personal data",
+      "actual": "200 cc=\"private, no-cache, no-store, max-age=0, must-revalidate\" personal-data=true",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-03",
+      "persona": "officer",
+      "operation": "GET /officer Cache-Control",
+      "expected": "no-store when the body has personal data",
+      "actual": "200 cc=\"private, no-cache, no-store, max-age=0, must-revalidate\" personal-data=false",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-04",
+      "persona": "officer",
+      "operation": "GET /officer/events/<id> Cache-Control",
+      "expected": "no-store when the body has personal data",
+      "actual": "200 cc=\"private, no-cache, no-store, max-age=0, must-revalidate\" personal-data=true",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-05",
+      "persona": "member",
+      "operation": "GET /profile Cache-Control",
+      "expected": "no-store when the body has personal data",
+      "actual": "200 cc=\"private, no-cache, no-store, max-age=0, must-revalidate\" personal-data=true",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-06",
+      "persona": "member",
+      "operation": "GET /checkin Cache-Control",
+      "expected": "no-store when the body has personal data",
+      "actual": "200 cc=\"private, no-cache, no-store, max-age=0, must-revalidate\" personal-data=false",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-07",
+      "persona": "member",
+      "operation": "GET /play Cache-Control",
+      "expected": "no-store when the body has personal data",
+      "actual": "200 cc=\"private, no-cache, no-store, max-age=0, must-revalidate\" personal-data=false",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-08",
+      "persona": "officer",
+      "operation": "GET /officer/members.csv Cache-Control",
+      "expected": "no-store when the body has personal data",
+      "actual": "200 cc=\"private, no-store\" personal-data=true",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-09",
+      "persona": "officer",
+      "operation": "GET /officer/backup.zip Cache-Control",
+      "expected": "no-store when the body has personal data",
+      "actual": "200 cc=\"private, no-store\" personal-data=true",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-10",
+      "persona": "officer",
+      "operation": "GET /officer/events/<id>/attendance.csv Cache-Control",
+      "expected": "no-store when the body has personal data",
+      "actual": "200 cc=\"private, no-store\" personal-data=true",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-11",
+      "persona": "member",
+      "operation": "GET / leaks",
+      "expected": "none",
+      "actual": "none (200)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-12",
+      "persona": "member",
+      "operation": "GET /events/<id> leaks",
+      "expected": "none",
+      "actual": "none (200)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-13",
+      "persona": "anon",
+      "operation": "GET /events/<id> leaks",
+      "expected": "none",
+      "actual": "none (200)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-14",
+      "persona": "member",
+      "operation": "RSC GET /events/<id> leaks",
+      "expected": "none",
+      "actual": "none (307)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-15",
+      "persona": "member",
+      "operation": "GET /play leaks",
+      "expected": "none",
+      "actual": "none (200)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-16",
+      "persona": "member",
+      "operation": "GET /checkin leaks",
+      "expected": "none",
+      "actual": "none (200)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-17",
+      "persona": "member",
+      "operation": "GET /officer leaks",
+      "expected": "none",
+      "actual": "none (200)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-18",
+      "persona": "member",
+      "operation": "GET /officer/members leaks",
+      "expected": "none",
+      "actual": "none (200)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-19",
+      "persona": "member",
+      "operation": "GET /officer/events/<id> leaks",
+      "expected": "none",
+      "actual": "none (200)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-20",
+      "persona": "member",
+      "operation": "GET /profile leaks",
+      "expected": "none",
+      "actual": "none (200)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-21",
+      "persona": "anon",
+      "operation": "event page renders stored XSS payloads escaped",
+      "expected": "no raw tags/javascript: hrefs",
+      "actual": "escaped",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-22",
+      "persona": "anon",
+      "operation": "og:title escaping",
+      "expected": "entity-encoded",
+      "actual": "encoded",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-23",
+      "persona": "anon",
+      "operation": ".ics has no injected lines",
+      "expected": "one SUMMARY, no extra BEGIN",
+      "actual": "1 SUMMARY, 1 VEVENT",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-24",
+      "persona": "member",
+      "operation": "server action setOfficer(self, true)",
+      "expected": "refused, no change",
+      "actual": "500; is_officer=false",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-25",
+      "persona": "officer",
+      "operation": "server action setOfficer(member, true)",
+      "expected": "refused (owners only)",
+      "actual": "200 'Only owners…'; is_officer=false",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-26",
+      "persona": "officer",
+      "operation": "server action setOfficer(owner, false)",
+      "expected": "refused",
+      "actual": "200; owner is_officer=true",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-27",
+      "persona": "member",
+      "operation": "server action clearNickname(other)",
+      "expected": "refused, no change",
+      "actual": "500; nickname=Secret Sam",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-28",
+      "persona": "member",
+      "operation": "server action removeAttendance(other)",
+      "expected": "refused, no change",
+      "actual": "attendance 1→1",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-29",
+      "persona": "member",
+      "operation": "server action deleteEvent",
+      "expected": "refused",
+      "actual": "event still there",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-30",
+      "persona": "member",
+      "operation": "server action regenerateCode",
+      "expected": "refused",
+      "actual": "unchanged",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-31",
+      "persona": "member",
+      "operation": "server action addGameServer",
+      "expected": "refused",
+      "actual": "1 server(s)",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-32",
+      "persona": "member",
+      "operation": "server action saveAnnouncement",
+      "expected": "refused",
+      "actual": "500; not published",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-33",
+      "persona": "member",
+      "operation": "server action saveLinks",
+      "expected": "refused",
+      "actual": "500",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-34",
+      "persona": "anon",
+      "operation": "server action setOfficer (signed out)",
+      "expected": "refused",
+      "actual": "200; is_officer=false",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-35",
+      "persona": "member",
+      "operation": "server action with Origin: https://evil.example",
+      "expected": "refused (Next origin check)",
+      "actual": "500",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-36",
+      "persona": "member",
+      "operation": "server action with Origin: null (sandboxed iframe)",
+      "expected": "refused",
+      "actual": "500",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-37",
+      "persona": "member",
+      "operation": "server action with no Origin header",
+      "expected": "(info) Next allows; browsers always send Origin on POST",
+      "actual": "200",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-38",
+      "persona": "anon",
+      "operation": "invoke $$RSC_SERVER_CACHE_0 (events.ts) as an action",
+      "expected": "refused (404 from proxy.ts, M-1 fix)",
+      "actual": "404 ",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-39",
+      "persona": "anon",
+      "operation": "invoke $$RSC_SERVER_CACHE_1 (events.ts) as an action",
+      "expected": "refused (404 from proxy.ts, M-1 fix)",
+      "actual": "404 ",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-40",
+      "persona": "anon",
+      "operation": "invoke $$RSC_SERVER_CACHE_0 (announcements.ts) as an action",
+      "expected": "refused (404 from proxy.ts, M-1 fix)",
+      "actual": "404 ",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-41",
+      "persona": "anon",
+      "operation": "invoke $$RSC_SERVER_CACHE_2 (site-content-data.ts) as an action",
+      "expected": "refused (404 from proxy.ts, M-1 fix)",
+      "actual": "404 ",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-42",
+      "persona": "anon",
+      "operation": "invoke $$RSC_SERVER_CACHE_0 (site-content-data.ts) as an action",
+      "expected": "refused (404 from proxy.ts, M-1 fix)",
+      "actual": "404 ",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-43",
+      "persona": "anon",
+      "operation": "invoke $$RSC_SERVER_CACHE_3 (site-content-data.ts) as an action",
+      "expected": "refused (404 from proxy.ts, M-1 fix)",
+      "actual": "404 ",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-44",
+      "persona": "anon",
+      "operation": "invoke $$RSC_SERVER_CACHE_1 (site-content-data.ts) as an action",
+      "expected": "refused (404 from proxy.ts, M-1 fix)",
+      "actual": "404 ",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-45",
+      "persona": "anon",
+      "operation": "invoke $$RSC_SERVER_CACHE_2 (roblox.ts) as an action",
+      "expected": "refused (404 from proxy.ts, M-1 fix)",
+      "actual": "404 ",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-46",
+      "persona": "anon",
+      "operation": "invoke $$RSC_SERVER_CACHE_0 (roblox.ts) as an action",
+      "expected": "refused (404 from proxy.ts, M-1 fix)",
+      "actual": "404 ",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-47",
+      "persona": "anon",
+      "operation": "invoke $$RSC_SERVER_CACHE_1 (roblox.ts) as an action",
+      "expected": "refused (404 from proxy.ts, M-1 fix)",
+      "actual": "404 ",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-48",
+      "persona": "anon",
+      "operation": "unknown action id",
+      "expected": "404/400, no stack",
+      "actual": "409 stack=false",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-49",
+      "persona": "member",
+      "operation": "GET /officer/members.csv",
+      "expected": "403",
+      "actual": "403",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-50",
+      "persona": "anon",
+      "operation": "GET /officer/members.csv",
+      "expected": "403",
+      "actual": "403",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-51",
+      "persona": "member",
+      "operation": "GET /officer/backup.zip",
+      "expected": "403",
+      "actual": "403",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-52",
+      "persona": "member",
+      "operation": "GET /officer/events/<id>/attendance.csv",
+      "expected": "403",
+      "actual": "403",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-53",
+      "persona": "officer",
+      "operation": "GET /officer/members.csv",
+      "expected": "200",
+      "actual": "200",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-54",
+      "persona": "officer",
+      "operation": "GET /api/cron/reminders",
+      "expected": "401",
+      "actual": "401",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "C-55",
+      "persona": "anon",
+      "operation": "GET /api/keep-alive",
+      "expected": "401",
+      "actual": "401",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "F-56",
+      "persona": "cron",
+      "operation": "reminders: wrong / longer secret",
+      "expected": "401, 401",
+      "actual": "401, 401",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "F-57",
+      "persona": "cron",
+      "operation": "reminders twice in a row",
+      "expected": "second run sends nothing new",
+      "actual": "run1 events=0 run2 events=0",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-58",
+      "persona": "member",
+      "operation": "POST /api/push/subscription origin=https://evil.example ct=application/json",
+      "expected": "403",
+      "actual": "403",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-59",
+      "persona": "member",
+      "operation": "POST /api/push/subscription origin=http://localhost:3201 ct=text/plain",
+      "expected": "403",
+      "actual": "403",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-60",
+      "persona": "member",
+      "operation": "POST /api/push/subscription origin=none ct=application/json",
+      "expected": "403",
+      "actual": "403",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-61",
+      "persona": "other",
+      "operation": "POST /auth/signout from another origin (cookies attached)",
+      "expected": "403, still signed in (I-3 fix)",
+      "actual": "403; afterwards /profile 200",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-62",
+      "persona": "anon",
+      "operation": "callback next=\"//evil.example\"",
+      "expected": "stays on site",
+      "actual": "next=/",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-63",
+      "persona": "member",
+      "operation": "login (signed in) next=\"//evil.example\"",
+      "expected": "same-site redirect",
+      "actual": "/",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-64",
+      "persona": "anon",
+      "operation": "callback next=\"/\\\\evil.example\"",
+      "expected": "stays on site",
+      "actual": "next=/",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-65",
+      "persona": "member",
+      "operation": "login (signed in) next=\"/\\\\evil.example\"",
+      "expected": "same-site redirect",
+      "actual": "/",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-66",
+      "persona": "anon",
+      "operation": "callback next=\"/..//evil.example\"",
+      "expected": "stays on site",
+      "actual": "next=/",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-67",
+      "persona": "member",
+      "operation": "login (signed in) next=\"/..//evil.example\"",
+      "expected": "same-site redirect",
+      "actual": "/",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-68",
+      "persona": "anon",
+      "operation": "callback next=\"https://evil.example\"",
+      "expected": "stays on site",
+      "actual": "next=/",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-69",
+      "persona": "member",
+      "operation": "login (signed in) next=\"https://evil.example\"",
+      "expected": "same-site redirect",
+      "actual": "/",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-70",
+      "persona": "anon",
+      "operation": "callback next=\"/%2F%2Fevil.example\"",
+      "expected": "stays on site",
+      "actual": "next=/%2F%2Fevil.example",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-71",
+      "persona": "member",
+      "operation": "login (signed in) next=\"/%2F%2Fevil.example\"",
+      "expected": "same-site redirect",
+      "actual": "/%2F%2Fevil.example",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-72",
+      "persona": "anon",
+      "operation": "callback next=\"/%5Cevil.example\"",
+      "expected": "stays on site",
+      "actual": "next=/%5Cevil.example",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-73",
+      "persona": "member",
+      "operation": "login (signed in) next=\"/%5Cevil.example\"",
+      "expected": "same-site redirect",
+      "actual": "/%5Cevil.example",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-74",
+      "persona": "anon",
+      "operation": "callback next=\"javascript:alert(1)\"",
+      "expected": "stays on site",
+      "actual": "next=/",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-75",
+      "persona": "member",
+      "operation": "login (signed in) next=\"javascript:alert(1)\"",
+      "expected": "same-site redirect",
+      "actual": "/",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-76",
+      "persona": "anon",
+      "operation": "callback next=\"/\\t/evil.example\"",
+      "expected": "stays on site",
+      "actual": "next=/",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-77",
+      "persona": "member",
+      "operation": "login (signed in) next=\"/\\t/evil.example\"",
+      "expected": "same-site redirect",
+      "actual": "/",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-78",
+      "persona": "anon",
+      "operation": "callback next=\"/ /evil.example\"",
+      "expected": "stays on site",
+      "actual": "next=/%20/evil.example",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-79",
+      "persona": "member",
+      "operation": "login (signed in) next=\"/ /evil.example\"",
+      "expected": "same-site redirect",
+      "actual": "/%20/evil.example",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-80",
+      "persona": "anon",
+      "operation": "GET /go/gameover",
+      "expected": "307 same-site (or the home page)",
+      "actual": "307 /join?src=flyer-gameover",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-81",
+      "persona": "anon",
+      "operation": "GET /go/%2e%2e",
+      "expected": "307 same-site (or the home page)",
+      "actual": "200 home page",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-82",
+      "persona": "anon",
+      "operation": "GET /go/..%2f..%2fevil.example",
+      "expected": "307 same-site (or the home page)",
+      "actual": "307 /",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-83",
+      "persona": "anon",
+      "operation": "GET /go//evil.example",
+      "expected": "307 same-site (or the home page)",
+      "actual": "308 /go/evil.example",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-84",
+      "persona": "anon",
+      "operation": "GET /go/GAMEOVER",
+      "expected": "307 same-site (or the home page)",
+      "actual": "307 /join?src=flyer-gameover",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "E-85",
+      "persona": "anon",
+      "operation": "GET /go/x/y",
+      "expected": "307 same-site (or the home page)",
+      "actual": "307 /",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "H-86",
+      "persona": "anon",
+      "operation": "callback with Host: evil.example",
+      "expected": "(info) absolute Location from Host",
+      "actual": "307 http://localhost:3201/login?error=oauth&next=%2F",
+      "status": "pass",
+      "note": "Vercel only routes assigned domains; self-hosting would need a fixed host"
+    },
+    {
+      "id": "H-87",
+      "persona": "anon",
+      "operation": "/go with X-Forwarded-Host: evil.example",
+      "expected": "(info)",
+      "actual": "http://localhost:3201/join?src=flyer-gameover",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "F-88",
+      "persona": "anon",
+      "operation": "/_next/image rbxcdn avatar host (allowed by **.rbxcdn.com)",
+      "expected": "(info) accepted → fetched upstream",
+      "actual": "404",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "F-89",
+      "persona": "anon",
+      "operation": "/_next/image arbitrary rbxcdn subdomain",
+      "expected": "(info) accepted → fetched upstream",
+      "actual": "500",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "F-90",
+      "persona": "anon",
+      "operation": "/_next/image supabase storage other bucket",
+      "expected": "400 (not allowed)",
+      "actual": "400",
+      "status": "pass",
+      "note": ""
+    },
+    {
+      "id": "F-91",
+      "persona": "anon",
+      "operation": "/_next/image evil host",
+      "expected": "400 (not allowed)",
+      "actual": "400",
+      "status": "pass",
+      "note": ""
+    }
+  ],
+  "serverErrorLines": [
+    "⨯ Error: Officers only",
+    "⨯ Error: Officers only",
+    "⨯ Error: Officers only",
+    "⨯ Error: Officers only",
+    "⨯ Error: Officers only",
+    "⨯ Error: Officers only",
+    "⨯ Error: Officers only",
+    "⨯ Error: Officers only",
+    "⨯ Error: Invalid Server Actions request.",
+    "⨯ Error: Invalid Server Actions request.",
+    "Error: Failed to find Server Action \"006086002a47eceb9c5afb40fa37c2a5c38a9654ca\". This request might be from an older or newer deployment.",
+    "⨯ Error: getaddrinfo ENOTFOUND anything.rbxcdn.com"
+  ]
+}

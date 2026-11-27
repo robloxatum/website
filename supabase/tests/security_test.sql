@@ -4,7 +4,8 @@
 -- no data behind. Any failed check raises an exception and aborts the run; if
 -- you see "ALL SECURITY TESTS PASSED", every check passed.
 --
---   npx supabase db query --linked -f supabase/tests/security_test.sql
+--   npx supabase db query --local -f supabase/tests/security_test.sql
+--   (or: npm run test:db, which needs no Docker). Never run it against production.
 
 begin;
 
@@ -247,15 +248,36 @@ reset role;
 -------------------------------------------------------------------------------
 -- Signed-out visitors and non-umich accounts
 -------------------------------------------------------------------------------
+-- An ended event with exactly 10 check-ins (the public threshold). Removed
+-- again right after the signed-out checks, so later counts aren't affected.
+do $$
+declare v_id uuid;
+begin
+  insert into public.events (title, starts_at, ends_at)
+  values ('Big Past Meeting', now() - interval '5 hours', now() - interval '4 hours')
+  returning id into v_id;
+  perform set_config('test.e10', v_id::text, true);
+  insert into auth.users (id, email, raw_user_meta_data)
+  select ('00000000-0000-0000-0000-0000000010' || lpad(i::text, 2, '0'))::uuid,
+         'count' || i || '@umich.edu', '{"full_name":"Count Tester"}'
+    from generate_series(1, 10) i;
+  insert into public.attendance (event_id, user_id)
+  select v_id, ('00000000-0000-0000-0000-0000000010' || lpad(i::text, 2, '0'))::uuid
+    from generate_series(1, 10) i;
+end $$;
+
 select set_config('request.jwt.claims', '{"role":"anon"}', true);
 set local role anon;
 do $$ begin
   assert not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                       where n.nspname = 'public' and p.proname = 'public_stats'),
     'site-wide public totals are no longer exposed';
+  assert not exists (select 1 from public.public_past_event_counts()
+                      where event_id = current_setting('test.e2')::uuid),
+    'past events with fewer than 10 check-ins hide their count';
   assert (select attendance from public.public_past_event_counts()
-           where event_id = current_setting('test.e2')::uuid) = 1,
-    'past events expose an aggregate attendance count';
+           where event_id = current_setting('test.e10')::uuid) = 10,
+    'past events with 10 or more check-ins expose an aggregate count';
   assert not exists (select 1 from public.public_past_event_counts()
                       where event_id = current_setting('test.e1')::uuid),
     'live/upcoming events never expose attendance counts';
@@ -281,6 +303,9 @@ do $$ begin
   exception when insufficient_privilege then null; end;
 end $$;
 reset role;
+
+delete from public.events where id = current_setting('test.e10')::uuid;
+delete from auth.users where email like 'count%@umich.edu';
 
 select set_config('request.jwt.claims',
   '{"sub":"00000000-0000-0000-0000-00000000000d","email":"outsider@gmail.com","role":"authenticated"}', true);

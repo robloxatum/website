@@ -1,0 +1,91 @@
+# Project-specific Semgrep rules for security audit 3. Run locally:
+#   semgrep scan --metrics=off --config security-audit/semgrep/rules.yml src
+rules:
+  - id: raw-html-sink
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: Raw HTML sink. User or officer text must go through React's escaping.
+    pattern-either:
+      - pattern: <$EL dangerouslySetInnerHTML={...} />
+      - pattern: $X.innerHTML = $Y
+      - pattern: $X.outerHTML = $Y
+      - pattern: document.write(...)
+      - pattern: eval(...)
+      - pattern: new Function(...)
+
+  - id: secret-key-outside-push-sender
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: SUPABASE_SECRET_KEY / the admin client may only be used by src/lib/push/send.ts (and admin.ts, which defines it).
+    paths:
+      exclude: [src/lib/push/send.ts, src/lib/supabase/admin.ts]
+    pattern-either:
+      - pattern: process.env.SUPABASE_SECRET_KEY
+      - pattern: process.env["SUPABASE_SECRET_KEY"]
+      - pattern: import { createAdminClient } from "..."
+      - pattern: createAdminClient()
+
+  - id: server-action-without-auth-check
+    languages: [typescript]
+    severity: WARNING
+    message: Exported server action that never calls getUser/getProfile/requireOfficer*. Check it re-validates the caller.
+    paths:
+      include: ["**/actions.ts", "**/*-actions.ts"]
+    patterns:
+      - pattern: |
+          async function $F(...) { ... }
+      - pattern-not: |
+          async function $F(...) { ... await getUser(); ... }
+      - pattern-not: |
+          async function $F(...) { ... await getProfile(); ... }
+      - pattern-not-inside: |
+          async function $G(...) { ... }
+          ...
+      - pattern-not: |
+          async function $F(...) { ... }
+      - metavariable-regex:
+          metavariable: $F
+          regex: ^(?!requireOfficer|requireOfficerAction|takeRobloxLookup|objectExists|removeObject|siteHosts)
+  - id: route-handler-redirect-from-input
+    languages: [typescript]
+    severity: WARNING
+    message: Redirect built from request input without safeNext()/isSitePath().
+    patterns:
+      - pattern-either:
+          - pattern: NextResponse.redirect(new URL($P.get(...), ...))
+          - pattern: redirect($P.get(...))
+          - pattern: 'new Response(null, { headers: { Location: $P.get(...) } })'
+
+  - id: href-from-data
+    languages: [typescript]
+    severity: INFO
+    message: href taken from data. Confirm the scheme/host is validated (React does not block javascript:).
+    pattern: <a href={$X} ...>...</a>
+
+  - id: target-blank-without-noopener
+    languages: [typescript]
+    severity: WARNING
+    message: target=_blank without rel=noopener.
+    patterns:
+      - pattern: <a target="_blank" ...>...</a>
+      - pattern-not: <a target="_blank" rel="noopener noreferrer" ...>...</a>
+      - pattern-not: <a rel="noopener noreferrer" target="_blank" ...>...</a>
+
+  - id: cookie-set-without-options
+    languages: [typescript]
+    severity: WARNING
+    message: Cookie set directly. Auth cookies must use authCookieOptions().
+    pattern-either:
+      - pattern: document.cookie = $X
+      - pattern: $C.cookies.set($N, $V)
+
+  - id: service-role-or-secret-literal
+    languages: [generic]
+    severity: ERROR
+    message: Hard-coded Supabase secret, service-role JWT or private key.
+    paths:
+      exclude: ["*.md", "security-audit/**"]
+    pattern-either:
+      - pattern-regex: sb_secret_[A-Za-z0-9_-]{20,}
+      - pattern-regex: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[A-Za-z0-9_-]{20,}
+      - pattern-regex: -----BEGIN (EC |RSA )?PRIVATE KEY-----

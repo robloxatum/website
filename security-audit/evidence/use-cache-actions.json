@@ -1,0 +1,26 @@
+{
+  "ranAt": "2026-11-27T09:26:43.388Z",
+  "cacheFunctionsInManifest": 10,
+  "checks": [
+    {
+      "name": "lookupRobloxUser(username) signed out, 30 fresh names",
+      "vulnerable": false,
+      "detail": "0/30 returned a lookup result; 0 upstream Roblox requests (sign-in and the 20/min limit bypassed)"
+    },
+    {
+      "name": "idsForUsernames(5000 names) signed out",
+      "vulnerable": false,
+      "detail": "no upstream call"
+    },
+    {
+      "name": "avatarBatch(3000 ids) signed out",
+      "vulnerable": false,
+      "detail": "no upstream call"
+    },
+    {
+      "name": "events.ts cache function signed out",
+      "vulnerable": false,
+      "detail": "HTTP 404"
+    }
+  ]
+}
