@@ -34,8 +34,8 @@ Rules: local stack only for attacks; production = signed-out GET only; no migrat
 - [x] L-2: privacy page text; `tests/privacy-page.test.mjs`
 - [x] Winter-break to-do list in 10 §6 (L-4, L-7, purge function, rest of L-5)
 - [x] `npm test` 195/195; `test:db` passed; tsc clean; eslint clean
-- [ ] Full e2e on the final tree
-- [ ] Commit, push, CI, merge to main, push, confirm production deploy, delete branch
+- [x] Full e2e on the final tree: local run 223 passed / 4 failed / 9 skipped (all 4 from the new tests, fixed test-side, affected specs re-run 88 passed / 2 skipped); full suite passed in CI on dcc1adb
+- [x] Commit, push, CI, merge to main, push, confirm production deploy, delete branch: dcc1adb, CI passed, merged as 53c920f; production checked with signed-out GETs (robots.txt, privacy text, optimizer 400 for rbxcdn, /about avatars direct); branch deleted
 
 ## Not done (and why)
 - `e2e/use-cache-actions.spec.ts` not run against a pre-fix build (an 11-minute rebuild); the attack script covers the same requests
