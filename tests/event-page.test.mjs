@@ -31,3 +31,14 @@ test("event day: check-in is the main action from 2 hours before the start until
   assert.equal(isCheckInTime(e, start + 2 * h - 1), true);
   assert.equal(isCheckInTime(e, start + 2 * h), false);
 });
+
+import { formatTimeRangeShort } from "../src/lib/time.ts";
+
+test("short time range (phones): AM/PM once when both times share it", () => {
+  // 6–8 PM in Ann Arbor (EST, UTC-5).
+  assert.equal(formatTimeRangeShort("2026-12-01T23:00:00Z", "2026-12-02T01:00:00Z"), "6:00 – 8:00 PM");
+  // 11 AM – 1 PM keeps both.
+  assert.equal(formatTimeRangeShort("2026-12-01T16:00:00Z", "2026-12-01T18:00:00Z"), "11:00 AM – 1:00 PM");
+  // Across midnight: the full range with dates.
+  assert.equal(formatTimeRangeShort("2026-12-02T03:00:00Z", "2026-12-02T06:00:00Z"), "Dec 1, 10:00 PM – Dec 2, 1:00 AM");
+});

@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { InstallBar } from "@/components/install/InstallBar";
 import { getActiveAnnouncement } from "@/lib/announcements";
+import { getEventLists } from "@/lib/events";
 import { getMemberNav } from "@/lib/member-nav";
 import { AnnouncementBanner } from "./AnnouncementBanner";
 import { MobileTabBar, SIGNED_OUT } from "./NavLinks";
@@ -28,9 +29,11 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** Phone tab bar for this visitor (Join vs Links, Check In vs Play). */
+/** Phone tab bar for this visitor (Join vs Links, Check In vs Play; Check In yellow on event day). */
 async function MemberTabBar() {
-  return <MobileTabBar nav={await getMemberNav()} />;
+  const [nav, { upcoming }] = await Promise.all([getMemberNav(), getEventLists()]);
+  const checkInWindows = upcoming.map(({ starts_at, ends_at }) => ({ starts_at, ends_at }));
+  return <MobileTabBar nav={nav} checkInWindows={checkInWindows} />;
 }
 
 /** "Get the app" for members on a phone browser (the bar decides on the phone). */

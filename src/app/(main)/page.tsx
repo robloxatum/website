@@ -32,6 +32,7 @@ export default function HomePage() {
               <TaglineWordmark preload className="h-auto w-full max-w-[min(100%,540px)]" />
             </h1>
             <p className="mt-6 text-lg leading-relaxed text-fg sm:text-xl">{pitch}</p>
+            <p className="mt-3 font-semibold text-fg sm:text-lg">Sign up with umich to RSVP and check in with one tap.</p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link href="/join" className={button({ size: "lg" })}>
                 <Users aria-hidden="true" />
@@ -43,28 +44,13 @@ export default function HomePage() {
                 View Events
               </Link>
             </div>
-            <p className="mt-3 text-sm font-semibold text-fg-2">RSVP and check in with one tap.</p>
           </div>
         </div>
       </section>
 
       <div className={`${container} space-y-8 sm:space-y-10`}>
-        {/* Upcoming events + featured */}
-        <UpcomingAndFeatured>
-          <Panel
-            title="Upcoming Events"
-            icon={CalendarDays}
-            action={
-              <Link href="/events" className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-fg-2 hover:text-maize">
-                View all <ArrowRight aria-hidden="true" className="size-4" />
-              </Link>
-            }
-          >
-            <Suspense fallback={<div className="grid gap-4 sm:grid-cols-3"><Skeleton className="h-72" /><Skeleton className="hidden h-72 sm:block" /><Skeleton className="hidden h-72 sm:block" /></div>}>
-              <UpcomingEvents />
-            </Suspense>
-          </Panel>
-        </UpcomingAndFeatured>
+        {/* Upcoming events, with the Featured panel beside them when it's on */}
+        <UpcomingAndFeatured />
 
         {/* Join banner */}
         <section className={`relative overflow-hidden ${card} bg-linear-to-r from-[#11365a] via-surface to-[#0d2741]`}>
@@ -113,7 +99,7 @@ export default function HomePage() {
   );
 }
 
-async function UpcomingEvents() {
+async function UpcomingEvents({ beside }: { beside: boolean }) {
   const { upcoming } = await getEventLists();
   if (upcoming.length === 0) {
     return (
@@ -125,9 +111,11 @@ async function UpcomingEvents() {
       </EmptyState>
     );
   }
-  // Fill the panel: one event gets a wide card, two share the row, three go up to three columns.
+  // Fill the panel: one event gets a wide card, two share the row, three go up to three columns
+  // (from lg on the full width; from xl when the Featured panel takes the right-hand column).
   const shown = upcoming.slice(0, 3);
-  const cols = shown.length === 1 ? "" : shown.length === 2 ? "sm:grid-cols-2" : "sm:grid-cols-2 xl:grid-cols-3";
+  const three = beside ? "sm:grid-cols-2 xl:grid-cols-3" : "sm:grid-cols-2 lg:grid-cols-3";
+  const cols = shown.length === 1 ? "" : shown.length === 2 ? "sm:grid-cols-2" : three;
   return (
     <ul className={`grid gap-4 ${cols}`}>
       {shown.map((event) => (
@@ -139,13 +127,31 @@ async function UpcomingEvents() {
   );
 }
 
-/** Upcoming events, with the officer-set Featured panel beside them when it's on (cached; see lib/site-content-data). */
-async function UpcomingAndFeatured({ children }: { children: React.ReactNode }) {
+/**
+ * Upcoming events, with the officer-set Featured panel beside them when it's on
+ * (cached; see lib/site-content-data). Off, the events take the full width.
+ */
+async function UpcomingAndFeatured() {
   const featured = await getFeaturedPanel();
-  if (!featured) return <div>{children}</div>;
+  const events = (
+    <Panel
+      title="Upcoming Events"
+      icon={CalendarDays}
+      action={
+        <Link href="/events" className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-fg-2 hover:text-maize">
+          View all <ArrowRight aria-hidden="true" className="size-4" />
+        </Link>
+      }
+    >
+      <Suspense fallback={<div className="grid gap-4 sm:grid-cols-3"><Skeleton className="h-72" /><Skeleton className="hidden h-72 sm:block" /><Skeleton className="hidden h-72 sm:block" /></div>}>
+        <UpcomingEvents beside={!!featured} />
+      </Suspense>
+    </Panel>
+  );
+  if (!featured) return events;
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
-      {children}
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+      {events}
       <FeaturedPanel featured={featured} />
     </div>
   );

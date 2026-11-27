@@ -102,7 +102,7 @@ async function JoinLanding() {
       )}
 
       <section aria-labelledby="meeting" className="mt-12">
-        <SectionLabel>A typical meeting</SectionLabel>
+        <SectionLabel>A typical event</SectionLabel>
         <h2 id="meeting" className="mt-2 text-2xl text-fg">What to expect</h2>
         <ol className={`mt-5 ${card} divide-y divide-line/50`}>
           {typicalMeeting.map((step, i) => (
@@ -171,9 +171,7 @@ function SignUp() {
   return (
     <div>
       <GoogleButton next="/join/done" label="Sign up with umich" />
-      <p className="mt-2 text-center text-xs text-fg-3">
-        Uses your umich.edu Google account. Then check-in at events is one tap.
-      </p>
+      <p className="mt-2 text-center text-sm text-fg-2">After that, RSVP and check-in take one tap.</p>
       <p className="mt-1 text-center text-sm text-fg-2">
         Already a member?{" "}
         <Link href="/login" className="inline-flex min-h-11 items-center font-semibold text-maize hover:underline">

@@ -19,7 +19,7 @@ import { flyerOf, flyerUrl } from "@/lib/flyers";
 import type { PublicEvent } from "@/lib/types";
 import { coverPreviewImage, pageMetadata } from "@/lib/metadata";
 import { resolveLocation } from "@/lib/locations";
-import { formatLongDate, formatTimeRange } from "@/lib/time";
+import { formatDate, formatLongDate, formatTimeRange, formatTimeRangeShort } from "@/lib/time";
 
 /** Link previews: the event's cover, title, and date · time · place. */
 export async function generateMetadata({ params }: PageProps<"/events/[id]">): Promise<Metadata> {
@@ -93,8 +93,15 @@ async function EventDetails({ params }: { params: PageProps<"/events/[id]">["par
   // Building codes spelled out here ("CCCB 1420" -> Central Campus Classroom Building, Room 1420); cards keep the code.
   const place = resolveLocation(event.location);
   const facts = [
-    { icon: CalendarDays, label: "Date", value: formatLongDate(event.starts_at) },
-    { icon: Clock3, label: "Time", value: formatTimeRange(event.starts_at, event.ends_at) },
+    // Phones: date and time share a row (short date), so the RSVP button sits higher.
+    { icon: CalendarDays, label: "Date", value: formatLongDate(event.starts_at), short: formatDate(event.starts_at), half: true },
+    {
+      icon: Clock3,
+      label: "Time",
+      value: formatTimeRange(event.starts_at, event.ends_at),
+      short: formatTimeRangeShort(event.starts_at, event.ends_at),
+      half: true,
+    },
     { icon: MapPin, label: "Location", value: place?.label ?? "Location TBA", mapUrl: place?.mapUrl ?? null },
   ];
 
@@ -125,7 +132,7 @@ async function EventDetails({ params }: { params: PageProps<"/events/[id]">["par
           <h1 className="mt-3 text-3xl leading-tight text-fg sm:text-4xl">{event.title}</h1>
         </div>
 
-        <dl className="mt-6 grid gap-3 sm:grid-cols-2 lg:col-start-1">
+        <dl className="mt-6 grid grid-cols-2 gap-3 lg:col-start-1">
           {facts.map((f) => (
             <Fact key={f.label} {...f} />
           ))}
@@ -170,18 +177,48 @@ async function EventDetails({ params }: { params: PageProps<"/events/[id]">["par
   );
 }
 
-/** One fact (date, time, ...): valid dl markup, with the icon inside the dt. Known buildings get a Map link. */
-function Fact({ icon: Icon, label, value, mapUrl = null }: { icon: typeof CalendarDays; label: string; value: string; mapUrl?: string | null }) {
+/**
+ * One fact (date, time, ...): valid dl markup, with the icon inside the dt.
+ * Full width on phones unless `half` (then a short value if given); two per row
+ * from sm up. Known buildings get a Map link that covers the whole card.
+ */
+function Fact({
+  icon: Icon,
+  label,
+  value,
+  short,
+  half = false,
+  mapUrl = null,
+}: {
+  icon: typeof CalendarDays;
+  label: string;
+  value: string;
+  short?: string;
+  half?: boolean;
+  mapUrl?: string | null;
+}) {
   return (
-    <div className="relative flex min-h-16 flex-col justify-center rounded-xl border border-line/60 bg-bg-2/60 py-3 pr-3 pl-16">
-      <dt className="text-xs font-semibold tracking-wider text-fg-3 uppercase">
-        <span aria-hidden="true" className="absolute top-1/2 left-3 grid size-10 -translate-y-1/2 place-items-center rounded-lg bg-elevated">
-          <Icon className="size-5 text-maize" />
+    <div
+      className={`relative flex min-h-16 flex-col justify-center rounded-xl border border-line/60 bg-bg-2/60 p-3 transition-colors duration-150 sm:col-span-1 sm:pl-16 ${
+        half ? "" : "col-span-2"
+      } ${mapUrl ? "has-[a:hover]:border-maize/60" : ""}`}
+    >
+      {/* Phones: a small icon beside the label, so two facts fit side by side. From sm: an icon tile on the left. */}
+      <dt className="flex items-center gap-1.5 text-xs font-semibold tracking-wider text-fg-3 uppercase">
+        <span aria-hidden="true" className="sm:absolute sm:top-1/2 sm:left-3 sm:grid sm:size-10 sm:-translate-y-1/2 sm:place-items-center sm:rounded-lg sm:bg-elevated">
+          <Icon className="size-4 text-maize sm:size-5" />
         </span>
         {label}
       </dt>
       <dd className="min-w-0 font-semibold text-fg">
-        {value}
+        {short ? (
+          <>
+            <span className="sm:hidden">{short}</span>
+            <span className="max-sm:hidden">{value}</span>
+          </>
+        ) : (
+          value
+        )}
         {mapUrl && (
           <>
             {" "}
@@ -189,7 +226,7 @@ function Fact({ icon: Icon, label, value, mapUrl = null }: { icon: typeof Calend
               href={mapUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-0.5 text-sm font-semibold whitespace-nowrap text-maize hover:underline"
+              className="inline-flex items-center gap-0.5 text-sm font-semibold whitespace-nowrap text-maize after:absolute after:inset-0 after:rounded-xl hover:underline"
             >
               Map
               <ArrowUpRight aria-hidden="true" className="size-3.5" />

@@ -70,7 +70,7 @@ export function EventCard({
           {event.title}
         </Heading>
         <EventMeta event={event} className="mt-1.5 sm:mt-2" />
-        <div className="mt-auto flex items-center justify-between gap-2 pt-3 sm:pt-4">
+        <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-3 sm:pt-4">
           {event.status === "completed" && event.attendance !== null ? (
             <span className="inline-flex items-center gap-1.5 text-sm text-fg-2">
               <Users aria-hidden="true" className="size-4 text-fg-3" />
@@ -82,7 +82,7 @@ export function EventCard({
           {event.status === "completed" ? (
             event.attendance !== null && <StatusPill status="completed" />
           ) : (
-            <span className="hidden items-center gap-1 text-sm font-semibold text-maize sm:inline-flex">
+            <span className="inline-flex items-center gap-1 text-sm font-semibold text-maize">
               Details
               <ArrowRight aria-hidden="true" className="size-4 transition-transform duration-200 group-hover:translate-x-0.5" />
             </span>

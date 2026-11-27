@@ -6,7 +6,7 @@ import { expect, signIn, test } from "./support/fixtures";
 test("a member RSVPs and un-RSVPs; it sticks across reloads", async ({ page }) => {
   const event = await createEvent({ startMin: 60 * 24 * 3, endMin: 60 * 24 * 3 + 120 });
   await page.goto(`/events/${event.id}`);
-  await expect(page.getByRole("link", { name: "Sign in to RSVP" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "RSVP with umich" })).toBeVisible();
 
   const member = await createUser();
   await signIn(page, member, `/events/${event.id}`);
