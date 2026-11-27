@@ -161,9 +161,14 @@ export function HeaderCheckIn({ events, outline = false }: { events: CheckedInEv
             )}
           </Link>
         ) : (
-          <Link href="/checkin" className={button({ variant: outline ? "secondary" : "primary", size: "sm" })}>
+          // Signed out (outline): icon-only between md and lg, so Sign in + Sign up fit beside it at 768px.
+          <Link
+            href="/checkin"
+            title="Check In"
+            className={button({ variant: outline ? "secondary" : "primary", size: "sm", className: outline ? "max-lg:min-w-11 max-lg:px-0" : "" })}
+          >
             <QrCode aria-hidden="true" />
-            Check In
+            <span className={outline ? "max-lg:sr-only" : ""}>Check In</span>
           </Link>
         )
       }
