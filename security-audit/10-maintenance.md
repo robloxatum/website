@@ -58,5 +58,5 @@ Each writes JSON to `security-audit/evidence/`. Re-run them after a Next.js majo
 - [ ] **L-7 reminders past 1000 devices**: page through `push_subscriptions` in `/api/cron/reminders` (`.range()` in steps of 1000) instead of one select; unit/e2e test with more than 1000 rows locally.
 - [ ] **Daily purge (L-2 follow-up)**: a SECURITY DEFINER `private.purge_old_rate_limits()` that deletes `checkin_failures` older than a day and `roblox_lookups` older than a minute, called by the keep-alive cron. Migration shown first. Then change the privacy page back to "deleted after a day" (and update `tests/privacy-page.test.mjs`).
 - [ ] **L-5, the rest**: point `.env.local` at the local Supabase for `next dev`; keep production values only in Vercel (or a separate `.env.production.local` used on purpose); update the memory note that localhost and Vercel share the production database.
-- [x] Privacy page: response time for deletion requests (two weeks, 03 §5 item 7).
+- [x] Privacy page: response time for deletion requests (03 §5 item 7): no fixed time is promised ("We'll reply as soon as we can."). Retention is "while the club needs them for its records", with deletion on request.
 - [ ] Dashboard items in 08 not done before launch.
