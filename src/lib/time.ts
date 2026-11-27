@@ -49,6 +49,15 @@ export function formatTimeRange(startIso: string, endIso: string) {
     : `${formatDateTime(startIso)} – ${formatDateTime(endIso)}`;
 }
 
+/** Shorter, for narrow spots: "6:00 – 8:00 PM" when both are the same day and half of the day. */
+export function formatTimeRangeShort(startIso: string, endIso: string) {
+  const full = formatTimeRange(startIso, endIso);
+  const [start, end] = [formatTime(startIso), formatTime(endIso)];
+  const meridiem = /\s([AP]M)$/; // \s: some ICU versions put a narrow no-break space before PM
+  const [a, b] = [start.match(meridiem)?.[1], end.match(meridiem)?.[1]];
+  return full === `${start} – ${end}` && a && a === b ? `${start.replace(meridiem, "")} – ${end}` : full;
+}
+
 const partsFmt = new Intl.DateTimeFormat("en-US", {
   timeZone: CLUB_TIME_ZONE,
   hourCycle: "h23",

@@ -3,6 +3,7 @@
 //     names on event pages.
 import type { Locator } from "@playwright/test";
 import { randomUUID } from "node:crypto";
+import { pitch } from "../src/content/join";
 import { admin, createEvent, createUser, SEEDED, updateEvent } from "./support/db";
 import { expect, expectAccessible, expectLayoutOk, isPhone, signIn, test } from "./support/fixtures";
 
@@ -39,12 +40,16 @@ test("event page, days before: RSVP is the yellow action under the details and a
   // Next's image optimizer won't fetch from the local (private-address) Supabase: serve the flyer image directly.
   await page.route(/event-flyers/, (route) => route.fulfill({ status: 200, contentType: "image/png", body: PNG }));
 
-  // Signed out: "Sign in to RSVP", yellow, in the same spot.
+  // Signed out: "RSVP with umich", yellow, in the same spot, with the first-time line under it.
   await page.goto(`/events/${event.id}`);
   const actions = page.getByTestId("primary-actions");
-  const signInToRsvp = actions.getByRole("link", { name: "Sign in to RSVP" });
+  const signInToRsvp = actions.getByRole("link", { name: "RSVP with umich" });
   await expect(signInToRsvp).toBeVisible();
   expect(await isPrimary(signInToRsvp)).toBe(true);
+  await expect(signInToRsvp).toHaveAttribute("href", `/login?next=${encodeURIComponent(`/events/${event.id}`)}`);
+  const firstTime = actions.getByText("First time? This creates your account.");
+  await expect(firstTime).toBeVisible();
+  expect(await top(firstTime)).toBeGreaterThan(await top(signInToRsvp));
 
   const member = await createUser();
   await signIn(page, member, `/events/${event.id}`);
@@ -115,14 +120,22 @@ test("event page, event day (from 2 hours before): check in is the yellow action
   await expect(page.locator("main").getByRole("link", { name: /check in/i })).toHaveCount(0);
 });
 
-test("signed-out header: a yellow Sign up (to /join) instead of Sign in; Check In outline on desktop", async ({ page }) => {
+test("signed-out header: a yellow Sign up (to /join) and a plain Sign in; neither on /join or /login; Check In outline on desktop", async ({ page }) => {
   await page.goto("/events");
   const header = page.locator("header").first();
   const signUp = header.getByRole("link", { name: "Sign up", exact: true });
   await expect(signUp).toBeVisible();
   await expect(signUp).toHaveAttribute("href", "/join");
   expect(await isPrimary(signUp)).toBe(true);
-  await expect(header.getByRole("link", { name: "Sign in", exact: true })).toHaveCount(0);
+  // Returning members: plain text, not a button, right before Sign up.
+  const signIn_ = header.getByRole("link", { name: "Sign in", exact: true });
+  await expect(signIn_).toBeVisible();
+  await expect(signIn_).toHaveAttribute("href", "/login");
+  expect(await isPrimary(signIn_)).toBe(false);
+  expect(await signIn_.getAttribute("class")).not.toContain("border");
+  const [inBox, upBox] = [(await signIn_.boundingBox())!, (await signUp.boundingBox())!];
+  expect(inBox.x + inBox.width).toBeLessThanOrEqual(upBox.x);
+  expect(upBox.x - (inBox.x + inBox.width)).toBeLessThan(24);
   if (!isPhone(page)) {
     const checkIn = header.getByRole("link", { name: "Check In" });
     await expect(checkIn).toBeVisible();
@@ -132,10 +145,28 @@ test("signed-out header: a yellow Sign up (to /join) instead of Sign in; Check I
     await expect(page.getByRole("navigation").getByRole("link", { name: "Check In", exact: true })).toBeVisible();
   }
   await page.screenshot({ path: test.info().outputPath("header-signed-out.png") });
+  await expectLayoutOk(page, "header signed out");
 
-  // Members: Check In stays yellow, no Sign up.
+  // Also on a dynamic route (the pathname streams in there).
+  const event = await createEvent({ startMin: 60 * 24 * 6, endMin: 60 * 24 * 6 + 60 });
+  await page.goto(`/events/${event.id}`);
+  await expect(header.getByRole("link", { name: "Sign in", exact: true })).toBeVisible();
+  await expect(header.getByRole("link", { name: "Sign up", exact: true })).toBeVisible();
+
+  // /join and /login have their own sign-up / sign-in buttons: none in the header, in the first HTML too.
+  for (const path of ["/join", "/login"]) {
+    const html = await (await page.request.get(path)).text();
+    expect(html, path).not.toContain(">Sign up<"); // nor streamed in later
+    expect(html.slice(html.indexOf("<header"), html.indexOf("</header>")), path).not.toContain(">Sign in<");
+    await page.goto(path);
+    await expect(header.getByRole("link", { name: "Sign up", exact: true }), path).toHaveCount(0);
+    await expect(header.getByRole("link", { name: "Sign in", exact: true }), path).toHaveCount(0);
+  }
+
+  // Members: Check In stays yellow, no Sign up or Sign in.
   await signIn(page, await createUser(), "/events");
   await expect(header.getByRole("link", { name: "Sign up", exact: true })).toHaveCount(0);
+  await expect(header.getByRole("link", { name: "Sign in", exact: true })).toHaveCount(0);
   if (!isPhone(page)) await expect(header.getByRole("link", { name: "Check In" })).toHaveClass(/bg-maize/); // once the session streams in
 });
 
@@ -149,16 +180,20 @@ test("button wording: 'Sign up with umich', 'Join the club', and the sign-in pag
   await expect(join).toHaveCount(2); // hero and banner
   for (const l of await join.all()) await expect(l).toHaveAttribute("href", "/join");
   await expect(page.locator("main").getByText("Join the Community")).toHaveCount(0);
-  // Near the sign-up call to action.
-  const line = page.getByText("RSVP and check in with one tap.");
+  // Above the hero buttons, in the description's color.
+  const line = page.getByText("Sign up with umich to RSVP and check in with one tap.");
   await expect(line).toBeVisible();
-  expect(Math.abs((await top(line)) - (await top(join.first())))).toBeLessThan(160);
+  expect(await top(line)).toBeLessThan(await top(join.first()));
+  expect(await top(join.first()) - (await top(line))).toBeLessThan(100);
+  const color = (l: Locator) => l.evaluate((el) => getComputedStyle(el).color);
+  expect(await color(line)).toBe(await color(page.getByText(pitch, { exact: true }).first()));
 
   await page.goto("/about");
   await expect(page.locator("main").getByRole("link", { name: "Join the club" })).toHaveAttribute("href", "/join");
 
   await page.goto("/login");
   await expect(page.getByText("First time? Signing in creates your account.")).toBeVisible();
+  await expect(page.locator("main").getByText("Members", { exact: true })).toHaveCount(0); // no label over the heading
 });
 
 test("locations: building codes spelled out on the event page with a Map link; cards keep the code", async ({ page }) => {

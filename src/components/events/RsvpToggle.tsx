@@ -74,8 +74,9 @@ export function RsvpToggle({ event, primary = true, className = "" }: { event: C
           className={button({ variant: primary ? "primary" : "secondary", size: "lg", className: "w-full sm:w-auto" })}
         >
           <LogIn aria-hidden="true" />
-          Sign in to RSVP
+          RSVP with umich
         </Link>
+        <p className="mt-2 text-center text-sm text-fg-2 sm:text-left">First time? This creates your account.</p>
       </div>
     );
   }

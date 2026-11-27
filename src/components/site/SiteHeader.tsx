@@ -8,7 +8,7 @@ import { getProfile } from "@/lib/auth";
 import { getMemberNav } from "@/lib/member-nav";
 import { callName } from "@/lib/names";
 import { headshotFor } from "@/lib/roblox";
-import { DesktopNav, HeaderCheckIn } from "./NavLinks";
+import { DesktopNav, HeaderCheckIn, SignedOutActions } from "./NavLinks";
 
 export function SiteHeader() {
   return (
@@ -17,14 +17,15 @@ export function SiteHeader() {
       {/* Tighter between md and lg so the full nav fits at 768px, signed in or out. */}
       <div className={`${container} flex h-16 items-center gap-3 lg:gap-6`}>
         <Link href="/" className="flex min-h-11 shrink-0 items-center rounded-md" aria-label="Roblox at UM home">
-          <Wordmark tone="white" className="h-6 w-auto sm:h-7" />
+          {/* Smaller on phones and tablets, so Sign in + Sign up (and the full nav from md) fit beside it. */}
+          <Wordmark tone="white" className="h-5 w-auto sm:h-7 md:max-lg:h-6" />
         </Link>
         {/* Fallbacks are the signed-out header, so nothing shifts for signed-out visitors. */}
         <Suspense fallback={<DesktopNav member={false} />}>
           <MemberDesktopNav />
         </Suspense>
         <div className="ml-auto flex items-center gap-2">
-          <Suspense fallback={<SignUpLink />}>
+          <Suspense fallback={<SignedOutActions />}>
             <AccountActions />
           </Suspense>
           {/* Phones get Check In / Play in the bottom tab bar instead. */}
@@ -51,18 +52,9 @@ async function MemberCheckIn() {
   return <HeaderCheckIn events={checkedIn} outline={!member} />;
 }
 
-/** Signed out: Sign up (the /join page; existing members can sign in from there or /login). */
-function SignUpLink() {
-  return (
-    <Link href="/join" className={button({ size: "sm" })}>
-      Sign up
-    </Link>
-  );
-}
-
 async function AccountActions() {
   const profile = await getProfile();
-  if (!profile) return <SignUpLink />;
+  if (!profile) return <SignedOutActions />;
   const name = callName(profile);
   // Cached about an hour; null (initial-letter icon) if Roblox is unavailable.
   const avatar = await headshotFor(profile);

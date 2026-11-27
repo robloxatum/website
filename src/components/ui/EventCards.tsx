@@ -82,7 +82,7 @@ export function EventCard({
           {event.status === "completed" ? (
             event.attendance !== null && <StatusPill status="completed" />
           ) : (
-            <span className="hidden items-center gap-1 text-sm font-semibold text-maize sm:inline-flex">
+            <span className="inline-flex items-center gap-1 text-sm font-semibold text-maize">
               Details
               <ArrowRight aria-hidden="true" className="size-4 transition-transform duration-200 group-hover:translate-x-0.5" />
             </span>

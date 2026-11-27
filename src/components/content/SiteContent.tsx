@@ -1,5 +1,6 @@
-import { ArrowRight, Code2, Gamepad2, Sparkles, Trophy, Users } from "lucide-react";
+import { ArrowRight, Code2, Gamepad2, Minus, Plus, Sparkles, Trophy, Users } from "lucide-react";
 import Link from "next/link";
+import { Fragment } from "react";
 import { FeaturedArt } from "@/components/art/Art";
 import { CubeCluster } from "@/components/art/Cubes";
 import { card } from "@/components/ui/styles";
@@ -61,13 +62,32 @@ export function FaqList({ items }: { items: FaqItem[] }) {
         <details key={`${i}-${item.question}`} className={`group ${card} p-0 [&_summary::-webkit-details-marker]:hidden`}>
           <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 rounded-2xl px-5 font-semibold text-fg">
             {item.question}
-            <span aria-hidden="true" className="text-xl text-maize transition-transform duration-200 group-open:rotate-45">+</span>
+            {/* Plus closed, minus open. */}
+            <Plus aria-hidden="true" className="size-5 shrink-0 text-maize group-open:hidden" />
+            <Minus aria-hidden="true" className="hidden size-5 shrink-0 text-maize group-open:block" />
           </summary>
-          <p className="px-5 pb-5 text-fg-2">{item.answer}</p>
+          <p className="px-5 pb-5 text-fg-2">
+            <WithEventsLink text={item.answer} />
+          </p>
         </details>
       ))}
     </div>
   );
+}
+
+/** Answers are plain text (officer-edited): "Events page" in them links to /events. */
+function WithEventsLink({ text }: { text: string }) {
+  const parts = text.split("Events page");
+  return parts.map((part, i) => (
+    <Fragment key={i}>
+      {i > 0 && (
+        <Link href="/events" className="font-semibold text-maize hover:underline">
+          Events page
+        </Link>
+      )}
+      {part}
+    </Fragment>
+  ));
 }
 
 /** The Featured panel on the home page. */

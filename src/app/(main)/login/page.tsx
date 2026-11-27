@@ -27,8 +27,7 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
   return (
     <div className={`${container} max-w-md! pt-10`}>
       <BrandIcon className="size-14" alt="" />
-      <p className="mt-4 text-sm font-semibold text-maize">Members</p>
-      <h1 className="mt-1 text-4xl text-fg">Sign in</h1>
+      <h1 className="mt-4 text-4xl text-fg">Sign in</h1>
       <div className="mt-6">
         <Suspense fallback={<Skeleton className="h-56" />}>
           <LoginPanel searchParams={searchParams} />

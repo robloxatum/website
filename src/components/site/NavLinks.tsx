@@ -3,8 +3,9 @@
 import { CalendarDays, Gamepad2, Home, Link2, QrCode, UserPlus, UserRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useEffectEvent, useState } from "react";
 import { button } from "@/components/ui/styles";
+import { CHECK_IN_LEAD_MS, isCheckInTime } from "@/lib/event-day";
 import type { CheckedInEvent, MemberNav } from "@/lib/member-nav";
 import { useGameServers } from "@/lib/use-game-servers";
 
@@ -44,31 +45,61 @@ function withPathnameProps<P extends { pathname: string | null }>(Nav: (props: P
 
 const MAX_TIMEOUT = 2 ** 31 - 1;
 
+/** When an upcoming event starts and ends (public times only). */
+export type CheckInWindow = { starts_at: string; ends_at: string };
+
 function liveAt(events: CheckedInEvent[], now: number) {
   return events.find((e) => Date.parse(e.starts_at) <= now && now < Date.parse(e.ends_at)) ?? null;
+}
+
+/**
+ * Calls `update` at each of these times (ms) still ahead, and whenever the tab
+ * comes back into view (and once on mount if `now`).
+ */
+function useUpdateAt(times: number[], update: () => void, { now = false } = {}) {
+  const onTime = useEffectEvent(update);
+  const key = times.join(",");
+  useEffect(() => {
+    if (now) onTime();
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    for (const t of key ? key.split(",").map(Number) : []) {
+      const ms = t - Date.now();
+      if (ms > 0 && ms < MAX_TIMEOUT) timers.push(setTimeout(onTime, ms + 500));
+    }
+    const onFocus = () => document.visibilityState === "visible" && onTime();
+    document.addEventListener("visibilitychange", onFocus);
+    return () => {
+      timers.forEach(clearTimeout);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
+  }, [key, now]);
 }
 
 /** The checked-in event that's live right now, switching when one starts or ends. */
 function useLiveEvent(events: CheckedInEvent[]) {
   // No check-ins (always the case in the prerendered shell): no clock needed.
   const [live, setLive] = useState(() => (events.length ? liveAt(events, Date.now()) : null));
-  useEffect(() => {
-    const timers: ReturnType<typeof setTimeout>[] = [];
-    const update = () => setLive(liveAt(events, Date.now()));
-    for (const e of events) {
-      for (const t of [e.starts_at, e.ends_at]) {
-        const ms = Date.parse(t) - Date.now();
-        if (ms > 0 && ms < MAX_TIMEOUT) timers.push(setTimeout(update, ms + 500));
-      }
-    }
-    const onFocus = () => document.visibilityState === "visible" && update();
-    document.addEventListener("visibilitychange", onFocus);
-    return () => {
-      timers.forEach(clearTimeout);
-      document.removeEventListener("visibilitychange", onFocus);
-    };
-  }, [events]);
+  useUpdateAt(
+    events.flatMap((e) => [Date.parse(e.starts_at), Date.parse(e.ends_at)]),
+    () => setLive(liveAt(events, Date.now())),
+  );
   return live;
+}
+
+/**
+ * Event day: some upcoming event's check-in window (2 hours before the start until the
+ * end, as on the event page) is open, switching as windows open and close.
+ */
+function useEventDay(windows: CheckInWindow[]) {
+  // Off in the server HTML and first render, then the browser's clock decides
+  // (so server and browser HTML always match).
+  const [on, setOn] = useState(false);
+  useUpdateAt(
+    windows.flatMap((w) => [Date.parse(w.starts_at) - CHECK_IN_LEAD_MS, Date.parse(w.ends_at)]),
+    () => setOn(windows.some((w) => isCheckInTime(w))),
+    { now: true },
+  );
+  return on;
 }
 
 /** Renders Check In, or Play (with "posted" = a game link is up) during a live checked-in event. */
@@ -139,6 +170,30 @@ export function HeaderCheckIn({ events, outline = false }: { events: CheckedInEv
     />
   );
 }
+
+/**
+ * Signed out: a plain "Sign in" for returning members and a yellow "Sign up"
+ * (the /join page). Neither on /join or /login, which have their own sign-in /
+ * sign-up buttons. Those are static routes, so the pathname is known in the
+ * first HTML there; on dynamic routes it streams in, and both show meanwhile.
+ */
+export const SignedOutActions = withPathname(function SignedOutActionsInner({ pathname }: { pathname: string | null }) {
+  if (pathname === "/join" || pathname === "/login") return null;
+  return (
+    // No gap: Sign in's own padding spaces the two.
+    <div className="flex items-center">
+      <Link
+        href="/login"
+        className="inline-flex min-h-11 items-center px-2.5 text-sm font-semibold whitespace-nowrap text-fg-2 transition-colors duration-150 hover:text-fg"
+      >
+        Sign in
+      </Link>
+      <Link href="/join" className={button({ size: "sm" })}>
+        Sign up
+      </Link>
+    </div>
+  );
+});
 
 /* ---------------------------------------------------------------------------
  * Desktop header nav. The server renders the signed-out nav (with Join) until
@@ -212,11 +267,35 @@ function Tab({ href, label, icon: Icon, pathname }: { href: string; label: strin
   );
 }
 
-function PrimaryTab({ href, label, icon: Icon, pathname, posted = false }: { href: string; label: string; icon: typeof Home; pathname: string | null; posted?: boolean }) {
+/**
+ * The raised middle button. Navy with a yellow icon most days; yellow on event
+ * day (`highlight`) and for Play.
+ */
+function PrimaryTab({
+  href,
+  label,
+  icon: Icon,
+  pathname,
+  highlight,
+  posted = false,
+}: {
+  href: string;
+  label: string;
+  icon: typeof Home;
+  pathname: string | null;
+  highlight: boolean;
+  posted?: boolean;
+}) {
   const active = isActive(pathname, href);
   return (
-    <Link href={href} aria-current={active ? "page" : undefined} className={tabClass(active)}>
-      <span className="relative -mt-5 grid size-12 place-items-center rounded-2xl bg-maize text-navy shadow-[0_8px_20px_-8px_rgb(240_196_19/0.7)]">
+    <Link href={href} aria-current={active ? "page" : undefined} className={tabClass(active)} data-highlight={highlight || undefined}>
+      <span
+        className={`relative -mt-5 grid size-12 place-items-center rounded-2xl transition-colors duration-200 ${
+          highlight
+            ? "bg-maize text-navy shadow-[0_8px_20px_-8px_rgb(240_196_19/0.7)]"
+            : "border border-maize/45 bg-navy text-maize shadow-[0_8px_20px_-10px_rgb(0_0_0/0.8)]"
+        }`}
+      >
         <Icon aria-hidden="true" className="size-6" />
         {posted && <PostedDot className="-top-1 -right-1" />}
       </span>
@@ -229,11 +308,15 @@ function PrimaryTab({ href, label, icon: Icon, pathname, posted = false }: { hre
 export const MobileTabBar = withPathnameProps(function MobileTabBarInner({
   pathname,
   nav,
+  checkInWindows = [],
 }: {
   pathname: string | null;
   nav: MemberNav;
+  /** Upcoming events' times: Check In turns yellow on event day. */
+  checkInWindows?: CheckInWindow[];
 }) {
   const events = nav.checkedIn;
+  const eventDay = useEventDay(checkInWindows);
   return (
     <nav
       aria-label="Main"
@@ -248,9 +331,9 @@ export const MobileTabBar = withPathnameProps(function MobileTabBarInner({
             events={events}
             render={(mode) =>
               mode.play ? (
-                <PrimaryTab href="/play" label="Play" icon={Gamepad2} pathname={pathname} posted={mode.posted} />
+                <PrimaryTab href="/play" label="Play" icon={Gamepad2} pathname={pathname} highlight posted={mode.posted} />
               ) : (
-                <PrimaryTab href="/checkin" label="Check In" icon={QrCode} pathname={pathname} />
+                <PrimaryTab href="/checkin" label="Check In" icon={QrCode} pathname={pathname} highlight={eventDay} />
               )
             }
           />
