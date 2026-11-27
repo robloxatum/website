@@ -2,7 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, test as base } from "@playwright/test";
 import type { TestUser } from "./db";
 
-// 1×1 PNG, served for Roblox avatar images (the tests never call Roblox).
+// 1×1 PNG, served for Roblox avatar images (the tests never call Roblox) and optimized flyers.
 const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64");
 
 type Fixtures = { pageErrors: string[] };
@@ -21,6 +21,14 @@ export const test = base.extend<Fixtures>({
         errors.push(`console: ${text}`);
       });
       await page.route(/rbxcdn\.com|_next\/image\?url=https%3A%2F%2Ftr\.rbxcdn\.com/, (route) =>
+        route.fulfill({ status: 200, contentType: "image/png", body: PNG }),
+      );
+      // Flyers and covers through the image optimizer: Next refuses to optimize
+      // images from local IPs (images.dangerouslyAllowLocalIP is off, as it
+      // should be), and in E2E Storage is 127.0.0.1, so those requests can only
+      // fail here. In production Storage is a public host. The stored files are
+      // checked directly (image-metadata.spec.ts), not through the optimizer.
+      await page.route(/_next\/image\?url=[^&]*event-flyers/, (route) =>
         route.fulfill({ status: 200, contentType: "image/png", body: PNG }),
       );
       await use(errors);

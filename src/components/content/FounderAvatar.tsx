@@ -22,6 +22,8 @@ export function FounderAvatar({ name, src }: { name: string; src: string | null 
           alt=""
           fill
           sizes="(min-width: 1024px) 270px, (min-width: 768px) 30vw, 45vw"
+          // Straight from Roblox's CDN, not through our image optimizer (audit 3, M-1).
+          unoptimized
           onError={() => setFailed(true)}
           className="object-contain p-2"
           data-testid="founder-avatar"

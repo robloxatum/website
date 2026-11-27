@@ -1,0 +1,73 @@
+{
+  "ranAt": "2026-11-27T09:34:35.825Z",
+  "checks": [
+    {
+      "name": "officer downloads backup.zip",
+      "pass": true,
+      "detail": "HTTP 200, private, no-store"
+    },
+    {
+      "name": "zip opens with a standard tool",
+      "pass": true,
+      "detail": "unzip exit 0"
+    },
+    {
+      "name": "backup has every synthetic row",
+      "pass": true,
+      "detail": "members 4/4, events 2/2, check-ins 3/3, RSVPs 4/4"
+    },
+    {
+      "name": "formula guard applied to values starting with - or =",
+      "pass": true,
+      "detail": "nickname and description exported with a leading '"
+    },
+    {
+      "name": "disaster removed everything",
+      "pass": true,
+      "detail": "profiles 0, events 0"
+    },
+    {
+      "name": "restored accounts get new ids (old ids in the backup are useless)",
+      "pass": true,
+      "detail": "all 4 differ"
+    },
+    {
+      "name": "events re-inserted with their original ids",
+      "pass": true,
+      "detail": "ok"
+    },
+    {
+      "name": "check-ins and RSVPs re-linked by uniqname",
+      "pass": true,
+      "detail": "ok"
+    },
+    {
+      "name": "restored profiles match the snapshot",
+      "pass": true,
+      "detail": "4 rows identical"
+    },
+    {
+      "name": "restored events match the snapshot",
+      "pass": true,
+      "detail": "2 rows identical"
+    },
+    {
+      "name": "restored attendance match the snapshot",
+      "pass": true,
+      "detail": "3 rows identical"
+    },
+    {
+      "name": "restored rsvps match the snapshot",
+      "pass": true,
+      "detail": "4 rows identical"
+    }
+  ],
+  "notRestorable": [
+    "auth accounts (Google identities): not in the backup; members sign in again, then data must be matched by uniqname",
+    "event check-in codes (event_codes): regenerated automatically for re-inserted events",
+    "game server links, announcements, Links/Join/Featured/About content, site_content_edits",
+    "push devices (members turn notifications on again), event_reminders_sent",
+    "flyer and cover images: only their paths are in events.csv; the files live in Storage and aren't in the zip",
+    "rows created inside private.* (wrong-code times, Roblox lookups): not needed"
+  ]
+}

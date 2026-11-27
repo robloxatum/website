@@ -43,6 +43,9 @@ export function Avatar({
           width={s.px}
           height={s.px}
           sizes={`${s.px}px`}
+          // Straight from Roblox's CDN, not through our image optimizer: the
+          // optimizer would fetch any *.rbxcdn.com URL for anyone (audit 3, M-1).
+          unoptimized
           onError={() => setFailed(true)}
           className="size-full object-cover"
         />

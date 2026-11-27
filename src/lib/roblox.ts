@@ -94,9 +94,23 @@ const THUMBNAILS: Record<AvatarKind, string> = {
   full: "/v1/users/avatar?size=420x420",
 };
 
+/**
+ * Arguments of the "use cache" functions below, checked inside them: a cache
+ * function can be reached with any arguments (see lib/server-reference.ts and
+ * proxy.ts), so it never sends Roblox more than one batch of valid values.
+ */
+const isUserId = (id: unknown): id is number => Number.isSafeInteger(id) && (id as number) > 0;
+const isBatch = <T>(items: unknown, ok: (x: unknown) => x is T): items is T[] =>
+  Array.isArray(items) && items.length > 0 && items.length <= BATCH && items.every(ok);
+const isUsername = (u: unknown): u is string => typeof u === "string" && USERNAME.test(u);
+
 /** user ID → avatar URL for a sorted batch of up to 100 IDs. Cached about an hour. */
 async function avatarBatch(ids: number[], kind: AvatarKind = "headshot"): Promise<Record<number, string>> {
   "use cache";
+  if (!isBatch(ids, isUserId) || !Object.hasOwn(THUMBNAILS, kind)) {
+    cacheLife("hours");
+    return {};
+  }
   try {
     const json = await robloxFetch(`${api("thumbnails")}${THUMBNAILS[kind]}&userIds=${ids.join(",")}&format=Webp&isCircular=false`);
     const out: Record<number, string> = {};
@@ -120,6 +134,10 @@ async function avatarBatch(ids: number[], kind: AvatarKind = "headshot"): Promis
 /** username batch → IDs, cached like lookups (used for members saved before IDs were stored). */
 async function idsForUsernames(usernames: string[]): Promise<Record<string, number>> {
   "use cache";
+  if (!isBatch(usernames, isUsername)) {
+    cacheLife("hours");
+    return {};
+  }
   try {
     const found = await lookupBatch(usernames);
     cacheLife("hours");

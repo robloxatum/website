@@ -50,9 +50,10 @@ test("founders: in order, name and role, full-body avatars (initials when Roblox
       { timeout: 120_000, intervals: [2_000, 5_000, 10_000] },
     )
     .toBe(1);
-  await expect(cards.nth(0).getByTestId("founder-avatar")).toHaveAttribute("src", /tr\.rbxcdn\.com%2Fe2e%2Ffull%2F9001\.webp/);
-  await expect(cards.nth(1).getByTestId("founder-avatar")).toHaveAttribute("src", /full%2F9002\.webp/);
-  await expect(cards.nth(2).getByTestId("founder-avatar")).toHaveAttribute("src", /full%2F9003\.webp/);
+  // Straight from Roblox's CDN, not through /_next/image (audit 3, M-1).
+  await expect(cards.nth(0).getByTestId("founder-avatar")).toHaveAttribute("src", "https://tr.rbxcdn.com/e2e/full/9001.webp");
+  await expect(cards.nth(1).getByTestId("founder-avatar")).toHaveAttribute("src", "https://tr.rbxcdn.com/e2e/full/9002.webp");
+  await expect(cards.nth(2).getByTestId("founder-avatar")).toHaveAttribute("src", "https://tr.rbxcdn.com/e2e/full/9003.webp");
   // Fallback: Roblox has no user "noblemaxx" (in the mock), so initials.
   await expect(cards.nth(3).getByTestId("founder-avatar")).toHaveCount(0);
   await expect(cards.nth(3)).toContainText("KC");

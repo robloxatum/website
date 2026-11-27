@@ -53,8 +53,6 @@ const csp = [
   .map((d) => d.replace(/\s+/g, " ").trim())
   .join("; ");
 const flyerImages = supabaseUrl ? [new URL(`${supabaseUrl}/storage/v1/object/public/event-flyers/**`)] : [];
-// Members' Roblox avatar headshots (URLs come from Roblox's thumbnails API).
-const robloxImages = [{ protocol: "https" as const, hostname: "**.rbxcdn.com", pathname: "/**" }];
 
 // Default event covers: whatever images are in public/art/covers at build time
 // (restart `next dev` after adding one). Inlined as process.env.DEFAULT_COVERS.
@@ -86,8 +84,11 @@ const nextConfig: NextConfig = {
   partialPrefetching: true,
   // AVIF first (smallest), WebP for browsers without AVIF. 75 is the default
   // quality; 50 is left in for art that compresses well at lower quality.
-  // Flyers come from the public Supabase Storage bucket; avatars from Roblox's CDN.
-  images: { formats: ["image/avif", "image/webp"], qualities: [50, 75], remotePatterns: [...flyerImages, ...robloxImages] },
+  // Only flyers from the public Supabase Storage bucket go through the
+  // optimizer. Roblox avatars are loaded straight from Roblox's CDN
+  // (`unoptimized` in Avatar/FounderAvatar), so nobody can make our optimizer
+  // fetch arbitrary *.rbxcdn.com images (audit 3, M-1).
+  images: { formats: ["image/avif", "image/webp"], qualities: [50, 75], remotePatterns: flyerImages },
   turbopack: {
     rules: {
       "*.css": {
