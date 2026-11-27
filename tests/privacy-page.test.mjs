@@ -62,10 +62,10 @@ describe("privacy page", () => {
       "one short-lived cookie finishes signing you in",
       'whether you closed the "install" bar',
       "How long we keep it",
-      "Tell us when you graduate or leave",
+      "while the club needs them for its records. You can ask us to delete them at any time.",
       '"Get event updates" Google Form',
       "only when 10 or more did",
-      "We'll reply to deletion requests within two weeks.",
+      "We'll reply as soon as we can.",
     ]) {
       assert.ok(page.includes(phrase), phrase);
     }
@@ -74,5 +74,8 @@ describe("privacy page", () => {
   it("no longer makes the claims the site didn't keep", () => {
     assert.doesNotMatch(page, /These are deleted after a day/);
     assert.doesNotMatch(page, /The only cookie/);
+    // No fixed time commitments.
+    assert.doesNotMatch(page, /within (a|one|two|\d+) (day|week|month)s?/i);
+    assert.doesNotMatch(page, /when you graduate/i);
   });
 });

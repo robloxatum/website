@@ -133,8 +133,8 @@ export default function PrivacyPage() {
 
         <Section icon={Clock} title="How long we keep it">
           <p>
-            We keep your profile, check-ins and RSVPs while you&apos;re a member. Tell us when you graduate or leave and
-            we&apos;ll delete them. Officers delete old exported files. Flyers and covers that officers upload are public,
+            We keep your profile, check-ins and RSVPs while the club needs them for its records. You can ask us to
+            delete them at any time. Flyers and covers that officers upload are public,
             and we remove a photo&apos;s hidden details (like where it was taken) before it&apos;s uploaded.
           </p>
         </Section>
@@ -146,8 +146,8 @@ export default function PrivacyPage() {
             <a href={`mailto:${CONTACT_EMAIL}`} className={linkClass}>
               {CONTACT_EMAIL}
             </a>{" "}
-            from your umich.edu address. We&apos;ll reply to deletion requests within two weeks. You can also email us with any questions
-            about your data.
+            from your umich.edu address. We&apos;ll reply as soon as we can. You can also email us with any questions about
+            your data.
           </p>
         </Section>
       </div>
