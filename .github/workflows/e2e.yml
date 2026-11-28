@@ -27,6 +27,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
+      # Production allows Google sign-in only: fails if email, phone or anonymous
+      # sign-in is ever on (reads the public /auth/v1/settings; changes nothing).
+      - run: node scripts/check-prod-auth.mjs
       # Unit tests first: they're fast.
       - run: npm test
       # Local Supabase in Docker (the runner has Docker). The script refuses to run
