@@ -151,6 +151,40 @@ test("refused: HTML and empty required fields; nothing saved", async ({ page, br
   await officer.close();
 });
 
+const LINKEDIN = [
+  "https://www.linkedin.com/in/alexander-villagomez/",
+  "https://www.linkedin.com/in/emily-garcia-647678381/",
+  "https://www.linkedin.com/in/evanstocker/",
+  "https://www.linkedin.com/in/kaden-chirco-01a8552b1/",
+];
+
+test("founders: a LinkedIn icon link under 'Cofounder', new tab, named, 44px to tap", async ({ page }) => {
+  await page.goto("/about");
+  const cards = founderCards(page);
+  await expect(cards.locator("h3")).toHaveText(FOUNDERS);
+  for (let i = 0; i < FOUNDERS.length; i++) {
+    const card = cards.nth(i);
+    const link = card.getByRole("link", { name: `${FOUNDERS[i]} on LinkedIn`, exact: true });
+    await expect(link).toBeVisible();
+    await expect(link).toHaveAttribute("href", LINKEDIN[i]);
+    await expect(link).toHaveAttribute("target", "_blank");
+    await expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    await expect(link.locator("svg")).toHaveCount(1); // an icon, no visible text
+    await expect(link).toHaveText("");
+    const box = (await link.boundingBox())!;
+    expect(box.width).toBeGreaterThanOrEqual(44);
+    expect(box.height).toBeGreaterThanOrEqual(44);
+    // Under the role, inside the card.
+    const role = (await card.getByText("Cofounder", { exact: true }).boundingBox())!;
+    expect(box.y).toBeGreaterThanOrEqual(role.y + role.height - 1);
+    const c = (await card.boundingBox())!;
+    expect(box.x).toBeGreaterThanOrEqual(c.x);
+    expect(box.x + box.width).toBeLessThanOrEqual(c.x + c.width);
+  }
+  await expect(page.locator("main a[href*='linkedin.com/in/']")).toHaveCount(FOUNDERS.length);
+  await page.locator("section#team").screenshot({ path: test.info().outputPath("founders-linkedin.png") });
+});
+
 test("/about: layout and accessibility", async ({ page }) => {
   await page.goto("/about");
   await expect(page.getByTestId("founder-avatar").first()).toBeVisible();

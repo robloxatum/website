@@ -9,7 +9,7 @@ import { button, card, container } from "@/components/ui/styles";
 import { pageMetadata } from "@/lib/metadata";
 import { fullAvatarsFor } from "@/lib/roblox";
 import { getAboutContent } from "@/lib/site-content-data";
-import { FOUNDERS } from "@/content/founders";
+import { FOUNDERS, isLinkedInProfileUrl } from "@/content/founders";
 
 export const metadata: Metadata = pageMetadata({
   title: "Our story",
@@ -85,7 +85,14 @@ async function AboutContent() {
  * URL. Never the Roblox username (it's only used on the server, below).
  */
 function founderCards(avatars: (string | null)[] | null): FounderCardData[] {
-  return FOUNDERS.map((f, i) => ({ name: f.name, role: f.role, blurb: f.oneLiner ?? "", avatar: avatars?.[i] ?? null }));
+  // Never the Roblox username: it stays on the server.
+  return FOUNDERS.map((f, i) => ({
+    name: f.name,
+    role: f.role,
+    blurb: f.oneLiner ?? "",
+    avatar: avatars?.[i] ?? null,
+    linkedin: isLinkedInProfileUrl(f.linkedin) ? f.linkedin : null,
+  }));
 }
 
 /** Full-body avatars looked up from the usernames (cached about an hour; initials if Roblox fails). */

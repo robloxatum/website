@@ -1,5 +1,6 @@
 import { card } from "@/components/ui/styles";
 import type { Milestone } from "@/lib/site-content";
+import { LinkedInIcon } from "@/components/BrandIcons";
 import { FounderAvatar } from "./FounderAvatar";
 
 /**
@@ -30,9 +31,9 @@ export function Timeline({ items }: { items: Milestone[] }) {
   );
 }
 
-export type FounderCardData = { name: string; role: string; blurb: string; avatar: string | null };
+export type FounderCardData = { name: string; role: string; blurb: string; avatar: string | null; linkedin: string | null };
 
-/** Founders: full-body Roblox avatar (or initials), name, role and one-liner. */
+/** Founders: full-body Roblox avatar (or initials), name, role, LinkedIn (if any) and one-liner. */
 export function FoundersGrid({ people }: { people: FounderCardData[] }) {
   return (
     <ul className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
@@ -42,6 +43,19 @@ export function FoundersGrid({ people }: { people: FounderCardData[] }) {
           <div className="flex flex-1 flex-col p-3 sm:p-4">
             <h3 className="text-base break-words text-fg sm:text-lg">{p.name}</h3>
             <p className="mt-0.5 text-sm font-semibold text-maize">{p.role}</p>
+            {p.linkedin && (
+              // 44px tap target; pulled left so the icon lines up with the text above.
+              <a
+                href={p.linkedin}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`${p.name} on LinkedIn`}
+                title={`${p.name} on LinkedIn`}
+                className="-ml-3 grid size-11 shrink-0 place-items-center self-start rounded-lg text-fg-2 transition-colors duration-150 hover:bg-white/[0.06] hover:text-maize"
+              >
+                <LinkedInIcon className="size-5" />
+              </a>
+            )}
             {p.blurb && <p className="mt-2 text-sm break-words text-fg-2">{p.blurb}</p>}
           </div>
         </li>
