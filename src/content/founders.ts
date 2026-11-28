@@ -11,11 +11,62 @@ export type Founder = {
   robloxUsername: string;
   /** Optional one-liner under the role; hidden when empty. */
   oneLiner?: string;
+  /** Optional LinkedIn profile (https://www.linkedin.com/in/... only); no icon when missing or not one. */
+  linkedin?: string;
 };
 
+/**
+ * Only a LinkedIn profile URL: https, www.linkedin.com exactly, /in/<profile>
+ * (optional trailing slash), nothing else (no login, port, query or fragment).
+ */
+export function isLinkedInProfileUrl(value: unknown): value is string {
+  if (typeof value !== "string" || value !== value.trim()) return false;
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return false;
+  }
+  return (
+    url.protocol === "https:" &&
+    url.hostname === "www.linkedin.com" &&
+    url.port === "" &&
+    url.username === "" &&
+    url.password === "" &&
+    url.search === "" &&
+    url.hash === "" &&
+    value.startsWith("https://www.linkedin.com/in/") &&
+    /^\/in\/[A-Za-z0-9_-]+\/?$/.test(url.pathname)
+  );
+}
+
 export const FOUNDERS: readonly Founder[] = [
-  { name: "Alexander Villagomez", role: "Cofounder", robloxUsername: "vaillex", oneLiner: "" },
-  { name: "Emily Garcia", role: "Cofounder", robloxUsername: "yayy_drpepper", oneLiner: "" },
-  { name: "Evan Stocker", role: "Cofounder", robloxUsername: "FinestBuilds", oneLiner: "" },
-  { name: "Kaden Chirco", role: "Cofounder", robloxUsername: "noblemaxx", oneLiner: "" },
+  {
+    name: "Alexander Villagomez",
+    role: "Cofounder",
+    robloxUsername: "vaillex",
+    oneLiner: "",
+    linkedin: "https://www.linkedin.com/in/alexander-villagomez/",
+  },
+  {
+    name: "Emily Garcia",
+    role: "Cofounder",
+    robloxUsername: "yayy_drpepper",
+    oneLiner: "",
+    linkedin: "https://www.linkedin.com/in/emily-garcia-647678381/",
+  },
+  {
+    name: "Evan Stocker",
+    role: "Cofounder",
+    robloxUsername: "FinestBuilds",
+    oneLiner: "",
+    linkedin: "https://www.linkedin.com/in/evanstocker/",
+  },
+  {
+    name: "Kaden Chirco",
+    role: "Cofounder",
+    robloxUsername: "noblemaxx",
+    oneLiner: "",
+    linkedin: "https://www.linkedin.com/in/kaden-chirco-01a8552b1/",
+  },
 ];

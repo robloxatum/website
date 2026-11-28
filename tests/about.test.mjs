@@ -1,7 +1,7 @@
 // The About page: what officers may save (story, timeline) and the founders in code. Run: npm test
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { FOUNDERS } from "../src/content/founders.ts";
+import { FOUNDERS, isLinkedInProfileUrl } from "../src/content/founders.ts";
 import { initials, LIMITS, normalizeAbout } from "../src/lib/site-content.ts";
 
 const ok = (raw) => {
@@ -72,6 +72,60 @@ describe("founders (src/content/founders.ts)", () => {
     for (const f of FOUNDERS) {
       assert.match(f.robloxUsername, /^[A-Za-z0-9_]{3,20}$/, f.name);
       assert.equal(f.oneLiner ?? "", "", `${f.name}: one-liners are empty for now`);
+    }
+  });
+});
+
+describe("founder LinkedIn links", () => {
+  it("each founder links to their own LinkedIn profile", () => {
+    assert.deepEqual(
+      FOUNDERS.map((f) => [f.name, f.linkedin]),
+      [
+        ["Alexander Villagomez", "https://www.linkedin.com/in/alexander-villagomez/"],
+        ["Emily Garcia", "https://www.linkedin.com/in/emily-garcia-647678381/"],
+        ["Evan Stocker", "https://www.linkedin.com/in/evanstocker/"],
+        ["Kaden Chirco", "https://www.linkedin.com/in/kaden-chirco-01a8552b1/"],
+      ],
+    );
+    for (const f of FOUNDERS) {
+      assert.ok(f.linkedin === undefined || isLinkedInProfileUrl(f.linkedin), `${f.name}: not a LinkedIn profile URL`);
+      // The Roblox username stays private: not hidden in the LinkedIn link either.
+      assert.ok(!f.linkedin?.toLowerCase().includes(f.robloxUsername.toLowerCase()), f.name);
+    }
+  });
+
+  it("allows only https://www.linkedin.com/in/<profile> URLs", () => {
+    for (const good of [
+      "https://www.linkedin.com/in/evanstocker/",
+      "https://www.linkedin.com/in/evanstocker",
+      "https://www.linkedin.com/in/kaden-chirco-01a8552b1/",
+      "https://www.linkedin.com/in/some_one/",
+    ]) {
+      assert.equal(isLinkedInProfileUrl(good), true, good);
+    }
+    for (const bad of [
+      undefined,
+      null,
+      42,
+      "",
+      "http://www.linkedin.com/in/evanstocker/", // not https
+      "https://linkedin.com/in/evanstocker/", // not www
+      "https://www.linkedin.com.evil.com/in/evanstocker/",
+      "https://evil.com/?u=https://www.linkedin.com/in/x/",
+      "https://www.linkedin.com/company/roblox-at-um/", // not a profile
+      "https://www.linkedin.com/in/", // no profile
+      "https://www.linkedin.com/in/a/b/",
+      "https://www.linkedin.com/in/../company/x",
+      "https://www.linkedin.com/in/x?redirect=https://evil.com",
+      "https://www.linkedin.com/in/x#top",
+      "https://user:pw@www.linkedin.com/in/x/",
+      "https://www.linkedin.com:8443/in/x/",
+      "https://WWW.LINKEDIN.COM/in/x/", // only the exact spelling
+      " https://www.linkedin.com/in/x/",
+      "javascript:alert(1)//https://www.linkedin.com/in/x/",
+      "//www.linkedin.com/in/x/",
+    ]) {
+      assert.equal(isLinkedInProfileUrl(bad), false, String(bad));
     }
   });
 });
